@@ -1,25 +1,16 @@
-//
-// server.cpp
-// ~~~~~~~~~~
-//
-// Copyright (c) 2003-2012 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
 #include "server.hpp"
-
 
 namespace http {
 
-Server::Server(const std::shared_ptr<RequestHandlerFactory> &handlers, const std::string& address, const std::string& port,
+Server::Server(const std::shared_ptr<RequestHandler> &handler, const std::string& address, const std::string& port,
+               SessionManager &sm,
                std::size_t io_service_pool_size)
     : io_service_pool_(io_service_pool_size),
       signals_(io_service_pool_.get_io_service()),
       acceptor_(io_service_pool_.get_io_service()),
       socket_(io_service_pool_.get_io_service()),
-      handler_factory_(handlers)
+      session_manager_(sm),
+      handler_(handler)
 
 {
     // Register to handle the signals that indicate when the server should exit.
@@ -66,7 +57,7 @@ void Server::start_accept()
              if (!e)
              {
                connection_manager_.start(std::make_shared<Connection>(
-                   std::move(socket_), connection_manager_, handler_factory_));
+                   std::move(socket_), connection_manager_, session_manager_, handler_));
              }
 
         //if (!e) new_connection_->start();

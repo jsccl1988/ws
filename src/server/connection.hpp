@@ -19,7 +19,7 @@
 
 #include "reply.hpp"
 #include "request.hpp"
-#include "request_handler_factory.hpp"
+#include "request_handler.hpp"
 #include "request_parser.hpp"
 
 
@@ -36,7 +36,8 @@ public:
 
     /// Construct a HttpConnection with the given io_service.
     explicit Connection(boost::asio::ip::tcp::socket socket,
-                        ConnectionManager& manager, const std::shared_ptr<RequestHandlerFactory>& handler);
+                        ConnectionManager& manager,  SessionManager &sm,
+                        const std::shared_ptr<RequestHandler>& handler);
 
     /// Get the socket associated with the HttpConnection.
     boost::asio::ip::tcp::socket &socket() ;
@@ -57,13 +58,15 @@ private:
     /// Socket for the HttpConnection.
     boost::asio::ip::tcp::socket socket_;
 
-    /// The dispatcher of incoming HttpRequest.
-    std::shared_ptr<RequestHandlerFactory> handler_factory_;
+    /// The handler of incoming HttpRequest.
+    std::shared_ptr<RequestHandler> handler_;
 
     /// Buffer for incoming data.
     boost::array<char, 8192> buffer_;
 
     ConnectionManager& connection_manager_ ;
+
+    SessionManager &session_manager_ ;
 
     /// The incoming HttpRequest.
     Request request_;

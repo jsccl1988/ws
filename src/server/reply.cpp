@@ -13,6 +13,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include <iostream>
 
 #include <time.h>
 
@@ -116,7 +117,7 @@ std::vector<boost::asio::const_buffer> response_to_buffers(const Response &rep)
     std::vector<boost::asio::const_buffer> buffers;
     buffers.push_back(status_strings::to_buffer(rep.status_));
 
-    for( auto h: rep.headers_ )
+    for( const auto &h: rep.headers_ )
     {
         buffers.push_back(boost::asio::buffer(h.first));
         buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));

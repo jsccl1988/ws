@@ -32,7 +32,8 @@ class Server: private boost::noncopyable
 public:
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
-    explicit Server(const std::shared_ptr<RequestHandlerFactory> &hf, const std::string& address, const std::string& port,
+    explicit Server(const std::shared_ptr<RequestHandler> &hf, const std::string& address, const std::string& port,
+                    SessionManager &sm,
                     std::size_t io_service_pool_size);
 
     /// Run the server's io_service loop.
@@ -64,11 +65,13 @@ private:
 
     ConnectionManager connection_manager_;
 
+    SessionManager &session_manager_ ;
+
      /// The next socket to be accepted.
     boost::asio::ip::tcp::socket socket_;
 
     /// The handler for all incoming requests.
-    std::shared_ptr<RequestHandlerFactory> handler_factory_;
+    std::shared_ptr<RequestHandler> handler_;
 };
 
 } // namespace http

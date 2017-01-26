@@ -9,7 +9,7 @@ SET ( TEST_APP_SOURCES
 )
 
 ADD_LIBRARY(ws_test_plugin SHARED ${TEST_APP_SOURCES})
-TARGET_LINK_LIBRARIES(ws_test_plugin ${Boost_LIBRARIES} )
+TARGET_LINK_LIBRARIES(ws_test_plugin ${Boost_LIBRARIES} ws_http_server)
 
 
 

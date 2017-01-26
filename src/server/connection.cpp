@@ -19,10 +19,12 @@ namespace http {
 
 Connection::Connection(boost::asio::ip::tcp::socket socket,
                        ConnectionManager& manager,
-                       const std::shared_ptr<RequestHandlerFactory>& handler)
+                       SessionManager &sm,
+                       const std::shared_ptr<RequestHandler>& handler)
     : socket_(std::move(socket)),
       connection_manager_(manager),
-      handler_factory_(handler)
+      session_manager_(sm),
+      handler_(handler)
 {
 }
 
@@ -54,17 +56,18 @@ void Connection::handle_read(const boost::system::error_code& e,
         boost::tribool result;
         result = request_parser_.parse(buffer_.data(), bytes_transferred);
 
-        if (result )
+        if ( result )
         {
             if ( !request_parser_.decode_message(request_) ) {
                 reply_ = Response::stock_reply(Response::bad_request);
             }
             else {
-                std::shared_ptr<RequestHandler> handler = handler_factory_->create(request_) ;
 
-                if ( handler ) {
+                if ( handler_ ) {
                     try {
-                        handler->handle_request(request_, reply_);
+                        if ( !handler_->handle(request_, reply_, session_manager_) )
+                            reply_ = Response::stock_reply(Response::not_found);
+
                     }
                     catch ( ... ) {
                         reply_ = Response::stock_reply(Response::internal_server_error);

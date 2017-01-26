@@ -1,13 +1,3 @@
-//
-// request_handler.hpp
-// ~~~~~~~~~~~~~~~~~~~
-//
-// Copyright (c) 2003-2012 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
 #ifndef HTTP_SERVER_REQUEST_HANDLER_HPP
 #define HTTP_SERVER_REQUEST_HANDLER_HPP
 
@@ -19,6 +9,7 @@ namespace http {
 
 struct Response;
 struct Request;
+class SessionManager ;
 
 /// The common handler for all incoming requests.
 class RequestHandler: private boost::noncopyable
@@ -27,11 +18,15 @@ public:
 
     explicit RequestHandler() = default;
 
-    /// Handle a request and produce a reply.
-    virtual void handle_request(const Request& req, Response& rep) = 0;
-    virtual bool matches(const std::string &req_path) = 0;
+    /// Handle a request and produce a reply. Returns true if the request was handled (e.g. the request url and method match)
+    /// or not.
+
+    virtual bool handle(const Request& req, Response& rep, SessionManager &session_handler) = 0;
 };
+
+// Use this to declare a plugin interface in a shared library
+#define WSX_DECLARE_PLUGIN(class_name) extern "C" { http::RequestHandler *wsx_rh_create() { return new class_name() ; } }
 
 } // namespace http
 
-#endif // HTTP_SERVER2_REQUEST_HANDLER_HPP
+#endif // HTTP_SERVER_REQUEST_HANDLER_HPP

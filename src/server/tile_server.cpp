@@ -1,4 +1,6 @@
 #include "server/server.hpp"
+#include "server/plugin_handler_factory.hpp"
+#include "server/session_manager.hpp"
 
 #include <thread>
 #include <boost/program_options.hpp>
@@ -18,9 +20,9 @@ class DefaultLogger: public Logger
 {
 public:
     DefaultLogger(const std::string &log_file, bool debug) {
-        if ( debug ) addAppender(make_shared<LogStreamAppender>(Trace, make_shared<LogPatternFormatter>("%In function %c, %F:%l: %m"), std::cerr)) ;
+        if ( debug ) addAppender(std::make_shared<LogStreamAppender>(Trace, make_shared<LogPatternFormatter>("%In function %c, %F:%l: %m"), std::cerr)) ;
         if ( boost::filesystem::exists(log_file) )
-            addAppender(make_shared<LogFileAppender>(Info, make_shared<LogPatternFormatter>("%V: %d %r: %m"), log_file)) ;
+            addAppender(std::make_shared<LogFileAppender>(Info, make_shared<LogPatternFormatter>("%V: %d %r: %m"), log_file)) ;
     }
 };
 
@@ -30,55 +32,8 @@ Logger &get_current_logger() {
     return *g_server_logger ;
 }
 
-class DefaultHandler: public http::RequestHandler {
-public:
-    DefaultHandler() = default ;
-    virtual void handle_request(const http::Request& req, http::Response& rep) {}
-    virtual bool matches(const std::string &req_path)  {
-        return false ;
-    }
-};
-
-extern "C" {
-typedef http::RequestHandler *(*plugin_handler_factory_t)()  ;
-}
-
-class PluginHandlerFactory: public http::RequestHandlerFactory {
-public:
-    PluginHandlerFactory(const std::string &plugin_folders): http::RequestHandlerFactory() {
-
-        fs::path folder("/home/malasiot/source/ws/build/src/apps/test/") ;
-        if ( fs::is_directory(folder)) {
-            for(auto& entry : boost::make_iterator_range(fs::directory_iterator(folder), {}))
-                   if ( fs::is_regular_file(entry) ) {
-
-                       std::cout << entry << "\n";
-
-                         if ( void* handle = dlopen(entry.path().native().c_str(), RTLD_LAZY) ) { //RLTD_NOW
-                             
-                            if ( plugin_handler_factory_t hfactory = (plugin_handler_factory_t)dlsym(handle, "rh_create") ) {
-                                handlers_.push_back(std::unique_ptr<http::RequestHandler>(hfactory())) ;
-                            }
-                             
-                         }
-
-
-                   }
-        }
-    }
-
-    std::vector<std::unique_ptr<http::RequestHandler>> handlers_ ;
-
-    // implement this to return a handler matching the request
-
-    virtual std::shared_ptr<http::RequestHandler> create(const http::Request &req) {
-        return std::shared_ptr<http::RequestHandler>(handlers_[0].get()) ;
-    }
-};
-
-
 int main(int argc, char *argv[]) {
-    string server_config_file, server_ports, log_file, tile_cache_folder, server_host_name ;
+    string server_ports, log_file, tile_cache_folder, server_host_name ;
     bool debug = false ;
     po::options_description desc;
     desc.add_options()
@@ -97,7 +52,7 @@ int main(int argc, char *argv[]) {
         po::notify(vm);
 
         if (vm.count("help")) {
-            cout << "Usage: tile_server [options]\n";
+            cout << "Usage: ws_server [options]\n";
             cout << desc << endl ;
             return 1;
         }
@@ -105,13 +60,16 @@ int main(int argc, char *argv[]) {
     catch( po::error &e )
     {
         cerr << e.what() << endl ;
-        cout << "Usage: tile_server [options]\n";
+        cout << "Usage: ws_server [options]\n";
         cerr << desc << endl ;
         return 0;
     }
 
     g_server_logger.reset(new DefaultLogger(log_file, debug)) ;
-    std::shared_ptr<http::Server> srv(new http::Server(std::make_shared<PluginHandlerFactory>("hdhd"), server_host_name, server_ports, 10)) ;
+
+    http::MemSessionManager sm ;
+    std::shared_ptr<http::Server> srv(new http::Server(std::make_shared<http::PluginHandlerFactory>("/home/malasiot/source/ws/build/src/apps/test/;/usr/lib"),
+                                                       server_host_name, server_ports, sm, 10)) ;
 
     LOG_INFO("Starting server");
 
