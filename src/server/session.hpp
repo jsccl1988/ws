@@ -12,15 +12,10 @@ class SessionManager ;
 
 struct Session {
 
-    Session(SessionManager &sm, const Request &req, Response &resp) ;
-    ~Session()  ;
-
     std::string id_ ;
     Dictionary data_ ;
+    uint64_t lifetime_ ;
 
-private:
-    Response &response_ ;
-    SessionManager &session_manager_ ;
 };
 
 }

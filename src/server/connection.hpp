@@ -21,6 +21,7 @@
 #include "request.hpp"
 #include "request_handler.hpp"
 #include "request_parser.hpp"
+#include "session_manager.hpp"
 
 
 namespace http {

@@ -14,8 +14,8 @@ class SessionManager {
 public:
     SessionManager() {}
 
-    void begin(const Request &req, Session &session_data) ;
-    void end(Response &resp, const Session &session_data);
+    void open(const Request &req, Session &session_data) ;
+    void close(Response &resp, const Session &session_data);
 
 protected:
     virtual void save(const Session &session) = 0 ;

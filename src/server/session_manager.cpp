@@ -10,7 +10,7 @@ using namespace std ;
 
 namespace http {
 
-void SessionManager::begin(const Request &req, Session &session_data)
+void SessionManager::open(const Request &req, Session &session_data)
 {
     session_data.id_ = req.COOKIE_.get("WSX_SESSION_ID") ;
 
@@ -22,7 +22,7 @@ void SessionManager::begin(const Request &req, Session &session_data)
     load(session_data) ;
 }
 
-void SessionManager::end(Response &resp, const Session &session_data) {
+void SessionManager::close(Response &resp, const Session &session_data) {
 
     save(session_data) ;
     resp.headers_.add("Set-Cookie", "WSX_SESSION_ID=" + session_data.id_) ;

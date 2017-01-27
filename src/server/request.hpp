@@ -21,6 +21,9 @@ namespace http {
 /// A request received from a client.
 struct Request
 {
+    bool matches(const std::string &method, const std::string &rx) const ;
+    bool matches(const std::string &method, const std::string &rx, std::string &cap1) const ;
+    bool matches(const std::string &method, const std::string &rx, std::string &cap1, std::string &cap2) const ;
 
     Dictionary SERVER_ ; // Server variables
     Dictionary GET_ ;	 // Query variables for GET requests
@@ -47,10 +50,6 @@ struct Request
 
     int http_version_major_;
     int http_version_minor_;
-
-private:
-    friend class RequestParser ;
-    void parse_headers(const std::map<std::string, std::string> &headers) ;
 };
 
 

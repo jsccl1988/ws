@@ -14,6 +14,8 @@
 #include <boost/bind.hpp>
 #include "request_handler_factory.hpp"
 #include "connection_manager.hpp"
+#include "session_manager.hpp"
+#include "session.hpp"
 
 namespace http {
 
@@ -64,14 +66,16 @@ void Connection::handle_read(const boost::system::error_code& e,
             else {
 
                 if ( handler_ ) {
+
                     try {
-                        if ( !handler_->handle(request_, reply_, session_manager_) )
+                        if ( !handler_->handle(request_, reply_, session_manager_ ) )
                             reply_ = Response::stock_reply(Response::not_found);
 
                     }
                     catch ( ... ) {
                         reply_ = Response::stock_reply(Response::internal_server_error);
                     }
+
                 }
                 else
                     reply_ = Response::stock_reply(Response::not_found);

@@ -53,6 +53,8 @@ struct Response
     void encode_file(const std::string &path_name,
                      const std::string &encoding,
                      const std::string &mime) ;
+
+    void write(const std::string &content, const std::string &mime = "text/html") ;
 };
 
 

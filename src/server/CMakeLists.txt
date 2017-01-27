@@ -16,6 +16,7 @@ SET ( SERVER_SOURCES
 	${SRC_ROOT}/server/reply.hpp
 	${SRC_ROOT}/server/request_handler.hpp
 	${SRC_ROOT}/server/request.hpp
+        ${SRC_ROOT}/server/request.cpp
 	${SRC_ROOT}/server/request_parser.cpp
 	${SRC_ROOT}/server/request_parser.hpp
 	${SRC_ROOT}/server/server.cpp

@@ -37,7 +37,7 @@ PluginHandlerFactory::PluginHandlerFactory(const std::string &user_plugin_path):
             for(auto& entry : boost::make_iterator_range(fs::directory_iterator(folder), {})) {
                 if ( fs::is_regular_file(entry) ) {
 
-                    if ( void* handle = dlopen(entry.path().native().c_str(), RTLD_NOW) ) { //RLTD_LAZY
+                    if ( void* handle = dlopen(entry.path().native().c_str(), RTLD_LAZY) ) { //RLTD_LAZY
 
                         if ( plugin_handler_factory_t hfactory = (plugin_handler_factory_t)dlsym(handle, "wsx_rh_create") ) {
                             LOG_INFO_STREAM("Loading plugin: " << entry) ;

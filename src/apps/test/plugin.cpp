@@ -17,26 +17,24 @@ public:
 
     virtual bool handle(const http::Request& req, http::Response& resp, http::SessionManager &sm) {
 
-        boost::smatch m ;
-
         // test if the request path is what expected
 
-        if ( req.method_ != "GET" ||
-             !boost::regex_match(req.path_, m, boost::regex(R"(/hello/([a-zA-Z]+))"))  )
-            return false ;
+        string user ;
+        if ( !req.matches("GET", R"(/hello/([a-zA-Z]+))", user) ) return false ;
 
-        Session session(sm, req, resp) ;
+        Session session ;
+        sm.open(req, session) ;
 
-        string user = m.str(1) ;
-        ostringstream strm ;
-
-        strm << "hello " << user ;
-        resp.content_ = strm.str() ;
+        resp.content_ = "hello " + user ;
 
         resp.headers_.add("Content-Length", to_string(resp.content_.size())) ;
         resp.headers_.add("Content-Type", "text/html" ) ;
 
+        session.data_["user_name"] = user ;
+
         resp.status_ = Response::ok ;
+
+        sm.close(resp, session) ;
 
         return true ;
     }
