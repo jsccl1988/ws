@@ -6,7 +6,7 @@
 
 // A class of key/value pairs of strings. 
 
-class Dictionary
+class Dictionary: public std::map<std::string, std::string>
 {
 	public:
 
@@ -25,9 +25,7 @@ class Dictionary
 	// get a the value of the given key if exists. Otherwise return defaultValue
 
     std::string get(const std::string &key, const std::string &defaultVal = std::string()) const ;
-    std::string operator[] ( const std::string & key ) const ;
-    std::string &operator[] ( const std::string & key ) ;
-	
+
 	// check the existance of a key
 
     bool contains(const std::string &key) const;
@@ -56,41 +54,19 @@ class Dictionary
 
     std::string serialize(const char *sep) ;
 
-public:
-
-    typedef std::map<std::string, std::string> ContainerType ;
-
-    // stl style iterators
-
-    typedef typename ContainerType::iterator iterator;
-    typedef typename ContainerType::const_iterator const_iterator;
-
-    iterator begin() { return container_.begin(); }
-    const_iterator begin() const { return container_.begin(); }
-    const_iterator cbegin() const { return container_.cbegin(); }
-    iterator end() { return container_.end(); }
-    const_iterator end() const { return container_.end(); }
-    const_iterator cend() const {return container_.cend(); }
-	
-	private:
-
-	friend class DictionaryIterator ;
-
-    ContainerType container_ ;
-
 } ;
 
 class DictionaryIterator
 {
 	public:
 
-    DictionaryIterator(const Dictionary &dic): dict_(dic), it_(dic.container_.begin()) {}
+    DictionaryIterator(const Dictionary &dic): dict_(dic), it_(dic.begin()) {}
     DictionaryIterator(const DictionaryIterator &other): dict_(other.dict_), it_(other.it_) {}
 
     bool operator == (const DictionaryIterator &other) const { return it_ == other.it_ ; }
     bool operator != (const DictionaryIterator &other) const { return it_ != other.it_ ; }
 
-    operator int () const { return it_ != dict_.container_.end() ; }
+    operator int () const { return it_ != dict_.end() ; }
 	
     DictionaryIterator & operator++() { ++it_ ; return *this ; }
     DictionaryIterator operator++(int) { DictionaryIterator tmp(*this) ; ++it_; return tmp ; }
@@ -101,7 +77,7 @@ class DictionaryIterator
 	private:
 
     const Dictionary &dict_ ;
-    Dictionary::ContainerType::const_iterator it_ ;
+    Dictionary::const_iterator it_ ;
 } ;
 
 

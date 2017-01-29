@@ -5,6 +5,9 @@ SET ( TEST_APP_SOURCES
 
         ${SRC_ROOT}/server/request_handler.hpp
 
+        ${SRC_ROOT}/util/variant.cpp
+        ${SRC_ROOT}/util/variant.hpp
+
         plugin.cpp
 )
 

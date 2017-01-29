@@ -6,6 +6,7 @@
 
 #include <iostream>
 #include <boost/regex.hpp>
+#include "util/variant.hpp"
 
 using namespace std ;
 using namespace http ;
@@ -31,6 +32,8 @@ public:
         resp.headers_.add("Content-Type", "text/html" ) ;
 
         session.data_["user_name"] = user ;
+
+
 
         resp.status_ = Response::ok ;
 
