@@ -15,7 +15,7 @@ public:
 
     PluginHandlerFactory(const std::string &plugin_folders) ;
 
-    bool handle(const Request &req, Response &resp, SessionManager &) override ;
+    bool handle(Request &req, Response &resp, SessionManager &) override ;
 
 private:
 

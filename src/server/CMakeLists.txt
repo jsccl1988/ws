@@ -22,6 +22,7 @@ SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/detail/http_parser.h
     ${INCLUDE_ROOT}/server/session_manager.hpp
     ${INCLUDE_ROOT}/server/session.hpp
+    ${INCLUDE_ROOT}/server/router.hpp
 
     ${SRC_ROOT}/server/connection.cpp
     ${SRC_ROOT}/server/connection_manager.cpp
@@ -35,6 +36,7 @@ SET ( SERVER_SOURCES
     ${SRC_ROOT}/server/plugin_handler_factory.cpp
     ${SRC_ROOT}/server/session_manager.cpp
     ${SRC_ROOT}/server/session.cpp
+    ${SRC_ROOT}/server/router.cpp
 )
 
 ADD_LIBRARY(wspp_http_server SHARED ${SERVER_SOURCES})

@@ -8,6 +8,7 @@
 #include <wspp/server/session_manager.hpp>
 #include <wspp/server/session.hpp>
 #include <wspp/server/server.hpp>
+#include <wspp/server/router.hpp>
 
 #include <wspp/util/logger.hpp>
 
@@ -23,7 +24,7 @@ class MyHandler: public RequestHandler {
 public:
     MyHandler(): RequestHandler() {}
 
-    virtual bool handle(const Request& req, Response& resp, SessionManager &sm) {
+    virtual bool handle(Request& req, Response& resp, SessionManager &sm) {
 
         // test if the request path is what expected
 
@@ -33,16 +34,15 @@ public:
         Session session ;
         sm.open(req, session) ;
 
+        // all rendering is done in there
         render(resp, user) ;
 
-        //resp.content_ = "hello " + user ;
-
-        resp.headers_.add("Content-Length", to_string(resp.content_.size())) ;
-        resp.headers_.add("Content-Type", "text/html" ) ;
+        resp.setContentLength() ;
+        resp.setContentType("text/html") ;
 
         session.data_["user_name"] = user ;
 
-        resp.status_ = Response::ok ;
+        resp.setStatus(Response::ok) ;
 
         sm.close(resp, session) ;
 
@@ -76,7 +76,11 @@ int main(int argc, char *argv[]) {
     g_server_logger.reset(new DefaultLogger("/tmp/server-log", true)) ;
 
     MemSessionManager sm ;
-    Server server(std::make_shared<MyHandler>(), "127.0.0.1", "5000", sm, 10) ;
+
+    std::shared_ptr<Router> router(new Router()) ;
+    router->addRoute({"GET"}, "/delete/{id:n}/", std::make_shared<MyHandler>() ) ;
+
+    Server server(router, "127.0.0.1", "5000", sm, 10) ;
 
     server.run() ;
 }

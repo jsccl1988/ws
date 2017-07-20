@@ -21,6 +21,7 @@ namespace wspp {
 /// A request received from a client.
 struct Request
 {
+
     bool matches(const std::string &method, const std::string &rx) const ;
     bool matches(const std::string &method, const std::string &rx, std::string &cap1) const ;
     bool matches(const std::string &method, const std::string &rx, std::string &cap1, std::string &cap2) const ;

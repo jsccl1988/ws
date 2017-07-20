@@ -21,7 +21,7 @@ public:
     /// Handle a request and produce a reply. Returns true if the request was handled (e.g. the request url and method match)
     /// or not.
 
-    virtual bool handle(const Request& req, Response& rep, SessionManager &session) = 0;
+    virtual bool handle(Request& req, Response& rep, SessionManager &session) = 0;
 };
 
 } // namespace wspp

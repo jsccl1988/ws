@@ -16,7 +16,7 @@ class MyHandler: public RequestHandler {
 public:
     MyHandler(): RequestHandler() {}
 
-    virtual bool handle(const Request& req, Response& resp, SessionManager &sm) {
+    virtual bool handle(Request& req, Response& resp, SessionManager &sm) {
 
         // test if the request path is what expected
 
