@@ -5,7 +5,7 @@
 #include <boost/noncopyable.hpp>
 #include <memory>
 
-namespace http {
+namespace wspp {
 
 struct Response;
 struct Request;
@@ -24,9 +24,8 @@ public:
     virtual bool handle(const Request& req, Response& rep, SessionManager &session) = 0;
 };
 
-// Use this to declare a plugin interface in a shared library
-#define WSX_DECLARE_PLUGIN(class_name) extern "C" { http::RequestHandler *wsx_rh_create() { return new class_name() ; } }
+} // namespace wspp
 
-} // namespace http
+#define WSX_DECLARE_PLUGIN(class_name) extern "C" { wspp::RequestHandler *wsx_rh_create() { return new class_name() ; } }
 
 #endif // HTTP_SERVER_REQUEST_HANDLER_HPP

@@ -16,7 +16,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
-namespace http {
+namespace wspp {
 namespace detail {
 
 /// A pool of io_service objects.

@@ -17,14 +17,17 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 
-#include "reply.hpp"
-#include "request.hpp"
-#include "request_handler.hpp"
-#include "request_parser.hpp"
-#include "session_manager.hpp"
+#include <wspp/server/response.hpp>
+#include <wspp/server/request.hpp>
+
+#include <wspp/server/request_handler.hpp>
+
+#include <wspp/server/detail/request_parser.hpp>
+
+#include <wspp/server/session_manager.hpp>
 
 
-namespace http {
+namespace wspp {
 class ConnectionManager ;
 
 /// Represents a single HttpConnection from a client.

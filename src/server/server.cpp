@@ -1,6 +1,6 @@
-#include "server.hpp"
+#include <wspp/server/server.hpp>
 
-namespace http {
+namespace wspp {
 
 Server::Server(const std::shared_ptr<RequestHandler> &handler, const std::string& address, const std::string& port,
                SessionManager &sm,

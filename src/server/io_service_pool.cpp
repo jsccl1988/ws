@@ -8,14 +8,14 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include "server.hpp"
+#include <wspp/server/server.hpp>
 
 #include <stdexcept>
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
-namespace http {
+namespace wspp {
 namespace detail {
 
 io_service_pool::io_service_pool(std::size_t pool_size)

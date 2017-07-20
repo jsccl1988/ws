@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <iostream>
 
 #include <boost/variant.hpp>
 

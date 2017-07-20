@@ -1,11 +1,11 @@
 #ifndef HTTP_SERVER_REQUEST_HANDLER_FACTORY
 #define HTTP_SERVER_REQUEST_HANDLER_FACTORY
 
-#include "request_handler.hpp"
+#include <wspp/server/request_handler.hpp>
 
 // modeled after POCO Net library
 
-namespace http {
+namespace wspp {
 class RequestHandlerFactory {
 public:
     RequestHandlerFactory() = default ;

@@ -1,8 +1,10 @@
-#include "dictionary.hpp"
+#include <wspp/util/dictionary.hpp>
 
 #include <iostream>
 
 using namespace std ;
+
+namespace wspp {
 
 Dictionary::Dictionary() {}
 
@@ -159,3 +161,4 @@ uint64_t Dictionary::capacity() const
     return bytes ;
 }
 
+}

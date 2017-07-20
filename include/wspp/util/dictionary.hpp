@@ -4,6 +4,7 @@
 #include <regex>
 #include <map>
 
+namespace wspp {
 // A class of key/value pairs of strings. 
 
 class Dictionary: public std::map<std::string, std::string>
@@ -80,6 +81,6 @@ class DictionaryIterator
     Dictionary::const_iterator it_ ;
 } ;
 
-
+}
 
 #endif

@@ -1,13 +1,13 @@
 #ifndef __HTTP_PLUGIN_HANDLER_FACTORY_HPP__
 #define __HTTP_PLUGIN_HANDLER_FACTORY_HPP__
 
-#include "server/request_handler.hpp"
+#include <wspp/server/request_handler.hpp>
 
 #include <vector>
 
-namespace http {
+namespace wspp {
 
-class PluginHandlerFactory: public http::RequestHandler {
+class PluginHandlerFactory: public RequestHandler {
 public:
     // This handler will look in a list of directories for web app plugins
     // These include the paths provided in WSX_PLUGINS_PATH environment variable and the plugin_folders variable
@@ -15,11 +15,11 @@ public:
 
     PluginHandlerFactory(const std::string &plugin_folders) ;
 
-    bool handle(const http::Request &req, http::Response &resp, SessionManager &) override ;
+    bool handle(const Request &req, Response &resp, SessionManager &) override ;
 
 private:
 
-    std::vector<std::unique_ptr<http::RequestHandler>> handlers_ ; // list of loaded handlers
+    std::vector<std::unique_ptr<RequestHandler>> handlers_ ; // list of loaded handlers
 };
 
 

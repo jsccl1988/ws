@@ -17,13 +17,13 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "connection.hpp"
-#include "io_service_pool.hpp"
-#include "request_handler_factory.hpp"
-#include "connection_manager.hpp"
+#include <wspp/server/detail/connection.hpp>
+#include <wspp/server/detail/io_service_pool.hpp>
+#include <wspp/server/detail/request_handler_factory.hpp>
+#include <wspp/server/detail/connection_manager.hpp>
 
 
-namespace http {
+namespace wspp {
 
 /// The top-level class of the HTTP server.
 ///

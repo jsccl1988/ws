@@ -1,4 +1,4 @@
-PROJECT(maplite)
+PROJECT(WS)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.4)
 
@@ -12,15 +12,17 @@ FIND_PACKAGE(Boost 1.49 REQUIRED COMPONENTS
         regex filesystem system coroutine context program_options thread )
 
 INCLUDE_DIRECTORIES(
+        include
         ${SQLITE3_INCLUDE_DIR}
         ${ZLIB_INCLUDE_DIR}
         ${Boost_INCLUDE_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
+
 )
 
 ADD_DEFINITIONS( -std=c++11 )
 
 SET (SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/src)
+SET (INCLUDE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/include/wspp)
 
 ADD_SUBDIRECTORY(src)
 ADD_SUBDIRECTORY(test)

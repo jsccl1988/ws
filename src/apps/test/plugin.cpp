@@ -1,22 +1,22 @@
-#include "server/request_handler.hpp"
-#include "server/reply.hpp"
-#include "server/request.hpp"
-#include "server/session_manager.hpp"
-#include "server/session.hpp"
+#include <wspp/server/request_handler.hpp>
+#include <wspp/server/response.hpp>
+#include <wspp/server/request.hpp>
+#include <wspp/server/session_manager.hpp>
+#include <wspp/server/session.hpp>
 
 #include <iostream>
 #include <boost/regex.hpp>
-#include "util/variant.hpp"
+
 
 using namespace std ;
-using namespace http ;
+using namespace wspp ;
 
-class MyHandler: public http::RequestHandler {
+class MyHandler: public RequestHandler {
 
 public:
-    MyHandler(): http::RequestHandler() {}
+    MyHandler(): RequestHandler() {}
 
-    virtual bool handle(const http::Request& req, http::Response& resp, http::SessionManager &sm) {
+    virtual bool handle(const Request& req, Response& resp, SessionManager &sm) {
 
         // test if the request path is what expected
 

@@ -1,4 +1,4 @@
-#include "logger.hpp"
+#include <wspp/util/logger.hpp>
 
 #include <iostream>
 

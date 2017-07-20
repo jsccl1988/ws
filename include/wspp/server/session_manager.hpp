@@ -2,11 +2,12 @@
 #define __HTTP_SERVER_SESSION_MANAGER_HPP__
 
 #include <string>
-#include "util/dictionary.hpp"
-#include "server/request.hpp"
-#include "server/reply.hpp"
+#include <wspp/util/dictionary.hpp>
+#include <wspp/server/request.hpp>
+#include <wspp/server/response.hpp>
+#include <wspp/server/session.hpp>
 
-namespace http {
+namespace wspp {
 
 struct Session ;
 

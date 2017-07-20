@@ -7,5 +7,4 @@ INCLUDE_DIRECTORIES(
 
 ADD_DEFINITIONS( -std=c++11 )
 
-
-ADD_EXECUTABLE(test_variant test_variant.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/util/variant.hpp)
+#ADD_EXECUTABLE(test_variant test_variant.cpp ${CMAKE_CURRENT_SOURCE_DIR}/../src/util/variant.hpp)

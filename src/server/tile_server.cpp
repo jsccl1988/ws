@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 
     g_server_logger.reset(new DefaultLogger(log_file, debug)) ;
 
-    http::MemSessionManager sm ;
+    MemSessionManager sm ;
     std::shared_ptr<http::Server> srv(new http::Server(std::make_shared<http::PluginHandlerFactory>("/home/malasiot/source/ws/build/src/apps/test/;/usr/lib"),
                                                        server_host_name, server_ports, sm, 10)) ;
 

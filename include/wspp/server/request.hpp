@@ -14,9 +14,9 @@
 #include <string>
 #include <vector>
 
-#include "util/dictionary.hpp"
+#include <wspp/util/dictionary.hpp>
 
-namespace http {
+namespace wspp {
 
 /// A request received from a client.
 struct Request

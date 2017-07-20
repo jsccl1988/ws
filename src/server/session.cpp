@@ -1,7 +1,6 @@
-#include "session.hpp"
-#include "session_manager.hpp"
+#include <wspp/server/session.hpp>
 
-namespace http {
+namespace wspp {
 
 
 }

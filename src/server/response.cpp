@@ -8,18 +8,19 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include "reply.hpp"
-#include <string>
+#include <wspp/server/response.hpp>
+
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/asio.hpp>
 #include <fstream>
 #include <iostream>
-
+#include <string>
 #include <time.h>
 
 using namespace std ;
 
-namespace http {
+namespace wspp {
 
 namespace status_strings {
 
@@ -361,9 +362,21 @@ void Response::encode_file(const std::string &file_path, const std::string &enco
 void Response::write(const string &content, const string &mime)
 {
     content_ = content ;
+    setContentType(mime) ;
+    setContentLength() ;
+}
 
-    headers_.add("Content-Length", to_string(content_.size())) ;
+void Response::setContentType(const string &mime) {
     headers_.add("Content-Type", mime) ;
+}
+
+void Response::setContentLength() {
+    headers_.add("Content-Length", to_string(content_.size())) ;
+}
+
+void Response::append(const string &content)
+{
+    content_ += content ;
 }
 
 } // namespace http

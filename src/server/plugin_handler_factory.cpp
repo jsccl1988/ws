@@ -1,24 +1,24 @@
-#include "server/plugin_handler_factory.hpp"
-#include "util/logger.hpp"
+#include "plugin_handler_factory.hpp"
+#include <wspp/util/logger.hpp>
 
 #include <boost/filesystem.hpp>
 #include <boost/range/iterator_range.hpp>
-#include<boost/algorithm/string/split.hpp>
-#include<boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 
 #include <dlfcn.h>
 
 extern "C" {
-typedef http::RequestHandler *(*plugin_handler_factory_t)()  ;
+typedef wspp::RequestHandler *(*plugin_handler_factory_t)()  ;
 }
 
 using namespace std ;
 namespace fs = boost::filesystem ;
 
-namespace http {
+namespace wspp {
 
-PluginHandlerFactory::PluginHandlerFactory(const std::string &user_plugin_path): http::RequestHandler() {
+PluginHandlerFactory::PluginHandlerFactory(const std::string &user_plugin_path): RequestHandler() {
 
     string plugin_paths ;
     const char *env_path = getenv("WSX_PLUGINS_PATH") ;
@@ -41,7 +41,7 @@ PluginHandlerFactory::PluginHandlerFactory(const std::string &user_plugin_path):
 
                         if ( plugin_handler_factory_t hfactory = (plugin_handler_factory_t)dlsym(handle, "wsx_rh_create") ) {
                             LOG_INFO_STREAM("Loading plugin: " << entry) ;
-                            handlers_.push_back(std::unique_ptr<http::RequestHandler>(hfactory())) ;
+                            handlers_.push_back(std::unique_ptr<wspp::RequestHandler>(hfactory())) ;
                         }
                     }
                 }
@@ -50,7 +50,7 @@ PluginHandlerFactory::PluginHandlerFactory(const std::string &user_plugin_path):
     }
 }
 
-bool PluginHandlerFactory::handle(const http::Request &req, http::Response &resp, SessionManager &sm) {
+bool PluginHandlerFactory::handle(const Request &req, Response &resp, SessionManager &sm) {
 
     for( auto &entry: handlers_) {
         bool res = entry->handle(req, resp, sm) ;

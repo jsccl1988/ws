@@ -11,8 +11,8 @@
 // adopted from C++ wrapper of nodejs parser
 // https://github.com/AndreLouisCaron/httpxx
 
-#include "request_parser.hpp"
-#include "request.hpp"
+#include <wspp/server/detail/request_parser.hpp>
+#include <wspp/server/request.hpp>
 
 #include <algorithm>
 #include <cstring>
@@ -27,7 +27,7 @@
 
 using namespace std ;
 
-namespace http {
+namespace wspp {
 namespace detail {
 
 RequestParser::RequestParser()

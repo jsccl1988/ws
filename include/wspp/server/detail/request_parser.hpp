@@ -15,9 +15,9 @@
 #include <boost/tuple/tuple.hpp>
 #include <map>
 
-#include "http_parser.h"
+#include <wspp/server/detail/http_parser.h>
 
-namespace http {
+namespace wspp {
 
 struct Request;
 

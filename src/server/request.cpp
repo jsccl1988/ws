@@ -1,10 +1,10 @@
-#include "request.hpp"
+#include <wspp/server/request.hpp>
 
 #include <boost/regex.hpp>
 
 using namespace std ;
 
-namespace http {
+namespace wspp {
 
 bool Request::matches(const std::string &method, const std::string &rx) const
 {

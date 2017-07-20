@@ -1,5 +1,4 @@
-#include "session_manager.hpp"
-#include "session.hpp"
+#include <wspp/server/session_manager.hpp>
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
@@ -8,7 +7,7 @@
 
 using namespace std ;
 
-namespace http {
+namespace wspp {
 
 void SessionManager::open(const Request &req, Session &session_data)
 {

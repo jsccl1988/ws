@@ -3,11 +3,10 @@
 
 #include <string>
 #include <vector>
-#include <boost/asio.hpp>
 
-#include "util/dictionary.hpp"
+#include <wspp/util/dictionary.hpp>
 
-namespace http {
+namespace wspp {
 
 /// A reply to be sent to a client.
 struct Response
@@ -31,7 +30,7 @@ struct Response
         not_implemented = 501,
         bad_gateway = 502,
         service_unavailable = 503
-    } status_;
+    } status_ = ok;
 
     /// The headers to be included in the reply.
     Dictionary headers_;
@@ -55,6 +54,14 @@ struct Response
                      const std::string &mime) ;
 
     void write(const std::string &content, const std::string &mime = "text/html") ;
+    void append(const std::string &content) ;
+
+    // set header for content-type
+    void setContentType(const std::string &mime);
+    // set header for content-length because on the current content length
+    void setContentLength() ;
+
+    void setStatus(status_type st) { status_ = st ; }
 };
 
 

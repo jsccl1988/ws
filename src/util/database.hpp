@@ -13,7 +13,6 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/utility.hpp>
 
-
 namespace SQLite {
 
 class Statement ;

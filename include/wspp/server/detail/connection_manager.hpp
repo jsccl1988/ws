@@ -14,7 +14,7 @@
 #include <set>
 #include "connection.hpp"
 
-namespace http {
+namespace wspp {
 
 /// Manages open connections so that they may be cleanly stopped when the server
 /// needs to shut down.

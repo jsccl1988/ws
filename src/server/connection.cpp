@@ -8,16 +8,16 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#include "connection.hpp"
+#include <wspp/server/detail/connection.hpp>
+
+#include <wspp/server/detail/request_handler_factory.hpp>
+#include <wspp/server/detail/connection_manager.hpp>
+#include <wspp/server/session_manager.hpp>
 
 #include <vector>
 #include <boost/bind.hpp>
-#include "request_handler_factory.hpp"
-#include "connection_manager.hpp"
-#include "session_manager.hpp"
-#include "session.hpp"
 
-namespace http {
+namespace wspp {
 
 Connection::Connection(boost::asio::ip::tcp::socket socket,
                        ConnectionManager& manager,
