@@ -9,6 +9,7 @@
 //
 
 #include <wspp/server/detail/connection_manager.hpp>
+#include <wspp/server/detail/connection.hpp>
 
 namespace wspp {
 
@@ -19,13 +20,14 @@ ConnectionManager::ConnectionManager()
 
 void ConnectionManager::start(ConnectionPtr c)
 {
-  connections_.insert(c);
+//  connections_.insert(c);
   c->start();
 }
 
 void ConnectionManager::stop(ConnectionPtr c)
 {
-  connections_.erase(c);
+//  if ( connections_.count(c) )
+//      connections_.erase(c);
   c->stop();
 }
 

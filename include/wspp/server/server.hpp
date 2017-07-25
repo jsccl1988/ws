@@ -8,14 +8,15 @@
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
 
-#ifndef HTTP_SERVER_SERVER_HPP
-#define HTTP_SERVER_SERVER_HPP
+#ifndef __WSPP_SERVER_HPP__
+#define __WSPP_SERVER_HPP__
 
 #include <boost/asio.hpp>
 #include <string>
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/asio/ssl/context.hpp>
 
 #include <wspp/server/detail/connection.hpp>
 #include <wspp/server/detail/io_service_pool.hpp>
@@ -32,7 +33,7 @@ class Server: private boost::noncopyable
 public:
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
-    explicit Server(const std::shared_ptr<RequestHandler> &hf, const std::string& address, const std::string& port,
+    explicit Server(boost::shared_ptr<RequestHandler> hf, const std::string& address, const std::string& port,
                     SessionManager &sm,
                     std::size_t io_service_pool_size);
 
@@ -71,7 +72,7 @@ private:
     boost::asio::ip::tcp::socket socket_;
 
     /// The handler for all incoming requests.
-    std::shared_ptr<RequestHandler> handler_;
+    boost::shared_ptr<RequestHandler> handler_;
 };
 
 } // namespace http

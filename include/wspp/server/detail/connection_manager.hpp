@@ -12,9 +12,11 @@
 #define HTTP_CONNECTION_MANAGER_HPP
 
 #include <set>
-#include "connection.hpp"
+#include <boost/shared_ptr.hpp>
 
 namespace wspp {
+class Connection ;
+typedef boost::shared_ptr<Connection> ConnectionPtr;
 
 /// Manages open connections so that they may be cleanly stopped when the server
 /// needs to shut down.

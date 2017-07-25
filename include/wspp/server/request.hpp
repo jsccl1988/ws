@@ -15,17 +15,30 @@
 #include <vector>
 
 #include <wspp/util/dictionary.hpp>
+#include <boost/regex.hpp>
+#include <boost/thread.hpp>
 
 namespace wspp {
 
+class UriPatternMatcher ;
+
 /// A request received from a client.
-struct Request
+class Request
 {
+public:
 
-    bool matches(const std::string &method, const std::string &rx) const ;
-    bool matches(const std::string &method, const std::string &rx, std::string &cap1) const ;
-    bool matches(const std::string &method, const std::string &rx, std::string &cap1, std::string &cap2) const ;
+    // matches the request method with one of the specified methods (list of methods delimeted by | character)
+    // matches the request uri to the pattern
+    // pattern is the uri pattern in the form /<pat1>/<pat2>/<pat3> ... /<patn>/
+    // where each sub-pattern has the format  <prefix>{<param>[:<verifier>]}[?]<suffix>
+    // e.g. /user/{id:n}/{action:show|hide}/
+    // If the match is succesfull the method returns true and recovers the named parameters values (e.g. id, action).
+    // The verifier can be one of 'w' (word), 'a' (alphanumeric), 'n' (numeric), '*' (any except /) and '**' (any) or otherwise it is assumed to be
+    // a verbatim regular expression (e.g. 'show|hide')
 
+    bool matches(const std::string &method, const std::string &pattern, Dictionary &attributes) const ;
+
+public:
     Dictionary SERVER_ ; // Server variables
     Dictionary GET_ ;	 // Query variables for GET requests
     Dictionary POST_ ;   // Post variables for POST requests
@@ -51,6 +64,12 @@ struct Request
 
     int http_version_major_;
     int http_version_minor_;
+
+private:
+
+    bool matchesMethod(const std::string &method) const ;
+
+    std::string getCleanPath(const std::string &path) const ;
 };
 
 

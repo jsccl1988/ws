@@ -16,12 +16,12 @@ class MyHandler: public RequestHandler {
 public:
     MyHandler(): RequestHandler() {}
 
-    virtual bool handle(Request& req, Response& resp, SessionManager &sm) {
+    virtual void handle(Request& req, Response& resp, SessionManager &sm) {
 
         // test if the request path is what expected
 
-        string user ;
-        if ( !req.matches("GET", R"(/hello/([a-zA-Z]+))", user) ) return false ;
+        Dictionary attributes ;
+        if ( !req.matches("GET", "/hello/{user:a}", attributes ) ) return false ;
 
         Session session ;
         sm.open(req, session) ;

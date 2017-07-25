@@ -1,9 +1,3 @@
-SET ( TEST_APP_SOURCES
-        plugin.cpp
-)
-
-ADD_LIBRARY(ws_test_plugin SHARED ${TEST_APP_SOURCES})
-TARGET_LINK_LIBRARIES(ws_test_plugin ${Boost_LIBRARIES} wspp_http_server wspp_util)
 
 INCLUDE(${CMAKE_SOURCE_DIR}/CMake/Templates.cmake)
 INCLUDE_DIRECTORIES(${CMAKE_BINARY_DIR})

@@ -40,7 +40,7 @@ struct Response
 
 
     /// Get a stock reply.
-    static Response stock_reply(status_type status);
+    void stock_reply(status_type status);
 
     // this will fill in the reply for sending over a file payload
 
@@ -50,8 +50,8 @@ struct Response
                      const time_t mod_time) ;
 
     void encode_file(const std::string &path_name,
-                     const std::string &encoding,
-                     const std::string &mime) ;
+                     const std::string &encoding = std::string(),
+                     const std::string &mime = std::string()) ;
 
     void write(const std::string &content, const std::string &mime = "text/html") ;
     void append(const std::string &content) ;

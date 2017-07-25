@@ -27,6 +27,25 @@ class Dictionary: public std::map<std::string, std::string>
 
     std::string get(const std::string &key, const std::string &defaultVal = std::string()) const ;
 
+    template<class T>
+    T value(const std::string &key, const T &defaultVal) const {
+        if ( !contains(key) ) return defaultVal ;
+        std::string val = get(key) ;
+        std::istringstream strm(val) ;
+        T res ;
+        strm >> res ;
+        if ( strm.fail() ) return defaultVal ;
+        else return res ;
+    }
+
+    template<class T>
+    void put(const std::string &key, const T &val) {
+        std::ostringstream strm ;
+        strm << val ;
+        std::string res = strm.str() ;
+        add(key, res) ;
+    }
+
 	// check the existance of a key
 
     bool contains(const std::string &key) const;

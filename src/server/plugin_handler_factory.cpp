@@ -50,7 +50,7 @@ PluginHandlerFactory::PluginHandlerFactory(const std::string &user_plugin_path):
     }
 }
 
-bool PluginHandlerFactory::handle(Request &req, Response &resp, SessionManager &sm) {
+void PluginHandlerFactory::handle(Request &req, Response &resp, SessionManager &sm) {
 
     for( auto &entry: handlers_) {
         bool res = entry->handle(req, resp, sm) ;

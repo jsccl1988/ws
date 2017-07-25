@@ -19,6 +19,7 @@
 #include <time.h>
 
 using namespace std ;
+namespace fs = boost::filesystem ;
 
 namespace wspp {
 
@@ -252,14 +253,12 @@ std::string to_string(Response::status_type status)
 
 } // namespace stock_replies
 
-Response Response::stock_reply(Response::status_type status)
+void Response::stock_reply(Response::status_type status)
 {
-    Response rep;
-    rep.status_ = status;
-    rep.content_ = stock_replies::to_string(status);
-    rep.headers_.add( "Content-Length", boost::lexical_cast<std::string>(rep.content_.size()) );
-    rep.headers_.add( "Content-Type", "text/html" ) ;
-    return rep;
+    status_ = status;
+    content_ = stock_replies::to_string(status);
+    setContentType("text/html");
+    setContentLength() ;
 }
 
 static void gmt_time_string(char *buf, size_t buf_len, time_t *t) {
@@ -351,12 +350,17 @@ static string get_file_mime(const string &mime,  const boost::filesystem::path &
 
 void Response::encode_file(const std::string &file_path, const std::string &encoding, const std::string &mime )
 {
+    if ( !fs::exists(file_path) ) {
+        stock_reply(Response::not_found) ;
+        return ;
+    }
+
     time_t mod_time = boost::filesystem::last_write_time(file_path);
 
     ifstream istr(file_path.c_str(), ios::binary) ;
     string bytes = string(std::istreambuf_iterator<char>(istr), std::istreambuf_iterator<char>());
 
-    encode_file_data(bytes, encoding, get_file_mime(mime, file_path), mod_time) ;
+    encode_file_data(bytes, encoding, mime.empty() ? get_file_mime(mime, file_path) : mime, mod_time) ;
 }
 
 void Response::write(const string &content, const string &mime)
