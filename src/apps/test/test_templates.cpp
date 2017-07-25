@@ -16,6 +16,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/make_shared.hpp>
 
+#include <wspp/util/variant.hpp>
 using namespace std ;
 using namespace wspp ;
 
@@ -107,6 +108,10 @@ int main(int argc, char *argv[]) {
 
     Server server(boost::make_shared<MyHandler>(), "127.0.0.1", "5000", sm, 10) ;
 
+
+    Variant q(Variant::Object({{string("test"), Variant(3)}})) ;
+
+    q.dumb(); ;
 
     server.run() ;
 }
