@@ -16,8 +16,8 @@
 #include <vector>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
-#include <boost/asio/ssl/context.hpp>
 
+#include <wspp/util/logger.hpp>
 #include <wspp/server/detail/connection.hpp>
 #include <wspp/server/detail/io_service_pool.hpp>
 #include <wspp/server/detail/request_handler_factory.hpp>
@@ -28,14 +28,16 @@ namespace wspp {
 
 /// The top-level class of the HTTP server.
 ///
-class Server: private boost::noncopyable
+class Server: public RequestHandler
 {
 public:
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
-    explicit Server(boost::shared_ptr<RequestHandler> hf, const std::string& address, const std::string& port,
+    explicit Server(const std::string& address, const std::string& port,
                     SessionManager &sm,
-                    std::size_t io_service_pool_size);
+                    Logger &logger,
+                    std::size_t io_service_pool_size = 4);
+
 
     /// Run the server's io_service loop.
     void run();
@@ -73,6 +75,8 @@ private:
 
     /// The handler for all incoming requests.
     boost::shared_ptr<RequestHandler> handler_;
+
+    Logger &logger_ ;
 };
 
 } // namespace http

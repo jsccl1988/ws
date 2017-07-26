@@ -1,81 +1,18 @@
 #include <wspp/server/server.hpp>
 #include <boost/make_shared.hpp>
-#include <boost/asio/ssl/stream.hpp>
 
 namespace wspp {
 
-
-typedef boost::asio::ssl::stream<boost::asio::ip::tcp::socket> SSLSocket ;
-
-class SSLSession {
-public:
-
-    SSLSession(boost::asio::io_service& io_service, boost::asio::ssl::context& context)
-    : socket_(io_service, context) {
-    }
-
-    SSLSocket::lowest_layer_type& socket() {
-        return socket_.lowest_layer();
-    }
-
-    void start() {
-        socket_.async_handshake(boost::asio::ssl::stream_base::server,
-                boost::bind(&SSLSession::handle_handshake, this,
-                boost::asio::placeholders::error));
-    }
-
-    void handle_handshake(const boost::system::error_code& error) {
-        if (!error) {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                    boost::bind(&SSLSession::handle_read, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
-        } else {
-            delete this;
-        }
-    }
-
-    void handle_read(const boost::system::error_code& error,
-            size_t bytes_transferred) {
-        if (!error) {
-            boost::asio::async_write(socket_,
-                    boost::asio::buffer(data_, bytes_transferred),
-                    boost::bind(&SSLSession::handle_write, this,
-                    boost::asio::placeholders::error));
-        } else {
-            delete this;
-        }
-    }
-
-    void handle_write(const boost::system::error_code& error) {
-        if (!error) {
-            socket_.async_read_some(boost::asio::buffer(data_, max_length),
-                    boost::bind(&SSLSession::handle_read, this,
-                    boost::asio::placeholders::error,
-                    boost::asio::placeholders::bytes_transferred));
-        } else {
-            delete this;
-        }
-    }
-
-private:
-    SSLSocket socket_;
-
-    enum {
-        max_length = 1024
-    };
-    char data_[max_length];
-};
-
-Server::Server(boost::shared_ptr<RequestHandler> handler, const std::string& address, const std::string& port,
+Server::Server(const std::string& address, const std::string& port,
                SessionManager &sm,
+               Logger &logger,
                std::size_t io_service_pool_size)
     : io_service_pool_(io_service_pool_size),
       signals_(io_service_pool_.get_io_service()),
       acceptor_(io_service_pool_.get_io_service()),
       socket_(io_service_pool_.get_io_service()),
       session_manager_(sm),
-      handler_(handler)
+      logger_(logger)
 {
     // Register to handle the signals that indicate when the server should exit.
     // It is safe to register for the same signal multiple times in a program,
@@ -122,7 +59,7 @@ void Server::start_accept()
              {
 
                connection_manager_.start(boost::make_shared<Connection>(
-                   std::move(socket_), connection_manager_, session_manager_, handler_));
+                   std::move(socket_), connection_manager_, session_manager_, logger_, *this));
              }
 
         //if (!e) new_connection_->start();

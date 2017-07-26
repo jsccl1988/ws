@@ -1,11 +1,12 @@
-#include "database.hpp"
+#include <wspp/util/database.hpp>
 
 #include <boost/format.hpp>
 
 
 using namespace std ;
 
-namespace SQLite {
+namespace wspp {
+namespace sqlite {
 
 class NullType {} ;
 
@@ -13,6 +14,10 @@ NullType Nil;
 
 Connection::Connection(): handle_(NULL) {
 
+}
+
+Connection::Connection(const std::string &name, int flags): Connection() {
+    open(name, flags) ;
 }
 
 void Connection::open(const std::string &db, int flags) {
@@ -97,7 +102,7 @@ void Statement::finalize() {
 
 void Statement::throwStmtException()
 {
-    throw SQLite::Exception(sqlite3_db_handle(handle_.get())) ;
+    throw Exception(sqlite3_db_handle(handle_.get())) ;
 }
 
 void Statement::check() {
@@ -415,5 +420,7 @@ void Transaction::rollback()
 }
 
 QueryResult::iterator::iterator(QueryResult &res, bool at_end): qres_(res), at_end_(at_end), current_(new Row(qres_)) {}
+
+}
 
 }

@@ -5,6 +5,9 @@ SET( UTIL_SOURCES
 
     ${SRC_ROOT}/util/logger.cpp
     ${INCLUDE_ROOT}/util/logger.hpp
+
+    ${SRC_ROOT}/util/database.cpp
+    ${INCLUDE_ROOT}/util/database.hpp
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})
@@ -23,7 +26,6 @@ SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/session_manager.hpp
     ${INCLUDE_ROOT}/server/session.hpp
 
-    ${SRC_ROOT}/server/connection.cpp
     ${SRC_ROOT}/server/connection_manager.cpp
     ${SRC_ROOT}/server/io_service_pool.cpp
 
@@ -37,7 +39,7 @@ SET ( SERVER_SOURCES
 )
 
 ADD_LIBRARY(wspp_http_server SHARED ${SERVER_SOURCES})
-TARGET_LINK_LIBRARIES(wspp_http_server wspp_util ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES} dl z pthread )
+TARGET_LINK_LIBRARIES(wspp_http_server wspp_util ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} dl z pthread )
 
 
 

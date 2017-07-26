@@ -10,6 +10,7 @@
 #include <wspp/server/server.hpp>
 
 #include <wspp/util/logger.hpp>
+#include <wspp/util/database.hpp>
 
 #include <iostream>
 #include <boost/regex.hpp>
@@ -20,10 +21,21 @@
 using namespace std ;
 using namespace wspp ;
 
-class MyHandler: public RequestHandler {
+class DefaultLogger: public Logger
+{
+public:
+    DefaultLogger(const std::string &log_file, bool debug) {
+        if ( debug ) addAppender(std::make_shared<LogStreamAppender>(Trace, make_shared<LogPatternFormatter>("%In function %c, %F:%l: %m"), std::cerr)) ;
+        addAppender(std::make_shared<LogFileAppender>(Info, make_shared<LogPatternFormatter>("%V: %d %r: %m"), log_file)) ;
+    }
+};
+
+
+class MyServer: public Server {
 
 public:
-    MyHandler(): RequestHandler() {}
+    MyServer(const std::string &port, const std::string &logger_dir): logger_(logger_dir, true), Server("127.0.0.1", port, sm_, logger_) {
+    }
 
     void deleteUser(const Request& req, Response& resp, Session &session, int user) {
 
@@ -38,18 +50,59 @@ public:
         resp.setStatus(Response::ok) ;
     }
 
-    void showUser(Response& resp, const string &what, int user) {
-        resp.write("<html>hello</html>") ;
+    void showUser(Response& resp, int user) {
+        try {
+            sqlite::Connection con("/home/malasiot/tmp/db.sqlite") ;
+
+            sqlite::Query stmt(con, "SELECT name, password FROM users WHERE id = ? LIMIT 1", user) ;
+
+            sqlite::QueryResult res = stmt.exec() ;
+/*
+            for ( auto it: res ) {
+                cout << it["name"].as<std::string>() << endl ;
+            }
+*/
+            if ( res ) {
+                Variant v(Variant::Object{{"user", res.get<string>("name")}, {"password", res.get<string>("password")}}) ;
+
+                resp.writeJSON(v.toJSON()) ;
+            }
+            else
+                resp.stock_reply(Response::bad_request) ;
+
+        }
+        catch ( sqlite::Exception &e ) {
+            LOG_X_STREAM(logger_, Debug, e.what()) ;
+            throw e ;
+        }
+
+
     }
 
+    void addUser(Response& resp, const string &name, const string &password) {
+        try {
+            sqlite::Connection con("/home/malasiot/tmp/db.sqlite") ;
+            sqlite::Statement stmt(con, "INSERT INTO users (name, password) VALUES (?, ?)", name, password) ;
+            stmt.exec() ;
+        }
+        catch ( sqlite::Exception &e ) {
+            LOG_X_STREAM(logger_, Debug, e.what()) ;
+            throw e ;
+        }
 
-    virtual void handle(const Request& req, Response& resp, Session &session) {
+    }
+
+    virtual void handle(ConnectionContext &con) {
 
         // request router
 
+        const Request &req = con.request() ;
+        Response &resp = con.response() ;
+
         Dictionary attributes ;
-        if ( req.matches("GET|POST", "/delete/{id:n}", attributes) ) deleteUser(req, resp, session, attributes.value<int>("id", -1)) ;
-        else if ( req.matches("GET", "/show/{what:*}/{id:n}?", attributes) ) showUser(resp,  attributes.get("what"), attributes.value<int>("id", -1)) ;
+        if ( req.matches("GET|POST", "/delete/{id:n}", attributes) ) deleteUser(req, resp, con.session(), attributes.value<int>("id", -1)) ;
+        else if ( req.matches("GET", "/show/{id:n}?", attributes) ) showUser(resp,  attributes.value<int>("id", -1)) ;
+        else if ( req.matches("GET", "/add/{name:a}/{password:a}", attributes) ) addUser(resp, attributes.get("name"), attributes.get("password")) ;
         else if ( req.matches("GET", "/data/{fpath:**}", attributes) ) {
             string fpath = attributes.get("fpath") ;
             resp.encode_file("/home/malasiot/Downloads/" + fpath);
@@ -61,57 +114,16 @@ public:
         string key = to_string(id) ;
 #include "test_app/templates/test.tpp"
     }
+
+    MemSessionManager sm_ ;
+    DefaultLogger logger_ ;
 };
 
 
-class DefaultLogger: public Logger
-{
-public:
-    DefaultLogger(const std::string &log_file, bool debug) {
-        if ( debug ) addAppender(std::make_shared<LogStreamAppender>(Trace, make_shared<LogPatternFormatter>("%In function %c, %F:%l: %m"), std::cerr)) ;
-        if ( boost::filesystem::exists(log_file) )
-            addAppender(std::make_shared<LogFileAppender>(Info, make_shared<LogPatternFormatter>("%V: %d %r: %m"), log_file)) ;
-    }
-};
 
-std::unique_ptr<DefaultLogger> g_server_logger ;
-
-Logger &get_current_logger() {
-    return *g_server_logger ;
-}
-
-template<class T>
-string toJSON(const T &val) {
-    stringstream strm ;
-    strm << val ;
-    return strm.str() ;
-}
-
-template<class T>
-void toJSONObject(const std::map<string, T> &obj) {
-    stringstream strm ;
-    strm << "{" ;
-    for( auto a: obj ) {
-        strm << a.first << ':' << toJSON(a.second) << "," ;
-    }
-
-    strm << "}" ;
-
-    return strm.str() ;
-}
 
 int main(int argc, char *argv[]) {
 
-    g_server_logger.reset(new DefaultLogger("/tmp/server-log", true)) ;
-
-    MemSessionManager sm ;
-
-    Server server(boost::make_shared<MyHandler>(), "127.0.0.1", "5000", sm, 10) ;
-
-
-    Variant q(Variant::Object({{string("test"), Variant(3)}})) ;
-
-    q.dumb(); ;
-
+    MyServer server( "5000", "/tmp/logger") ;
     server.run() ;
 }

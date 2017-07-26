@@ -13,6 +13,7 @@
 
 #include <set>
 #include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 
 namespace wspp {
 class Connection ;
@@ -42,6 +43,7 @@ public:
 private:
     /// The managed connections.
     std::set<ConnectionPtr> connections_;
+    boost::mutex mutex_ ;
 };
 
 

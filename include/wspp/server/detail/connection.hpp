@@ -19,6 +19,7 @@
 
 #include <wspp/server/response.hpp>
 #include <wspp/server/request.hpp>
+#include <wspp/util/logger.hpp>
 
 #include <wspp/server/request_handler.hpp>
 #include <wspp/server/detail/request_parser.hpp>
@@ -27,21 +28,28 @@
 
 namespace wspp {
 class ConnectionManager ;
+class Server ;
 
 extern std::vector<boost::asio::const_buffer> response_to_buffers(const Response &rep) ;
 
 /// Represents a single HttpConnection from a client.
 
 class Connection:
-        public boost::enable_shared_from_this<Connection>
+        public ConnectionContext, public boost::enable_shared_from_this<Connection>
 {
 public:
-
-    /// Construct a HttpConnection with the given io_service.
     explicit Connection(boost::asio::ip::tcp::socket socket,
-                        ConnectionManager& manager,  SessionManager &sm,
-                        boost::shared_ptr<RequestHandler> handler) : socket_(std::move(socket)),
-        connection_manager_(manager), session_manager_(sm), handler_(handler) {}
+                        ConnectionManager& manager,
+                        SessionManager &sm,
+                        Logger &logger,
+                        RequestHandler &handler) : socket_(std::move(socket)),
+        connection_manager_(manager), session_manager_(sm), handler_(handler), logger_(logger) {}
+
+private:
+
+    friend class wspp::Server ;
+    friend class wspp::ConnectionManager ;
+
 
 
     void start() {
@@ -51,7 +59,6 @@ public:
         socket_.close();
     }
 
-private:
 
     void read() {
         auto self(this->shared_from_this());
@@ -64,37 +71,29 @@ private:
                 if ( result )
                 {
                     if ( !request_parser_.decode_message(request_) ) {
-                        reply_.stock_reply(Response::bad_request);
+                        response_.stock_reply(Response::bad_request);
                     }
                     else {
 
-                        if ( handler_ ) {
+                         session_manager_.open(request_, session_) ;
 
-                            Session session ;
-                            session_manager_.open(request_, session) ;
-
-                            try {
-                                handler_->handle(request_, reply_, session) ;
-                                session_manager_.close(reply_, session) ;
-                            }
-                            catch ( ... ) {
-                                reply_.stock_reply(Response::internal_server_error);
-                            }
-
-                        }
-                        else
-                            reply_.stock_reply(Response::not_found);
-
+                         try {
+                             handler_.handle(*this) ;
+                             session_manager_.close(response_, session_) ;
+                         }
+                         catch ( ... ) {
+                             response_.stock_reply(Response::internal_server_error);
+                         }
                     }
 
-                    write(response_to_buffers(reply_)) ;
+                    write(response_to_buffers(response_)) ;
 
                 }
                 else if (!result)
                 {
-                    reply_.stock_reply(Response::bad_request);
+                    response_.stock_reply(Response::bad_request);
 
-                    write(response_to_buffers(reply_)) ;
+                    write(response_to_buffers(response_)) ;
 
                 }
                 else
@@ -131,7 +130,7 @@ private:
 
 
      /// The handler of incoming HttpRequest.
-     boost::shared_ptr<RequestHandler> handler_;
+     RequestHandler &handler_;
 
      /// Buffer for incoming data.
      boost::array<char, 8192> buffer_;
@@ -140,14 +139,11 @@ private:
 
      SessionManager &session_manager_ ;
 
-     /// The incoming HttpRequest.
-     Request request_;
-
      /// The parser for the incoming HttpRequest.
      detail::RequestParser request_parser_;
 
-     /// The reply to be sent back to the client.
-     Response reply_;
+     Logger &logger_ ;
+
 };
 
 

@@ -53,6 +53,8 @@ struct Response
                      const std::string &encoding = std::string(),
                      const std::string &mime = std::string()) ;
 
+    void writeJSON(const std::string &json) ;
+
     void write(const std::string &content, const std::string &mime = "text/html") ;
     void append(const std::string &content) ;
 

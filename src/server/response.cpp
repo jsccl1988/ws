@@ -363,6 +363,11 @@ void Response::encode_file(const std::string &file_path, const std::string &enco
     encode_file_data(bytes, encoding, mime.empty() ? get_file_mime(mime, file_path) : mime, mod_time) ;
 }
 
+void Response::writeJSON(const string &obj)
+{
+    write(obj, "application/json") ;
+}
+
 void Response::write(const string &content, const string &mime)
 {
     content_ = content ;

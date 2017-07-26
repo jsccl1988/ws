@@ -13,7 +13,9 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/utility.hpp>
 
-namespace SQLite {
+namespace wspp {
+
+namespace sqlite {
 
 class Statement ;
 class QueryResult ;
@@ -29,10 +31,11 @@ class Connection: boost::noncopyable {
     public:
 
     explicit Connection();
+    explicit Connection(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
     ~Connection();
 
     // open connection to database withe given flags
-    void open(const std::string &name, int flags);
+    void open(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
     void close() ;
 
      operator int () { return handle_ != nullptr ; }
@@ -69,9 +72,20 @@ public:
     Exception(sqlite3 *handle) ;
 };
 
+class Binder {
+public:
+
+    Binder(Statement &stmt): stmt_(stmt), index_(0) {}
+
+    Statement &stmt_ ;
+    uint index_ ;
+};
+
 /**
  * @brief The Statement class is a wrapper for prepared statements
  */
+
+
 
 class Statement
 {
@@ -164,7 +178,7 @@ protected:
 
     friend class QueryResult ;
 
-    std::shared_ptr<sqlite3_stmt> handle_;
+    boost::shared_ptr<sqlite3_stmt> handle_;
 
 private:
 
@@ -179,7 +193,7 @@ public:
 
     template<typename ...Args>
     Query(Connection& con, const std::string & sql, Args... args): Query(con, sql) {
-        mbind(args...) ;
+        bindm(args...) ;
     }
 
     QueryResult exec() ;
@@ -330,9 +344,9 @@ private:
 
 
 
-} // namespace SQLite
+} // namespace sqlite
 
-
+} // namespace wspp
 
 
 #endif

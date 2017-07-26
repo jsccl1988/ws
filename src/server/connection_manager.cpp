@@ -20,22 +20,26 @@ ConnectionManager::ConnectionManager()
 
 void ConnectionManager::start(ConnectionPtr c)
 {
-//  connections_.insert(c);
-  c->start();
+    boost::unique_lock<boost::mutex> lock(mutex_) ;
+
+    connections_.insert(c);
+    c->start();
 }
 
 void ConnectionManager::stop(ConnectionPtr c)
 {
-//  if ( connections_.count(c) )
-//      connections_.erase(c);
-  c->stop();
+    boost::unique_lock<boost::mutex> lock(mutex_) ;
+    if ( connections_.count(c) )
+          connections_.erase(c);
+    c->stop();
 }
 
 void ConnectionManager::stop_all()
 {
-  for (auto c: connections_)
-    c->stop();
-  connections_.clear();
+    boost::unique_lock<boost::mutex> lock(mutex_) ;
+    for (auto c: connections_)
+        c->stop();
+    connections_.clear();
 }
 
 } // namespace http
