@@ -5,12 +5,13 @@
 #include <wspp/server/request_handler.hpp>
 #include <wspp/server/response.hpp>
 #include <wspp/server/request.hpp>
-#include <wspp/server/session_manager.hpp>
+#include <wspp/server/fs_session_handler.hpp>
 #include <wspp/server/session.hpp>
 #include <wspp/server/server.hpp>
 
 #include <wspp/util/logger.hpp>
 #include <wspp/util/database.hpp>
+#include <wspp/util/random.hpp>
 
 #include <iostream>
 #include <boost/regex.hpp>
@@ -34,10 +35,12 @@ public:
 class MyServer: public Server {
 
 public:
-    MyServer(const std::string &port, const std::string &logger_dir): logger_(logger_dir, true), Server("127.0.0.1", port, sm_, logger_) {
+    MyServer(const std::string &port, const std::string &logger_dir): logger_(logger_dir, true), Server("127.0.0.1", port, logger_) {
     }
 
-    void deleteUser(const Request& req, Response& resp, Session &session, int user) {
+    void deleteUser(const Request& req, Response& resp, int user) {
+
+        Session session(sm_, req, resp) ;
 
         // all rendering is done in there
         render(resp, user) ;
@@ -45,7 +48,7 @@ public:
         resp.setContentLength() ;
         resp.setContentType("text/html") ;
 
-        session.data_["user_name"] = user ;
+        session.data()["user"] = to_string(user) ;
 
         resp.setStatus(Response::ok) ;
     }
@@ -92,15 +95,13 @@ public:
 
     }
 
-    virtual void handle(ConnectionContext &con) {
+    virtual void handle(const Request &req, Response &resp) {
 
         // request router
 
-        const Request &req = con.request() ;
-        Response &resp = con.response() ;
 
         Dictionary attributes ;
-        if ( req.matches("GET|POST", "/delete/{id:n}", attributes) ) deleteUser(req, resp, con.session(), attributes.value<int>("id", -1)) ;
+        if ( req.matches("GET|POST", "/delete/{id:n}", attributes) ) deleteUser(req, resp, attributes.value<int>("id", -1)) ;
         else if ( req.matches("GET", "/show/{id:n}?", attributes) ) showUser(resp,  attributes.value<int>("id", -1)) ;
         else if ( req.matches("GET", "/add/{name:a}/{password:a}", attributes) ) addUser(resp, attributes.get("name"), attributes.get("password")) ;
         else if ( req.matches("GET", "/data/{fpath:**}", attributes) ) {
@@ -115,7 +116,7 @@ public:
 #include "test_app/templates/test.tpp"
     }
 
-    MemSessionManager sm_ ;
+    FileSystemSessionHandler sm_ ;
     DefaultLogger logger_ ;
 };
 
@@ -123,6 +124,9 @@ public:
 
 
 int main(int argc, char *argv[]) {
+
+    string hash = encodeBase64(passwordHash("sotiris")) ;
+    bool v = passwordVerify("sotiris", decodeBase64(hash)) ;
 
     MyServer server( "5000", "/tmp/logger") ;
     server.run() ;

@@ -34,7 +34,6 @@ public:
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
     explicit Server(const std::string& address, const std::string& port,
-                    SessionManager &sm,
                     Logger &logger,
                     std::size_t io_service_pool_size = 4);
 
@@ -68,13 +67,8 @@ private:
 
     ConnectionManager connection_manager_;
 
-    SessionManager &session_manager_ ;
-
      /// The next socket to be accepted.
     boost::asio::ip::tcp::socket socket_;
-
-    /// The handler for all incoming requests.
-    boost::shared_ptr<RequestHandler> handler_;
 
     Logger &logger_ ;
 };

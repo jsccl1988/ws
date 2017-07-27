@@ -4,14 +4,12 @@
 namespace wspp {
 
 Server::Server(const std::string& address, const std::string& port,
-               SessionManager &sm,
                Logger &logger,
                std::size_t io_service_pool_size)
     : io_service_pool_(io_service_pool_size),
       signals_(io_service_pool_.get_io_service()),
       acceptor_(io_service_pool_.get_io_service()),
       socket_(io_service_pool_.get_io_service()),
-      session_manager_(sm),
       logger_(logger)
 {
     // Register to handle the signals that indicate when the server should exit.
@@ -59,7 +57,7 @@ void Server::start_accept()
              {
 
                connection_manager_.start(boost::make_shared<Connection>(
-                   std::move(socket_), connection_manager_, session_manager_, logger_, *this));
+                   std::move(socket_), connection_manager_, logger_, *this));
              }
 
         //if (!e) new_connection_->start();

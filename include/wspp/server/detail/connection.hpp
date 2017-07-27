@@ -23,7 +23,6 @@
 
 #include <wspp/server/request_handler.hpp>
 #include <wspp/server/detail/request_parser.hpp>
-#include <wspp/server/session_manager.hpp>
 #include <wspp/server/detail/connection_manager.hpp>
 
 namespace wspp {
@@ -35,15 +34,14 @@ extern std::vector<boost::asio::const_buffer> response_to_buffers(const Response
 /// Represents a single HttpConnection from a client.
 
 class Connection:
-        public ConnectionContext, public boost::enable_shared_from_this<Connection>
+        public boost::enable_shared_from_this<Connection>
 {
 public:
     explicit Connection(boost::asio::ip::tcp::socket socket,
                         ConnectionManager& manager,
-                        SessionManager &sm,
                         Logger &logger,
                         RequestHandler &handler) : socket_(std::move(socket)),
-        connection_manager_(manager), session_manager_(sm), handler_(handler), logger_(logger) {}
+        connection_manager_(manager), handler_(handler), logger_(logger) {}
 
 private:
 
@@ -75,11 +73,8 @@ private:
                     }
                     else {
 
-                         session_manager_.open(request_, session_) ;
-
                          try {
-                             handler_.handle(*this) ;
-                             session_manager_.close(response_, session_) ;
+                             handler_.handle(request_, response_) ;
                          }
                          catch ( ... ) {
                              response_.stock_reply(Response::internal_server_error);
@@ -137,12 +132,13 @@ private:
 
      ConnectionManager& connection_manager_ ;
 
-     SessionManager &session_manager_ ;
-
-     /// The parser for the incoming HttpRequest.
+      /// The parser for the incoming HttpRequest.
      detail::RequestParser request_parser_;
 
      Logger &logger_ ;
+
+     Request request_ ;
+     Response response_ ;
 
 };
 
