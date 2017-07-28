@@ -114,7 +114,7 @@ const char crlf[] = { '\r', '\n' };
 /// not be changed until the write operation has completed.
 
 
-std::vector<boost::asio::const_buffer> response_to_buffers(const Response &rep)
+std::vector<boost::asio::const_buffer> response_to_buffers(Response &rep, bool is_head)
 {
     std::vector<boost::asio::const_buffer> buffers;
     buffers.push_back(status_strings::to_buffer(rep.status_));
@@ -126,8 +126,10 @@ std::vector<boost::asio::const_buffer> response_to_buffers(const Response &rep)
         buffers.push_back(boost::asio::buffer(h.second));
         buffers.push_back(boost::asio::buffer(misc_strings::crlf));
     }
-    buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-    buffers.push_back(boost::asio::buffer(rep.content_));
+    if ( !is_head ) {
+        buffers.push_back(boost::asio::buffer(misc_strings::crlf));
+        buffers.push_back(boost::asio::buffer(rep.content_));
+    }
     return buffers;
 }
 
@@ -256,7 +258,7 @@ std::string to_string(Response::status_type status)
 void Response::stock_reply(Response::status_type status)
 {
     status_ = status;
-    content_ = stock_replies::to_string(status);
+    content_.assign(stock_replies::to_string(status));
     setContentType("text/html");
     setContentLength() ;
 }
@@ -297,7 +299,7 @@ void Response::encode_file_data(const std::string &bytes, const std::string &enc
     headers_.add("Etag", boost::lexical_cast<std::string>(mod_time)) ;
     headers_.add("Content-Length", boost::lexical_cast<std::string>(bytes.size())) ;
 
-    content_ = bytes ;
+    content_.assign(bytes) ;
 }
 
 
@@ -370,7 +372,7 @@ void Response::writeJSON(const string &obj)
 
 void Response::write(const string &content, const string &mime)
 {
-    content_ = content ;
+    content_.assign(content) ;
     setContentType(mime) ;
     setContentLength() ;
 }
@@ -380,12 +382,12 @@ void Response::setContentType(const string &mime) {
 }
 
 void Response::setContentLength() {
-    headers_.add("Content-Length", to_string(content_.size())) ;
+    headers_.add("Content-Length", to_string(content_.length())) ;
 }
 
 void Response::append(const string &content)
 {
-    content_ += content ;
+    content_.append(content) ;
 }
 
 } // namespace http

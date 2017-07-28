@@ -53,7 +53,7 @@ protected:
     http_parser parser_ ;
     http_parser_settings settings_ ;
 
-    std::string current_header_field_, current_header_value_, url_, body_ ;
+    std::string current_header_field_, current_header_value_, url_, body_, protocol_ ;
     std::map<std::string, std::string> headers_ ;
     bool is_complete_ ;
 };

@@ -58,8 +58,6 @@ public:
 
 bool parse(istream &in, const string &filename, ostream &out) {
 
-
-
     enum ParserState { RawText, Expression, Block } ;
 
     StreamWrapper strm(in) ;

@@ -113,6 +113,10 @@ int RequestParser::on_headers_complete(http_parser * parser)
     // handle HTTP/1.1 pipelined Requests.
     http_parser_pause(parser, 1);
 
+    ostringstream strm ;
+    strm << "HTTP/" << parser->http_major << "." << parser->http_minor ;
+    rp.protocol_ = strm.str() ;
+
     return 0;
 }
 
@@ -596,8 +600,7 @@ bool RequestParser::decode_message(Request &req) const {
         req.SERVER_.add(hdr.first, hdr.second) ;
 
     req.method_ = req.SERVER_["REQUEST_METHOD"] =	http_method_str(static_cast<http_method>(parser_.method)) ;
-    req.http_version_major_ = parser_.http_major ;
-    req.http_version_minor_ = parser_.http_minor ;
+    req.protocol_ = protocol_ ;
     req.content_ = body_ ;
 
     if ( !parse_url(req, url_) ||

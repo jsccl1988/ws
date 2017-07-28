@@ -29,7 +29,7 @@ namespace wspp {
 class ConnectionManager ;
 class Server ;
 
-extern std::vector<boost::asio::const_buffer> response_to_buffers(const Response &rep) ;
+extern std::vector<boost::asio::const_buffer> response_to_buffers(Response &rep, bool) ;
 
 /// Represents a single HttpConnection from a client.
 
@@ -72,23 +72,31 @@ private:
                         response_.stock_reply(Response::bad_request);
                     }
                     else {
-
                          try {
                              handler_.handle(request_, response_) ;
+
+                             LOG_X_STREAM(logger_, Info, "Response to " <<
+                                          socket_.remote_endpoint().address().to_string()
+                                            << ": \"" << request_.method_ << " " << request_.path_
+                                            << ((request_.query_.empty()) ? "" : "?" + request_.query_) << " "
+                                            << request_.protocol_ << "\" "
+                                            << response_.status_ << " " << response_.headers_.value<int>("Content-Length", 0)
+                                          ) ;
+
                          }
                          catch ( ... ) {
                              response_.stock_reply(Response::internal_server_error);
                          }
                     }
 
-                    write(response_to_buffers(response_)) ;
+                    write(response_to_buffers(response_, request_.method_ == "HEAD")) ;
 
                 }
                 else if (!result)
                 {
                     response_.stock_reply(Response::bad_request);
 
-                    write(response_to_buffers(response_)) ;
+                    write(response_to_buffers(response_, request_.method_ == "HEAD")) ;
 
                 }
                 else

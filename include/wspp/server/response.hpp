@@ -38,7 +38,6 @@ struct Response
     /// The content to be sent in the reply.
     std::string content_;
 
-
     /// Get a stock reply.
     void stock_reply(status_type status);
 
@@ -57,6 +56,13 @@ struct Response
 
     void write(const std::string &content, const std::string &mime = "text/html") ;
     void append(const std::string &content) ;
+
+    template <class T>
+    void append(const T &t) {
+        std::ostringstream strm ;
+        strm << t ;
+        append(strm.str()) ;
+    }
 
     // set header for content-type
     void setContentType(const std::string &mime);

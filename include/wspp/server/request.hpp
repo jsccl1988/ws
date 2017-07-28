@@ -61,9 +61,7 @@ public:
     std::string method_;
     std::string path_;
     std::string query_ ;
-
-    int http_version_major_;
-    int http_version_minor_;
+    std::string protocol_ ;
 
 private:
 

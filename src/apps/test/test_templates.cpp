@@ -11,12 +11,8 @@
 
 #include <wspp/util/logger.hpp>
 #include <wspp/util/database.hpp>
-#include <wspp/util/random.hpp>
 
 #include <iostream>
-#include <boost/regex.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/make_shared.hpp>
 
 #include <wspp/util/variant.hpp>
 using namespace std ;
@@ -27,7 +23,7 @@ class DefaultLogger: public Logger
 public:
     DefaultLogger(const std::string &log_file, bool debug) {
         if ( debug ) addAppender(std::make_shared<LogStreamAppender>(Trace, make_shared<LogPatternFormatter>("%In function %c, %F:%l: %m"), std::cerr)) ;
-        addAppender(std::make_shared<LogFileAppender>(Info, make_shared<LogPatternFormatter>("%V: %d %r: %m"), log_file)) ;
+        addAppender(std::make_shared<LogFileAppender>(Info, make_shared<LogPatternFormatter>("%V [%d{%c}]: %m"), log_file)) ;
     }
 };
 
@@ -40,7 +36,7 @@ public:
 
     void deleteUser(const Request& req, Response& resp, int user) {
 
-        Session session(sm_, req, resp) ;
+       Session session(sm_, req, resp) ;
 
         // all rendering is done in there
         render(resp, user) ;
@@ -124,10 +120,6 @@ public:
 
 
 int main(int argc, char *argv[]) {
-
-    string hash = encodeBase64(passwordHash("sotiris")) ;
-    bool v = passwordVerify("sotiris", decodeBase64(hash)) ;
-
     MyServer server( "5000", "/tmp/logger") ;
     server.run() ;
 }

@@ -3,11 +3,9 @@
 <ul>
 <% 
 for( uint i=0 ; i<10 ; i++ ) {
-        ostringstream strm ;
-	strm << i % 3;
 %>
 	
-	<li><%=strm.str()%></li>
+        <li><%=i%></li>
 	
 <%
 }

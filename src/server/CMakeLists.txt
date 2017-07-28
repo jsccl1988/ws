@@ -9,8 +9,8 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/database.cpp
     ${INCLUDE_ROOT}/util/database.hpp
 
-    ${SRC_ROOT}/util/random.cpp
-    ${INCLUDE_ROOT}/util/random.hpp
+    ${SRC_ROOT}/util/crypto.cpp
+    ${INCLUDE_ROOT}/util/crypto.hpp
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})
