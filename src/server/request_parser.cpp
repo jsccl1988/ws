@@ -21,7 +21,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/iostreams/stream.hpp>
 
@@ -123,7 +123,7 @@ int RequestParser::on_headers_complete(http_parser * parser)
 int RequestParser::on_url(http_parser *parser, const char *data, size_t size)
 {
     RequestParser& rp = *static_cast<RequestParser*>(parser->data);
-    rp.url_.append(data, size);
+    rp.url_.assign(data, size);
 
     return 0;
 }
@@ -213,6 +213,38 @@ static std::string get_url_field ( const string &data, http_parser_url &url, htt
     return ( data.substr(url.field_data[int(field)].off, url.field_data[int(field)].len) );
 }
 
+// fix invalid paths
+
+static string normalize_path( const string &src ) {
+
+    if ( src.empty() ) return "/" ;
+
+    std::vector<std::string> src_segments, dst_segments;
+    boost::split(src_segments, src, [](char ch) {
+         return ch == '/';
+    });
+
+    dst_segments.push_back(string()) ;
+
+    for( const string &seg: src_segments ) {
+        if ( seg.empty() ) continue ;
+        else if ( seg == "." ) continue ;
+        else if ( seg == "..") {
+            if ( !dst_segments.empty() )
+                dst_segments.pop_back() ;
+            else
+                throw runtime_error("Invalid Url") ;
+        }
+        else {
+            dst_segments.push_back(seg) ;
+        }
+    }
+
+    string res = boost::join(dst_segments, "/") ;
+    if ( src_segments.back().empty() ) res += "/" ;
+    return res ;
+}
+
 static bool parse_url(Request &req, const string url)
 {
     http_parser_url u ;
@@ -224,7 +256,7 @@ static bool parse_url(Request &req, const string url)
     string uri = get_url_field(url, u, UF_PATH) ;
     string query = get_url_field(url, u, UF_QUERY) ;
 
-    req.path_ = url_decode(uri.c_str()) ;
+    req.path_ = normalize_path(url_decode(uri.c_str())) ;
     req.query_ = url_decode(query.c_str()) ;
 
     if ( !req.query_.empty() )
