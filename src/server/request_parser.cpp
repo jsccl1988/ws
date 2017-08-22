@@ -224,23 +224,19 @@ static string normalize_path( const string &src ) {
          return ch == '/';
     });
 
-    dst_segments.push_back(string()) ;
-
     for( const string &seg: src_segments ) {
         if ( seg.empty() ) continue ;
         else if ( seg == "." ) continue ;
         else if ( seg == "..") {
             if ( !dst_segments.empty() )
                 dst_segments.pop_back() ;
-            else
-                throw runtime_error("Invalid Url") ;
         }
         else {
             dst_segments.push_back(seg) ;
         }
     }
 
-    string res = boost::join(dst_segments, "/") ;
+    string res = "/" + boost::join(dst_segments, "/") ;
     if ( src_segments.back().empty() ) res += "/" ;
     return res ;
 }
@@ -620,7 +616,6 @@ static bool parse_form_data(Request &session, istream &strm)
         session.content_type_ = content_type ;
 
     }
-
 
     return true ;
 }

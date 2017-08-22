@@ -15,6 +15,7 @@
 #include <boost/asio.hpp>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <string>
 #include <time.h>
 
@@ -302,26 +303,9 @@ void Response::encode_file_data(const std::string &bytes, const std::string &enc
     content_.assign(bytes) ;
 }
 
-
-const char *well_known_mime_types[] = {
-    "pdf", "application/pdf",
-    "ps",  "application/postscript",
-    "xml", "application/xml",
-    "zip", "application/zip",
-    "gz",  "application/gzip",
-    "gif", "image/gif",
-    "jpg", "image/jpeg",
-    "jpeg", "image/jpeg",
-    "png", "image/png",
-    "svg", "image/svg+xml",
-    "tif", "image/tiff",
-    "tiff", "image/riff",
-    "txt",  "text/plain",
-    "kml",  "application/vnd.google-earth.kml+xml",
-    "kmz",  "application/vnd.google-earth.kmz",
-    "gpx",  "application/gpx+xml",
-    "pbf",  "application/x-protobuf"
-};
+std::map<string, string> well_known_mime_types {
+#include "well_known_mime_types.hpp"
+} ;
 
 #ifndef _WIN32
 #define stricmp strcasecmp
@@ -339,11 +323,8 @@ static string get_file_mime(const string &mime,  const boost::filesystem::path &
 
     if ( !extension.empty() )
     {
-        for( int i=0 ; i<sizeof(well_known_mime_types)/sizeof(char *) ; i+=2 )
-        {
-            if ( stricmp(extension.c_str() + 1, well_known_mime_types[i]) == 0 )
-                return well_known_mime_types[i+1] ;
-        }
+        auto it = well_known_mime_types.find(extension) ;
+        if ( it != well_known_mime_types.end() ) return it->second ;
     }
 
     return "application/octet-stream" ;

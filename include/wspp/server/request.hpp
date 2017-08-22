@@ -37,6 +37,7 @@ public:
     // a verbatim regular expression (e.g. 'show|hide')
 
     bool matches(const std::string &method, const std::string &pattern, Dictionary &attributes) const ;
+    bool matches(const std::string &method, const std::string &pattern) const;
 
 public:
     Dictionary SERVER_ ; // Server variables
@@ -62,6 +63,7 @@ public:
     std::string path_;
     std::string query_ ;
     std::string protocol_ ;
+
 
 private:
 

@@ -72,7 +72,7 @@ RxPattern UriPatternMatcher::makeRegexFromPattern(const string &pat) {
 
         pattern = boost::regex_replace(pattern, boost::regex("\\/+"), "\\\\/");
 
-        string rx = replace(pattern, boost::regex("(?:\\{([^\\{\\}]*?)(?:\\:([^\\{\\}]+))?\\})"), [&](const boost::smatch &matches) -> string {
+        string rx = boost::regex_replace(pattern, boost::regex("(?:\\{([^\\{\\}]*?)(?:\\:([^\\{\\}]+))?\\})"), [&](const boost::smatch &matches) -> string {
                     string param = matches[1] ;
                     string vmatch = matches[2] ;
                     string verifier = vmatch.empty() ? "*" : vmatch ;
@@ -85,6 +85,7 @@ RxPattern UriPatternMatcher::makeRegexFromPattern(const string &pat) {
                     else if ( !verifier.empty() )
                         return "(" + verify_patterns[verifier] + ")" + option ;
         }) ;
+
 
         first_pass = false ;
 
@@ -154,6 +155,12 @@ std::string Request::getCleanPath(const std::string &path) const
 
 bool Request::matches(const string &method, const string &pattern, Dictionary &attributes) const
 {
+    return matchesMethod(method) && UriPatternMatcher::instance().matches(pattern, getCleanPath(path_), attributes) ;
+}
+
+bool Request::matches(const string &method, const string &pattern) const
+{
+    Dictionary attributes ;
     return matchesMethod(method) && UriPatternMatcher::instance().matches(pattern, getCleanPath(path_), attributes) ;
 }
 
