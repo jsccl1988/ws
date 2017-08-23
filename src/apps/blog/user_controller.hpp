@@ -21,8 +21,8 @@ public:
     void login() ;
     void logout() ;
 
-    bool isLoggedIn() ;
-    std::string userName() ;
+    bool isLoggedIn() const ;
+    std::string name() const ;
 
 protected:
     // sanitize and verify username/password

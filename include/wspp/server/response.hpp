@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <wspp/util/dictionary.hpp>
+#include <wspp/util/variant.hpp>
 
 namespace wspp {
 
@@ -53,9 +54,18 @@ struct Response
                      const std::string &mime = std::string()) ;
 
     void writeJSON(const std::string &json) ;
+    void writeJSONVariant(const Variant &json) ;
 
     void write(const std::string &content, const std::string &mime = "text/html") ;
     void append(const std::string &content) ;
+
+    void setCookie(const std::string &name, const std::string &value,
+                   time_t expires = 0,
+                   const std::string &path = std::string(),
+                   const std::string &domain = std::string(),
+                   bool secure = false,
+                   bool http_only = false
+                   ) ;
 
     template <class T>
     void append(const T &t) {

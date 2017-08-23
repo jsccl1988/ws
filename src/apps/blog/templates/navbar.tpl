@@ -15,8 +15,11 @@
     </div>
 
     <div id="navbarCollapse" class="collapse navbar-collapse">
+
+
         <ul class="nav navbar-nav">
-        <% /*
+<%
+        /*
         <?php foreach( $nav_menu as $menu_id => $menu_item ) { ?>
                 <li>
                 <a href="<?php echo $menu_item["link"] ?>"
@@ -27,13 +30,14 @@
                 </li>
                 <?php } ?>
          </ul>
-
+*/
+%>
                  <ul class="nav navbar-nav navbar-right">
-                <?php if ( is_logged_in() ) { ?>
+                <% if ( user.isLoggedIn() ) { %>
                         <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                                         <span class="glyphicon glyphicon-user"></span>
-                                        <strong><?php echo get_user_name() ?></strong>
+                                        <strong><%= user.name() %></strong>
                     <span class="glyphicon glyphicon-chevron-down"></span>
                         </a>
                         <ul class="dropdown-menu" role="menu">
@@ -42,39 +46,69 @@
                         </li>
                 </ul>
                         </li>
-                    <?php } else { ?>
+                    <% } else { %>
                     <li><a href="#login-modal" data-toggle="modal">Login</a></li>
-                <?php } ?>
-                */
-                %>
+                <% } %>
+
                   </ul>
         </div>
 </nav>
-
 <div class="modal fade" id="login-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" style="display: none;">
-        <div class="modal-dialog">
-                <div class="modal-content">
-                        <div class="modal-header" align="center">
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                </button>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" align="center">
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                </button>
+                <h3 class="modal-title">Login</h3>
+            </div>
+            <div class="modal-body row">
+                <div class="col-md-12">
+                    <form class="form-horizontal" id="login-form" data-toggle="validator" role="form" >
+                        <div class="form-group">
+                            <div class="alert hidden"></div>
                         </div>
 
-                        <form id="login-form" name="login-form" action="#" method="post">
-                                <div class="modal-body">
-                                        <div id="div-login-msg">
-                                                <div id="icon-login-msg" class="glyphicon glyphicon-chevron-right"></div>
-                                                <span id="text-login-msg">Type your username and password.</span>
-                                        </div>
-                                        <input id="username" name="username" class="form-control" type="text" placeholder="Username" required>
-                                        <input id="password" name="password" class="form-control" type="password" placeholder="Password" required>
-                                    <div class="modal-footer">
-                                                <div>
-                                                        <button type="submit" class="btn btn-primary btn-lg btn-block">Login</button>
-                                                </div>
-                                    </div>
+                        <div class="form-group" >
+                            <label class="control-label col-sm-2" for="username">Username<span class="text-danger">*</span></label>
+                            <div class="input-group col-sm-10" >
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                                <input type="text" class="form-control" name="username"  placeholder="Enter user name" required>
                             </div>
-                </form>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <div class="form-group" >
+                            <label class="control-label col-sm-2" for="password">Password <span class="text-danger">*</span></label>
+                            <div class="input-group col-sm-10">
+                                <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                                <input type="password" id="password" class="form-control" name="password" placeholder="Password" required>
+                            </div>
+                            <div class="help-block with-errors"></div>
+                        </div>
+                        <div class="form-group">
+                            <div class="col-sm-offset-2 col-sm-10">
+                              <div class="checkbox">
+                                <label><input type="checkbox" name="remember-me"> Remember me</label>
+                              </div>
+                            </div>
+                          </div>
+
+                        <!--
+                                <div class="form-group">
+                                        <a href='user/password/reset/'>Forgot password?</a>
+                                </div>
+                                -->
+                                        <div class="form-group text-center">
+                                                  <button class="btn btn-primary type="submit">Submit</button>
+                                        </div>
+                               </form>
+                             </div>
+<!--
+                                <div class="modal-footer">
+                                    <a href="user/signup/" class="text-center register">Create an account</a>
+                            </div>
+                            -->
+                        </div>
                 </div>
         </div>
 </div>

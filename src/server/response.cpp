@@ -13,6 +13,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/asio.hpp>
+#include <boost/date_time.hpp>
+
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -288,7 +290,7 @@ void Response::encode_file_data(const std::string &bytes, const std::string &enc
     headers_.add("Access-Control-Allow-Origin", "*") ;
 
     char ctime_buf[64], mtime_buf[64] ;
-    time_t curtime = time(NULL) ;
+    time_t curtime = time(nullptr) ;
 
     gmt_time_string(ctime_buf, sizeof(ctime_buf), &curtime);
     gmt_time_string(mtime_buf, sizeof(mtime_buf), &mod_time);
@@ -351,6 +353,11 @@ void Response::writeJSON(const string &obj)
     write(obj, "application/json") ;
 }
 
+void Response::writeJSONVariant(const Variant &var)
+{
+    writeJSON(var.toJSON()) ;
+}
+
 void Response::write(const string &content, const string &mime)
 {
     content_.assign(content) ;
@@ -369,6 +376,31 @@ void Response::setContentLength() {
 void Response::append(const string &content)
 {
     content_.append(content) ;
+}
+
+void Response::setCookie(const string &name, const string &value, time_t expires, const string &path, const string &domain, bool secure, bool http_only)
+{
+    string cookie = name + '=' + value ;
+    if ( expires > 0 ) {
+        char etime_buf[64] ;
+        gmt_time_string(etime_buf, sizeof(etime_buf), &expires);
+        cookie += "; Expires=" ; cookie += etime_buf ;
+    }
+
+    if ( !path.empty() )
+        cookie += "; Path=" + path ;
+
+    if ( !domain.empty() )
+        cookie += "; Domain=" + domain ;
+
+    if ( secure )
+        cookie += "; Secure" ;
+
+    if ( http_only )
+        cookie += "; HttpOnly" ;
+
+    headers_.add("Set-Cookie", cookie) ;
+
 }
 
 } // namespace http

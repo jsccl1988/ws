@@ -18,7 +18,7 @@ Session::Session(SessionHandler &handler, const Request &req, Response &resp, co
 
         if ( id_.empty() ) { // new session
             id_ = handler_.uniqueSID() ;
-            resp.headers_.add("Set-Cookie", key_name + "=" + id_) ;
+            resp.setCookie(key_name, id_, 0, handler.cookiePath(), handler.cookieDomain() ) ;
         }
         else
             handler_.read(*this) ;

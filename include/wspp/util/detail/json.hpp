@@ -4,22 +4,22 @@
 namespace wspp {
 
 template<>
-void ValueHolder<std::string>::toJSON(std::ostream &strm) const {
+inline void ValueHolder<std::string>::toJSON(std::ostream &strm) const {
     strm << json_escape_string(value_) ;
 }
 
 template<>
-void ValueHolder<bool>::toJSON(std::ostream &strm) const {
+inline void ValueHolder<bool>::toJSON(std::ostream &strm) const {
     strm << ( value_ ? "true" : "false") ;
 }
 
 template<>
-void ValueHolder<std::nullptr_t>::toJSON(std::ostream &strm) const {
+inline void ValueHolder<std::nullptr_t>::toJSON(std::ostream &strm) const {
     strm << "null" ;
 }
 
 
-void ObjectValueHolder::toJSON(std::ostream &strm) const {
+inline void ObjectValueHolder::toJSON(std::ostream &strm) const {
 
 
     strm << "{" ;
@@ -38,7 +38,7 @@ void ObjectValueHolder::toJSON(std::ostream &strm) const {
 }
 
 
-void ArrayValueHolder::toJSON(std::ostream &strm) const {
+inline void ArrayValueHolder::toJSON(std::ostream &strm) const {
 
     strm << "[" ;
     auto it = values_.cbegin() ;
@@ -57,7 +57,7 @@ void ArrayValueHolder::toJSON(std::ostream &strm) const {
 
 // Original: https://gist.github.com/kevinkreiser/bee394c60c615e0acdad
 
-std::string IValueHolder::json_escape_string(const std::string &str) {
+inline std::string IValueHolder::json_escape_string(const std::string &str) {
     std::stringstream strm ;
     strm << '"';
 

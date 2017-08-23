@@ -34,6 +34,9 @@ public:
     template<class T>
     Variant(const T &val): value_(new ValueHolder<T>(val)) {}
 
+    // helper for a key value pair
+    Variant(const std::string &key, const std::string &value): Variant(Variant::Object{{key, value}}) {}
+
     Variant(const Object &values): value_(new ObjectValueHolder(values)) {}
     Variant(const Array &values): value_(new ArrayValueHolder(values)) {}
 

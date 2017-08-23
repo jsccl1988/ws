@@ -3,16 +3,72 @@
     width: 350px;
 }
 
-#login-modal, #logout input[type=text], input[type=password] {
-	margin-top: 10px;
+.form-signin
+{
+    padding: 15px;
+    margin: 0 auto;
+}
+.form-signin .form-signin-heading, .form-signin .checkbox
+{
+    margin-bottom: 10px;
+}
+.form-signin .checkbox
+{
+    font-weight: normal;
+}
+.form-signin .form-control
+{
+    position: relative;
+    font-size: 16px;
+    height: auto;
+    padding: 10px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
 }
 
-#div-login-msg,
+.form-signin .passreset {
+	 margin-top: 10px;
+}
+
+.register {
+	 display: block;
+}
+
+.form-signin .form-control:focus
+{
+    z-index: 2;
+}
+.form-signin input[type="text"]
+{
+    margin-bottom: -1px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.form-signin input[type="password"]
+{
+    margin-bottom: 10px;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+form .msg-box {
+	font-size: smaller;
+}
+/*
+.msg-box.has-error {
+color: #a94442;
+}
+*/
+
+#login-msg,
 #div-lost-msg,
 #div-register-msg {
     border: 1px solid #dadfe1;
     height: 30px;
     line-height: 28px;
+    margin-bottom: 10px;
+    
     transition: all ease-in-out 500ms;
 }
 
@@ -83,7 +139,7 @@
 
 .modal-body {
     position: relative;
-    padding: 5px 15px 5px 15px;
+    padding: 5px 25px 5px 25px;
 }
 
 .modal-footer {
@@ -140,4 +196,18 @@ body {
       padding-top: 0;
     }
 }
+
+#route-description table
+{
+	text-align: left;
+	border-collapse: collapse;
+	margin-bottom: 10px;
+}
+
+
+#route-description table td
+{
+	padding: 4px 8px 0 0;
+}
+
 

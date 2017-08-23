@@ -1,12 +1,19 @@
 #include "user_controller.hpp"
 
 #include <wspp/util/crypto.hpp>
+#include <wspp/util/variant.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 
 using namespace std ;
 using namespace wspp ;
+
+/*
+ * CREATE TABLE users ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, password TEXT NOT NULL );
+ * CREATE TABLE auth_tokens ( id INTEGER PRIMARY KEY AUTOINCREMENT, selector TEXT, token TEXT, user_id INTEGER NOT NULL, expires INTEGER );
+ *
+ */
 
 void UserController::login()
 {
@@ -18,17 +25,17 @@ void UserController::login()
     // data validation
 
     if ( !sanitizeUserName(username) ) {
-        response_.writeJSON(R"({"username", "Invalid username"})") ;
+        response_.writeJSONVariant({"error", "Invalid username"}) ;
         return ;
     }
 
     if ( !sanitizePassword(password) ) {
-        response_.writeJSON(R"({"password", "Invalid password"})") ;
+        response_.writeJSONVariant({"error", "Invalid password"}) ;
         return ;
     }
 
     if ( !userNameExists(username) ) {
-        response_.writeJSON(R"({"username", "Username does not exist"})") ;
+        response_.writeJSONVariant({"error", "Username does not exist"}) ;
         return ;
     }
 
@@ -36,7 +43,7 @@ void UserController::login()
     fetchUser(username, user_id, stored_password) ;
 
     if ( !verifyPassword(password, stored_password) ) {
-        response_.writeJSON(R"({"password", "Password mismatch"})") ;
+        response_.writeJSONVariant({"error", "Password mismatch"}) ;
         return ;
     }
 
@@ -48,17 +55,24 @@ void UserController::login()
     session_.data().add("user_id", user_id) ;
     session_.data().add("role", "admin") ;
 
+    // remove any expired tokens
+
+    {
+        sqlite::Statement stmt(con_, "DELETE FROM auth_tokens WHERE expires < ?", time(nullptr)) ;
+        stmt.exec() ;
+    }
+
     // If the user has clicked on remember me button we have to create the cookie
 
     if ( remember_me ) {
-        string selector = binToHex(randomBytes(24)) ;
-        string token = binToHex(randomBytes(32)) ;
+        string selector = encodeBase64(randomBytes(12)) ;
+        string token = randomBytes(24) ;
         time_t expires 	= std::time(nullptr) + 3600*24*10; // Expire in 10 days
 
-        sqlite::Statement stmt(con_, "INSERT INTO auth_tokens ( userid, selector, token, expires ) VALUES ( ?, ?, ?, ? );", user_id, selector, token, expires) ;
+        sqlite::Statement stmt(con_, "INSERT INTO auth_tokens ( user_id, selector, token, expires ) VALUES ( ?, ?, ?, ? );", user_id, selector, binToHex(hashSHA256(token)), expires) ;
         stmt.exec() ;
 
-        //  setcookie('user_token', $selector . '.' . $token,  $expires);
+        response_.setCookie("auth_token", selector + ":" + encodeBase64(token),  expires, "/");
     }
 
     // update user info
@@ -74,51 +88,76 @@ void UserController::logout()
 
         string user_id = session_.data().get("user_id") ;
 
-        /*
-                if ( isset($_COOKIE['user_token']) ) {
-
-                    $stmt = $this->db_->prepare("DELETE FROM auth_tokens WHERE userid = ?;");
-                    $stmt->execute(array($userid)) ;
-
-                    setcookie('user_token','',time()-3600) ;
-                }
-          */
         session_.data().remove("username") ;
         session_.data().remove("user_id") ;
         session_.data().remove("role") ;
+
+        string cookie = request_.COOKIE_.get("auth_token") ;
+
+        if ( !cookie.empty() ) {
+            response_.setCookie("auth_token", string(), 0, "/") ;
+
+            // update persistent tokens
+            sqlite::Statement stmt(con_, "DELETE FROM auth_tokens WHERE user_id = ?", user_id) ;
+            stmt.exec() ;
+        }
     }
 }
 
-bool UserController::isLoggedIn()
+static bool hash_equals(const std::string &query, const std::string &stored) {
+
+    if ( query.size() != stored.size() ) return false ;
+
+    uint ncount = 0 ;
+    for( uint i=0 ; i<stored.size() ; i++ )
+        if ( query.at(i) != stored.at(i) ) ncount ++ ;
+
+    return ncount == 0 ;
+}
+
+string UserController::name() const {
+    return session_.data().get("username") ;
+}
+
+bool UserController::isLoggedIn() const
 {
     if ( session_.data().contains("username") ) return true ;
 
     // No session information. Check if there is user info in the cookie
-/*
-    if( isset($_COOKIE['user_token']) )
-    {
-        $user_token = $_COOKIE['user_token'] ;
 
-        $subtokens = explode('.', $_COOKIE['user_token'], 2);
-            // if both selector and token were found
-        if ( isset($subtokens[0]) && isset($subtokens[1]) ) {
-            $stmt = $this->db_->prepare("SELECT a.userid, a.token, a.expires, u.username, u.role FROM auth_tokens AS a JOIN users AS u ON a.userid = u.id WHERE a.selector = ? LIMIT 1");
-            $stmt->execute(array($subtokens[0])) ;
-            $data = $stmt->fetch(\PDO::FETCH_ASSOC);
+    string cookie = request_.COOKIE_.get("auth_token") ;
 
-            if ( !empty($data) ) {
-                if ($data['expires'] >= time() ) {
-                    if ( $subtokens[1] == $data['token'] ) {
-                            $_SESSION["username"] = $data["username"] ;
-                            $_SESSION["userid"] = $data["userid"] ;
-                            $_SESSION["role"] = $data["role"] ;
-                            return true ;
-                    }
+    if ( !cookie.empty() ) {
+
+        vector<string> tokens ;
+        boost::split(tokens, cookie, boost::is_any_of(":")) ;
+
+        if ( tokens.size() == 2 && !tokens[0].empty() && !tokens[1].empty() ) {
+            // if both selector and token were found check if database has the specific token
+
+            sqlite::Query stmt(con_, "SELECT a.user_id as user_id, a.token as token, u.name as username FROM auth_tokens AS a JOIN users AS u ON a.user_id = u.id WHERE a.selector = ? AND a.expires > ? LIMIT 1",
+                               tokens[0], std::time(nullptr)) ;
+            sqlite::QueryResult res = stmt.exec() ;
+
+            if ( res ) {
+
+                string cookie_token = binToHex(hashSHA256(decodeBase64(tokens[1]))) ;
+                string stored_token = res.get<string>("token") ;
+
+                if ( hash_equals(stored_token, cookie_token) ) {
+                    session_.data().add("username", res.get<string>("username")) ;
+                    session_.data().add("user_id", res.get<string>("user_id")) ;
+                    session_.data().add("role", "admin") ;
+
+                    return true ;
                 }
             }
         }
+
+        // if we are here then probably there is a security issue
     }
-*/
+
+    return false ;
 }
 
 static void strip_all_tags(string &str, bool remove_breaks = false) {
@@ -152,16 +191,9 @@ bool UserController::sanitizePassword(string &password)
 
 bool UserController::userNameExists(const string &username)
 {
-    try {
     sqlite::Query stmt(con_, "SELECT id FROM 'users' WHERE name = ? LIMIT 1;", username) ;
     sqlite::QueryResult res = stmt.exec() ;
-     return (bool)res ;
-    }
-    catch ( sqlite::Exception &e ) {
-        cout << e.what() << endl;
-    }
-
-
+    return (bool)res ;
 }
 
 bool UserController::verifyPassword(const string &query, const string &stored) {

@@ -20,10 +20,11 @@ std::string decodeBase64(const std::string &src) ;
 // create a hash (combined key and salt) from a password. result string is binary and thus should be appropriately encoded before storing to database
 std::string passwordHash(const std::string &password, size_t iterations = 1000) ;
 
-
-
 // validate hash and password combination
 bool passwordVerify(const std::string &password, const std::string &hash) ;
+
+// hashes input string using SHA256 alogorithm, returning binary string
+std::string hashSHA256(const std::string &src) ;
 
 }
 

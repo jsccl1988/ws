@@ -12,6 +12,7 @@
 #include <wspp/util/logger.hpp>
 #include <wspp/util/database.hpp>
 #include <wspp/util/crypto.hpp>
+#include <wspp/util/variant.hpp>
 
 #include <iostream>
 
@@ -43,15 +44,15 @@ public:
         sqlite::Connection con(root_ + "/db.sqlite") ;
         Session session(sm_, req, resp) ;
 
-        UserController users(req, resp, con, session) ;
+        UserController user(req, resp, con, session) ;
         // request router
 
         Dictionary attributes ;
-        if ( req.matches("GET", "/page/{id:a}?", attributes) ) handlePage(resp, attributes.get("id")) ;
+        if ( req.matches("GET", "/page/{id:a}?", attributes) ) handlePage(resp, user, attributes.get("id")) ;
         else if ( req.matches("GET", "/post/{id:n}?", attributes) ) handlePost(resp,  attributes.get("id")) ;
         else if ( req.matches("GET", "/posts/{category:a}?", attributes) ) handlePosts(resp, attributes.get("category")) ;
-        else if ( req.matches("POST", "/user/login") ) users.login() ;
-        else if ( req.matches("POST", "/user/logout") ) users.logout() ;
+        else if ( req.matches("POST", "/user/login/") ) user.login() ;
+        else if ( req.matches("POST", "/user/logout/") ) user.logout() ;
         else if ( req.matches("GET", "/{fpath:**}", attributes) ) {
             string fpath = attributes.get("fpath") ;
             resp.encode_file(root_ + fpath);
@@ -59,7 +60,7 @@ public:
         else resp.stock_reply(Response::not_found) ;
     }
 
-    void handlePage(Response &response, const string &page_id) {
+    void handlePage(Response &response, const UserController &user, const string &page_id) {
         string page_title = "hello" ;
         string nav_brand = "blog" ;
         string page_content = "djwljwdwlfjwlwjf" ;
@@ -84,6 +85,12 @@ public:
 
 
 int main(int argc, char *argv[]) {
+
+    Variant v(Variant::Object{
+                          {"name", 2.0}
+                      }) ;
+    cout << v.toJSON() << endl ;
+
     MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
     server.run() ;
 }

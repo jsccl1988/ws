@@ -551,24 +551,14 @@ static bool parse_multipart_data(Request &session, istream &strm, const char *bn
 
 static bool parse_form_data(Request &session, istream &strm)
 {
-    const string cl = "Content-Length" ;
+    size_t content_length = stoi(session.SERVER_.get("Content-Length", "0")) ;
 
-    unsigned int content_length = 1000 ;
-    bool has_content_length = false ;
+    std::string content_type = session.SERVER_.get("Content-Type") ;
 
-    if ( session.SERVER_.count(cl) == 1 )
-    {
-        content_length = atoi(session.SERVER_[cl].c_str()) ;
-        has_content_length = true ;
-    }
+    if ( content_type.empty() && content_length > 0 )
+        return false ;
 
-    const char *ct = "Content-Type" ;
-
-    if ( session.SERVER_.count(ct) == 0 ) return false ;
-
-    std::string content_type = session.SERVER_[ct] ;
-
-    if ( strncmp(content_type.c_str(), "application/x-www-form-urlencoded", 33) == 0 )
+    if ( boost::starts_with(content_type, "application/x-www-form-urlencoded") )
     {
         // parse name value pairs
 
@@ -592,7 +582,7 @@ static bool parse_form_data(Request &session, istream &strm)
             session.POST_[url_decode(key.c_str())] = url_decode(val.c_str()) ;
         }
     }
-    else if ( strncmp(content_type.c_str(),"multipart/form-data", 19) == 0 )
+    else if ( boost::starts_with(content_type, "multipart/form-data") )
     {
         std::string boundary ;
 
@@ -608,7 +598,7 @@ static bool parse_form_data(Request &session, istream &strm)
 
         return parse_multipart_data(session, strm, boundary.c_str()) ;
     }
-    else if ( has_content_length )
+    else if ( content_length )
     {
 
         session.content_.resize(content_length) ;

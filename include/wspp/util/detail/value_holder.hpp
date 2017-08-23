@@ -15,14 +15,12 @@ class IValueHolder {
 public:
 
     virtual void toJSON(std::ostream &) const = 0 ;
-//    virtual std::string toString() const = 0 ;
-//    virtual bool fromString(const std::string &val) = 0 ;
+    virtual bool isArray() const = 0 ;
+    virtual bool isObject() const = 0 ;
 
 protected:
     static std::string json_escape_string(const std::string &str) ;
 };
-
-
 
 template <typename T, bool = boost::is_integral<T>::value>
 struct JSONWriter {
@@ -45,6 +43,9 @@ public:
         JSONWriter<T>::write(strm, value_) ;
     }
 
+    bool isArray() const override { return false ; }
+    bool isObject() const override { return false ; }
+
 private:
 
     T value_ ;
@@ -58,6 +59,10 @@ public:
 
     void toJSON(std::ostream &) const override ;
 
+    bool isArray() const override { return false ; }
+    bool isObject() const override { return true ; }
+
+
     std::map<std::string, Variant> values_ ;
 };
 
@@ -67,6 +72,8 @@ public:
         values_(values) {}
 
     void toJSON(std::ostream &) const override ;
+    virtual bool isArray() const override { return true ; }
+    virtual bool isObject() const override { return false ; }
 
     std::vector<Variant> values_ ;
 };

@@ -124,12 +124,24 @@ bool passwordVerify(const string &password, const string &hash) {
         iterations
     );
 
-    // compare key with one stored in hash
+    // compare key with one stored in hash (avoiding timing issues)
 
+    uint ncount = 0 ;
     for( uint i=0 ; i<SHA256::DIGESTSIZE ; i++ )
-        if ( hash.at(salt_length + i) != key[i] ) return false ;
+        if ( hash.at(salt_length + i) != key[i] ) ncount ++ ;
 
-    return true ;
+    return ncount == 0 ;
+}
+
+string hashSHA256(const string &src)
+{
+    std::string digest;
+    CryptoPP::SHA256 hash;
+
+    CryptoPP::StringSource ss(reinterpret_cast<const byte *>(&src[0]), src.size(), true,
+       new CryptoPP::HashFilter(hash, new CryptoPP::StringSink(digest)));
+
+    return digest;
 }
 
 
