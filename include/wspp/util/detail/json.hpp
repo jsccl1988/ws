@@ -3,6 +3,47 @@
 
 namespace wspp {
 
+template <class T>
+inline Variant ValueHolder<T>::fetchKey(const std::string &key) const {
+    return Variant() ;
+}
+
+template <class T>
+inline Variant ValueHolder<T>::fetchIndex(uint idx) const {
+    return Variant() ;
+}
+
+inline Variant ArrayValueHolder::fetchKey(const std::string &key) const {
+    return Variant() ;
+}
+
+inline Variant ArrayValueHolder::fetchIndex(uint idx) const {
+    if ( idx < values_.size() )
+        return values_[idx] ;
+    else
+    return Variant() ;
+}
+
+inline Variant ObjectValueHolder::fetchKey(const std::string &key) const {
+    auto it = values_.find(key) ;
+    if ( it == values_.end() )
+        return Variant() ;
+    else return it->second ;
+}
+
+inline Variant ObjectValueHolder::fetchIndex(uint idx) const {
+    return Variant() ;
+}
+
+inline Variant NullValueHolder::fetchKey(const std::string &key) const {
+    return Variant() ;
+}
+
+inline Variant NullValueHolder::fetchIndex(uint idx) const {
+    return Variant() ;
+}
+
+
 template<>
 inline void ValueHolder<std::string>::toJSON(std::ostream &strm) const {
     strm << json_escape_string(value_) ;
@@ -13,8 +54,7 @@ inline void ValueHolder<bool>::toJSON(std::ostream &strm) const {
     strm << ( value_ ? "true" : "false") ;
 }
 
-template<>
-inline void ValueHolder<std::nullptr_t>::toJSON(std::ostream &strm) const {
+inline void NullValueHolder::toJSON(std::ostream &strm) const {
     strm << "null" ;
 }
 

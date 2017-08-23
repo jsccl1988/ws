@@ -9,7 +9,7 @@
 #include <boost/type_traits.hpp>
 
 namespace wspp {
-
+class Variant ;
 class IValueHolder {
 
 public:
@@ -17,6 +17,9 @@ public:
     virtual void toJSON(std::ostream &) const = 0 ;
     virtual bool isArray() const = 0 ;
     virtual bool isObject() const = 0 ;
+    virtual bool isNull() const = 0 ;
+    virtual Variant fetchKey(const std::string &key) const = 0 ;
+    virtual Variant fetchIndex(uint idx) const = 0 ;
 
 protected:
     static std::string json_escape_string(const std::string &str) ;
@@ -45,6 +48,9 @@ public:
 
     bool isArray() const override { return false ; }
     bool isObject() const override { return false ; }
+    bool isNull() const override { return false ; }
+    Variant fetchKey(const std::string &key) const override ;
+    Variant fetchIndex(uint idx) const override ;
 
 private:
 
@@ -61,7 +67,10 @@ public:
 
     bool isArray() const override { return false ; }
     bool isObject() const override { return true ; }
+    bool isNull() const override { return false ; }
 
+    Variant fetchKey(const std::string &key) const override ;
+    Variant fetchIndex(uint idx) const override ;
 
     std::map<std::string, Variant> values_ ;
 };
@@ -74,11 +83,27 @@ public:
     void toJSON(std::ostream &) const override ;
     virtual bool isArray() const override { return true ; }
     virtual bool isObject() const override { return false ; }
+    bool isNull() const override { return false ; }
+
+    Variant fetchKey(const std::string &key) const override ;
+    Variant fetchIndex(uint idx) const override ;
+
 
     std::vector<Variant> values_ ;
 };
 
+class NullValueHolder: public IValueHolder {
+public:
+    NullValueHolder() {}
 
+    void toJSON(std::ostream &) const override ;
+    virtual bool isArray() const override { return false ; }
+    virtual bool isObject() const override { return false ; }
+    bool isNull() const override { return true ; }
+
+    Variant fetchKey(const std::string &key) const override ;
+    Variant fetchIndex(uint idx) const override ;
+};
 }
 
 

@@ -13,6 +13,7 @@
 #include <wspp/util/database.hpp>
 #include <wspp/util/crypto.hpp>
 #include <wspp/util/variant.hpp>
+#include <wspp/util/template_renderer.hpp>
 
 #include <iostream>
 
@@ -82,14 +83,22 @@ public:
 };
 
 
-
-
 int main(int argc, char *argv[]) {
 
-    Variant v(Variant::Object{
-                          {"name", 2.0}
-                      }) ;
-    cout << v.toJSON() << endl ;
+    TemplateRenderer rdr ;
+
+    rdr.renderString(R"(
+                     {{#repo}}
+                       <b>{{name}}</b>
+                     {{/repo}}
+                     {{^repo}}
+                       No repos :(
+                     {{/repo}}
+                     )", Variant::Object{
+                          {"repo",
+                                Variant::Object{{"name", 2.0}
+                                }
+                      }}) ;
 
     MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
     server.run() ;
