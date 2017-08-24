@@ -87,19 +87,33 @@ int main(int argc, char *argv[]) {
 
     TemplateRenderer rdr ;
 
-    rdr.renderString(R"(
-                     {{#repo}}
-                       <b>{{name}}</b>
-                     {{/repo}}
-                     {{^repo}}
-                       No repos :(
-                     {{/repo}}
-                     )", Variant::Object{
-                          {"repo",
-                                Variant::Object{{"name", 2.0}
-                                }
-                      }}) ;
+    Variant::Object ctx{
+           { "menu",
+                Variant::Object{{"items",
+                    Variant::Array{
+                        Variant::Object{{"name", string("'rt'")}},
+                        Variant::Object{{"name", 3.0}},
+                        Variant::Object{{"name", 4.0}},
+                        Variant::Object{{"name", 5.0}},
+                    }
+              }}
+           }} ;
 
-    MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
-    server.run() ;
+    cout << rdr.render(R"(
+                             {{#menu}}
+                             <ul>
+                             {{#items}}<li>{{name}}</li>{{>partial1}}
+                             {{/items}}
+                             </ul>
+                             {{/menu}}
+                             {{^menu}}
+                             Hello
+                             {{/menu}}
+                     )",
+                       ctx,
+                     {{"partial1", "This is my {{{name}}}"}}
+                    ) << endl ;
+
+//    MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
+//    server.run() ;
 }

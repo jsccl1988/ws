@@ -42,13 +42,32 @@ public:
     Variant(const Object &values): value_(new ObjectValueHolder(values)) {}
     Variant(const Array &values): value_(new ArrayValueHolder(values)) {}
 
-    bool isObject() const { return value_->isObject() ; }
-    bool isArray() const { return value_->isArray() ; }
-    bool isNull() const { return value_->isNull() ; }
+    bool isObject() const { return value_->type() == IValueHolder::Object ; }
+    bool isArray() const { return value_->type() == IValueHolder::Array ; }
+    bool isNull() const { return value_->type() == IValueHolder::Null ; }
+    bool isValue() const { return value_->type() == IValueHolder::Value ; }
+    bool isFunction() const { return value_->type() == IValueHolder::Function ; }
+
+    std::string toString() const {
+        if ( isValue() ) {
+            return value_->toString() ;
+        }
+    }
+
+    size_t length() const {
+        if ( isObject() ) {
+            boost::shared_ptr<ObjectValueHolder> e = boost::dynamic_pointer_cast<ObjectValueHolder>(value_) ;
+            return e->values_.size() ;
+        }
+        else if ( isArray() ) {
+            boost::shared_ptr<ArrayValueHolder> e = boost::dynamic_pointer_cast<ArrayValueHolder>(value_) ;
+            return e->values_.size() ;
+        }
+        else return 0 ;
+    }
 
     Variant at(const std::string &key) const { return value_->fetchKey(key) ; }
     Variant at(uint idx) const { return value_->fetchIndex(idx) ; }
-
 
     std::string toJSON() const {
         std::ostringstream strm ;

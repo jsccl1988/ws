@@ -13,13 +13,14 @@ class Variant ;
 class IValueHolder {
 
 public:
+    enum Type { Value, Array, Object, Function, Null } ;
 
     virtual void toJSON(std::ostream &) const = 0 ;
-    virtual bool isArray() const = 0 ;
-    virtual bool isObject() const = 0 ;
-    virtual bool isNull() const = 0 ;
+    virtual Type type() const = 0 ;
+
     virtual Variant fetchKey(const std::string &key) const = 0 ;
     virtual Variant fetchIndex(uint idx) const = 0 ;
+    virtual std::string toString() const = 0 ;
 
 protected:
     static std::string json_escape_string(const std::string &str) ;
@@ -46,9 +47,14 @@ public:
         JSONWriter<T>::write(strm, value_) ;
     }
 
-    bool isArray() const override { return false ; }
-    bool isObject() const override { return false ; }
-    bool isNull() const override { return false ; }
+    Type type() const override { return IValueHolder::Value ; }
+
+    std::string toString() const override {
+        std::ostringstream strm ;
+        strm << value_ ;
+        return strm.str() ;
+    }
+
     Variant fetchKey(const std::string &key) const override ;
     Variant fetchIndex(uint idx) const override ;
 
@@ -65,9 +71,8 @@ public:
 
     void toJSON(std::ostream &) const override ;
 
-    bool isArray() const override { return false ; }
-    bool isObject() const override { return true ; }
-    bool isNull() const override { return false ; }
+    Type type() const override { return IValueHolder::Object ; }
+    std::string toString() const override { return std::string() ; }
 
     Variant fetchKey(const std::string &key) const override ;
     Variant fetchIndex(uint idx) const override ;
@@ -81,13 +86,13 @@ public:
         values_(values) {}
 
     void toJSON(std::ostream &) const override ;
-    virtual bool isArray() const override { return true ; }
-    virtual bool isObject() const override { return false ; }
-    bool isNull() const override { return false ; }
+
+    Type type() const override { return IValueHolder::Array ; }
+
+    std::string toString() const override { return std::string() ; }
 
     Variant fetchKey(const std::string &key) const override ;
     Variant fetchIndex(uint idx) const override ;
-
 
     std::vector<Variant> values_ ;
 };
@@ -97,9 +102,9 @@ public:
     NullValueHolder() {}
 
     void toJSON(std::ostream &) const override ;
-    virtual bool isArray() const override { return false ; }
-    virtual bool isObject() const override { return false ; }
-    bool isNull() const override { return true ; }
+
+    std::string toString() const override { return "null" ; }
+    Type type() const override { return IValueHolder::Null ; }
 
     Variant fetchKey(const std::string &key) const override ;
     Variant fetchIndex(uint idx) const override ;

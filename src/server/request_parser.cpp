@@ -423,10 +423,10 @@ static bool parse_mime_data(Request &session, istream &strm, const char *fld, co
                         if ( strncmp(buf, bnd, bndlen ) == 0 ) {
                             strm.get() ; strm.get() ;
 
-                            delete buf ;
+                            delete [] buf ;
                             break ;
                         }
-                        delete buf ;
+                        delete [] buf ;
                     }
                     else
                     {
