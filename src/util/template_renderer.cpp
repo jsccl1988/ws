@@ -9,7 +9,6 @@
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
 
-
 using namespace std ;
 
 namespace wspp {
@@ -26,6 +25,29 @@ struct Tag {
     Type type_ ;
 };
 
+struct ContextStack {
+
+    Variant top() const { return stack_.back() ; }
+
+    void push(Variant ctx) {
+        stack_.push_back(ctx) ;
+    }
+
+    void pop() { stack_.pop_back() ; }
+
+    Variant find(const string &item) {
+        for ( auto it = stack_.rbegin() ; it != stack_.rend() ; ++it ) {
+            Variant v = it->at(item) ;
+            if ( !v.isNull() ) return v ;
+        }
+
+        return Variant() ;
+    }
+
+
+    std::deque<Variant> stack_ ;
+};
+
 struct Node {
 
     typedef boost::shared_ptr<Node> Ptr ;
@@ -33,7 +55,7 @@ struct Node {
     enum Type { RawText, Section, Comment, Substitution, Partial } ;
 
     virtual Type type() const = 0;
-    virtual void eval(const Variant &ctx, string &res) const = 0 ;
+    virtual void eval(ContextStack &ctx, string &res) const = 0 ;
 };
 
 struct RawTextNode: public Node {
@@ -42,7 +64,7 @@ struct RawTextNode: public Node {
 
     RawTextNode(const string &text): text_(text) {}
 
-    void eval(const Variant &ctx, string &res) const override {
+    void eval(ContextStack &ctx, string &res) const override {
         res.append(text_) ;
     }
 
@@ -58,28 +80,37 @@ struct SectionNode: public Node {
     SectionNode(const string &name, bool is_inverted = false): name_(name), is_inverted_(is_inverted) {}
 
     Type type() const override { return Section ; }
-    void eval(const Variant &ctx, string &res) const override {
-        Variant val = ctx.at(name_) ;
+    void eval(ContextStack &ctx, string &res) const override {
+        Variant val = ctx.find(name_) ;
         if ( !is_inverted_ ) {
-            if ( val.isNull() || val.length() == 0 ) return ; // either does not exist or set to explicitly set to Null
-            else if ( val.isArray() && val.length() > 0) {
+            if ( val.isFalse() ) return ; // either does not exist or set to explicitly set to Null, false, empty array
+            else if ( val.isArray() ) {
                 for( uint k=0 ; k<val.length() ; k++ ) {
                     Variant v = val.at(k) ;
+                    ctx.push(v) ;
                     for( auto &c: children_) {
-                        c->eval(v, res) ;
+                        c->eval(ctx, res) ;
                     }
+                    ctx.pop() ;
                 }
             }
-            else if ( val.isObject() ) {
+            else if ( val.isObject() ) { //push context and evaluate children
+                ctx.push(val) ;
                 for( auto &c: children_) {
-                    c->eval(val, res)  ;
+                    c->eval(ctx, res)  ;
+                }
+                ctx.pop() ;
+            }
+            else {
+                for( auto &c: children_) {
+                    c->eval(ctx, res)  ;
                 }
             }
         }
         else {
-            if ( val.isNull() || val.length() == 0 ) {
+            if ( val.isFalse() ) {
                 for( auto &c: children_) {
-                    c->eval(Variant(), res)  ;
+                    c->eval(ctx, res)  ;
                 }
             }
         }
@@ -111,16 +142,13 @@ struct SubstitutionNode: public Node {
     typedef boost::shared_ptr<SubstitutionNode> Ptr ;
 
     SubstitutionNode(const string &var, bool is_escaped): var_(var), is_escaped_(is_escaped) {}
-    void eval(const Variant &ctx, string &res) const override {
+    void eval(ContextStack &ctx, string &res) const override {
 
         string sub ;
-        if ( ctx.isObject() ) {
-            auto val = ctx.at(var_) ;
-            if ( val.isNull() ) return ;
-            else if ( val.isValue() )
-                sub = val.toString() ;
-            else return  ;
-        }
+        auto val = ctx.find(var_) ;
+        if ( val.isNull() ) return ;
+        else if ( val.isValue() )
+            sub = val.toString() ;
         else return ;
 
         res.append((is_escaped_ ) ? escape(sub) : sub ) ;
@@ -135,20 +163,22 @@ struct SubstitutionNode: public Node {
 class Cache {
 public:
 
-    void add(const string &key, SectionNode::Ptr &val) {
+    typedef std::pair<time_t, SectionNode::Ptr> Entry ;
+
+    void add(const string &key, time_t ts, SectionNode::Ptr &val) {
         boost::mutex::scoped_lock lock(guard_);
-        compiled_.insert({key, val}) ;
+        compiled_.insert({key, std::make_pair(ts, val)}) ;
     }
 
-    SectionNode::Ptr fetch(const string &key) {
+    Entry fetch(const string &key) {
         boost::mutex::scoped_lock lock(guard_);
         auto it = compiled_.find(key) ;
         if ( it != compiled_.end() ) return it->second ;
-        else return nullptr ;
+        else return Entry(0, nullptr) ;
     }
 
 private:
-    map<string, SectionNode::Ptr> compiled_ ;
+    map<string, Entry> compiled_ ;
     boost::mutex guard_ ;
 
 };
@@ -156,29 +186,37 @@ private:
 class Parser {
 public:
 
-    Parser(const Partials &partials, const string &folder): idx_(0), partials_(partials), root_folder_(folder) {
+    Parser(const Partials &partials, const string &folder, bool caching): idx_(0), partials_(partials), root_folder_(folder), caching_(caching) {
     }
 
     SectionNode::Ptr parse(const string &src) {
         if ( !src.empty() && src.at(0) == '@' ) { // pointing to a file
             string filepath = src.substr(1) ;
 
+            using namespace boost::filesystem ;
+
+            path p(root_folder_) ;
+            p /= filepath ;
+
+            if ( !exists(p) ) return nullptr ;
+            std::time_t t = last_write_time( p ) ;
+
             static Cache g_cache ;
 
-            auto stored = g_cache.fetch(filepath) ;
-            if ( stored ) return stored ;
-            else {
-                std::ifstream strm(root_folder_ + filepath) ;
-
-                if ( strm ) {
-                    string contents((istreambuf_iterator<char>(strm)),
-                            istreambuf_iterator<char>());
-                    auto compiled = parseString(contents) ;
-                    g_cache.add(filepath, compiled) ;
-                    return compiled ;
-                }
-                else return nullptr ;
+            if ( caching_ ) {
+                auto stored = g_cache.fetch(p.string()) ;
+                if ( stored.second && stored.first >= t ) return stored.second ;
             }
+
+            std::ifstream strm(p.string()) ;
+
+            if ( strm ) {
+                string contents((istreambuf_iterator<char>(strm)), istreambuf_iterator<char>());
+                auto compiled = parseString(contents) ;
+                if ( caching_ ) g_cache.add(p.string(), t, compiled) ;
+                return compiled ;
+            }
+            else return nullptr ;
         }
         else
             return parseString(src) ;
@@ -199,6 +237,7 @@ private:
     uint idx_ ;
     const Partials &partials_ ;
     const string &root_folder_ ;
+    bool caching_ ;
 };
 
 
@@ -347,11 +386,18 @@ SectionNode::Ptr Parser::parseString(const string &src) {
             parent->children_.push_back(boost::make_shared<SubstitutionNode>(tag.name_, true)) ;
         }
         else if ( tag.type_ == Tag::Partial ) {
-            auto p = partials_.find(tag.name_) ;
-            if ( p != partials_.end() ) {
+            string partial_src ;
 
-                Parser parser(partials_, root_folder_) ;
-                auto ast = parser.parse(p->second) ;
+            // check if the key has been declared in the partials map
+            auto p = partials_.find(tag.name_) ;
+            if ( p != partials_.end() )
+                partial_src = p->second ;
+            else if ( tag.name_.at(0) == '@' ) // else if the key starts with @ it points to a file
+                partial_src = tag.name_ ;
+
+            if ( !partial_src.empty() ) {
+                Parser parser(partials_, root_folder_, caching_) ;
+                auto ast = parser.parse(partial_src) ;
                 if ( ast ) {
                     for( auto &c: ast->children_ )
                         parent->children_.push_back(c) ;
@@ -372,14 +418,16 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 string TemplateRenderer::render(const string &src, const Variant &ctx, const Partials &partials) {
     using namespace mustache ;
 
-    Parser parser(partials, root_folder_) ;
+    Parser parser(partials, root_folder_, caching_) ;
 
     string res ;
     SectionNode::Ptr ast = parser.parse(src) ;
 
     if ( ast ) {
         Variant rc(Variant::Object{{"$root", ctx}}) ;
-        ast->eval(rc, res) ;
+        ContextStack stack ;
+        stack.push(rc) ;
+        ast->eval(stack, res) ;
     }
 
     return res ;

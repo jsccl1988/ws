@@ -38,6 +38,7 @@ public:
              const std::string &root_dir,
              const std::string &logger_dir):
         logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port, logger_) {
+        engine_.setRootFolder(root_ + "/templates/");
     }
 
     void handle(const Request &req, Response &resp) override {
@@ -62,10 +63,14 @@ public:
     }
 
     void handlePage(Response &response, const UserController &user, const string &page_id) {
-        string page_title = "hello" ;
-        string nav_brand = "blog" ;
-        string page_content = "djwljwdwlfjwlwjf" ;
-#include "templates/page.tpp"
+        Variant ctx( Variant::Object{
+                         {"page_id", page_id},
+                         {"page_title", "hello"},
+                         {"nav_brand", "blog"},
+                         {"page_content", "csdsdsdsdsd"},
+                         {"logged_in", user.isLoggedIn()},
+                         {"user_name", user.name()}}) ;
+        response.write(engine_.render("@page.mst", ctx)) ;
     }
 
     void handlePost(Response &response, const string &post_id) {
@@ -80,40 +85,40 @@ public:
     FileSystemSessionHandler sm_ ;
     DefaultLogger logger_ ;
     string root_ ;
+    TemplateRenderer engine_ ;
 };
 
 
 int main(int argc, char *argv[]) {
 
     TemplateRenderer rdr ;
-
+/*
     Variant::Object ctx{
-           { "menu",
-                Variant::Object{{"items",
-                    Variant::Array{
-                        Variant::Object{{"name", string("'rt'")}},
-                        Variant::Object{{"name", 3.0}},
-                        Variant::Object{{"name", 4.0}},
-                        Variant::Object{{"name", 5.0}},
+           {  { "id", 1 },
+           {  "children", Variant::Array{
+                        Variant::Object{{"id", 2}, {"href", string("h1")}, {"active", true }},
+                        Variant::Object{{"id", string("item2")}, {"href", string("h2")} },
+                        Variant::Object{{"id", string("item3")}, {"href", string("h3")} },
+                        Variant::Object{{"name", string("item4")}, {"href", string("h4")} },
                     }
-              }}
-           }} ;
+           }
+        }} ;
+
+    Variant v(Variant::Object{{"node", ctx}}) ;
+
+    cout << v.at("node.children").at(0).at("href").toJSON() << endl ;
 
     cout << rdr.render(R"(
-                             {{#menu}}
-                             <ul>
-                             {{#items}}<li>{{name}}</li>{{>partial1}}
-                             {{/items}}
-                             </ul>
-                             {{/menu}}
-                             {{^menu}}
-                             Hello
-                             {{/menu}}
+                       {{ id }}
+                       {{#children}}
+                           {{id}}  {{! will also output node.children[i].id }}
+                       {{/children}}
+
                      )",
                        ctx,
                      {{"partial1", "This is my {{{name}}}"}}
                     ) << endl ;
-
-//    MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
-//    server.run() ;
+*/
+    MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
+    server.run() ;
 }
