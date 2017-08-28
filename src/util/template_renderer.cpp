@@ -338,9 +338,10 @@ bool Parser::nextTag(const string &src, string &raw, Tag &tag) {
                 if ( tag.type_ == Tag::Comment ) continue ;
                 return true ;
             }
-            else if ( idx_ < nc ) raw.push_back(src[idx_++]) ;
+            else --idx_ ;
         }
-        else if ( idx_ < nc ) raw.push_back(src[idx_++]) ;
+
+        if ( idx_ < nc ) raw.push_back(src[idx_++]) ;
     }
 
     return false ;

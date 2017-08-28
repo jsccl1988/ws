@@ -10,7 +10,15 @@
         <div class="container">
 
 		{{> @navbar.mst }}
-
+		
+		{{#logged_in}}
+		<div class="row">
+			<div class="col-md-12">
+			<a href="/page/edit/{{page.id}}">Edit</a>
+			</div>
+		</div>
+		{{/logged_in}}
+		
             <div class="row">
                 {{> @content.mst}}
             </div>

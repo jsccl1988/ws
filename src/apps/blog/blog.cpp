@@ -18,6 +18,7 @@
 #include <iostream>
 
 #include "user_controller.hpp"
+#include "page_controller.hpp"
 
 using namespace std ;
 using namespace wspp ;
@@ -47,10 +48,37 @@ public:
         Session session(sm_, req, resp) ;
 
         UserController user(req, resp, con, session) ;
+
         // request router
 
         Dictionary attributes ;
-        if ( req.matches("GET", "/page/{id:a}?", attributes) ) handlePage(resp, user, attributes.get("id")) ;
+
+
+        if ( req.matches("GET", "/page/add/", attributes) ) {
+            PageController pages(req, resp, con, user, engine_) ;
+            pages.create() ;
+        }
+        else if ( req.matches("GET", "/page/list/{pager:n}?", attributes) ) {
+            PageController pages(req, resp, con, user, engine_) ;
+            pages.list(attributes.value<int>("pager", 0)) ;
+        }
+        else if ( req.matches("GET", "/page/edit/{id:a}", attributes) ) {
+            PageController pages(req, resp, con, user, engine_) ;
+            pages.edit(attributes.get("id")) ;
+        }
+        else if ( req.matches("POST", "/page/publish") ) {
+            PageController pages(req, resp, con, user, engine_) ;
+            pages.publish() ;
+        }
+        else if ( req.matches("POST", "/page/delete") ) {
+            PageController pages(req, resp, con, user, engine_) ;
+            pages.remove() ;
+        }
+        else if ( req.matches("GET", "/page/{id:a}", attributes) ) {
+            PageController pages(req, resp, con, user, engine_) ;
+            pages.show(attributes.get("id")) ;
+        }
+
         else if ( req.matches("GET", "/post/{id:n}?", attributes) ) handlePost(resp,  attributes.get("id")) ;
         else if ( req.matches("GET", "/posts/{category:a}?", attributes) ) handlePosts(resp, attributes.get("category")) ;
         else if ( req.matches("POST", "/user/login/") ) user.login() ;
@@ -63,14 +91,28 @@ public:
     }
 
     void handlePage(Response &response, const UserController &user, const string &page_id) {
-        Variant ctx( Variant::Object{
-                         {"page_id", page_id},
-                         {"page_title", "hello"},
+        // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT);
+
+        sqlite::Connection con(root_ + "/db.sqlite") ;
+        sqlite::Query q(con, "SELECT title, content FROM pages WHERE id=?;", page_id) ;
+        sqlite::QueryResult res = q.exec() ;
+
+        if ( res ) {
+
+            Variant ctx( Variant::Object{
+                         {"page", Variant::Object{
+                                    { "id", page_id },
+                                    { "title", res.get<string>("title") },
+                                    { "content", res.get<string>("content") }
+                                  }
+                         },
                          {"nav_brand", "blog"},
-                         {"page_content", "csdsdsdsdsd"},
                          {"logged_in", user.isLoggedIn()},
                          {"user_name", user.name()}}) ;
-        response.write(engine_.render("@page.mst", ctx)) ;
+            response.write(engine_.render("@page.mst", ctx)) ;
+        }
+        else
+            response.stock_reply(Response::not_found);
     }
 
     void handlePost(Response &response, const string &post_id) {

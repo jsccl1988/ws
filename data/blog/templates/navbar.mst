@@ -41,9 +41,12 @@
                     <span class="glyphicon glyphicon-chevron-down"></span>
                         </a>
                         <ul class="dropdown-menu" role="menu">
-                        <li>
-                                <a href="#" id="logout">Logout</a>
-                        </li>
+	                         <li><a  href="#" id="logout">Logout</a></li>
+                             <li role="separator" class="divider"></li>
+                             <li><a href="/page/add/">New Page</a></li>
+                             <li><a href="/page/list/">List Pages</a></li>
+                        </ul>
+                        
                 </ul>
                         </li>
 				{{/logged_in}}
