@@ -45,6 +45,8 @@
                              <li role="separator" class="divider"></li>
                              <li><a href="/page/add/">New Page</a></li>
                              <li><a href="/page/list/">List Pages</a></li>
+                             <li role="separator" class="divider"></li>
+                             <li><a href="/menu/edit/">Edit Menus</a></li>
                         </ul>
                         
                 </ul>

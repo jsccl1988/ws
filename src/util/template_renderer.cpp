@@ -145,7 +145,12 @@ struct SubstitutionNode: public Node {
     void eval(ContextStack &ctx, string &res) const override {
 
         string sub ;
-        auto val = ctx.find(var_) ;
+        Variant val ;
+        if ( var_ == "." )
+            val = ctx.top() ;
+        else
+            val = ctx.find(var_) ;
+
         if ( val.isNull() ) return ;
         else if ( val.isValue() )
             sub = val.toString() ;

@@ -7,12 +7,16 @@
 namespace wspp {
 // A class of key/value pairs of strings. 
 
-class Dictionary: public std::map<std::string, std::string>
+typedef std::map<std::string, std::string> SSMap ;
+
+class Dictionary: public SSMap
 {
 	public:
 
 	Dictionary() ;
 	~Dictionary() {}
+    Dictionary(const SSMap &s): SSMap(s) {}
+    Dictionary(const std::initializer_list<SSMap::value_type> &sinit): SSMap(sinit) {}
 
 	// add a key/val pair 
     void add(const std::string &key, const std::string &val) ;
@@ -67,8 +71,6 @@ class Dictionary: public std::map<std::string, std::string>
     int count(const std::string &) const ;
 
     uint64_t capacity() const ;
-
-	bool empty() const ;
 
     void dump() const ;
 

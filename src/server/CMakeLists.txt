@@ -14,6 +14,9 @@ SET( UTIL_SOURCES
 
     ${SRC_ROOT}/util/template_renderer.cpp
     ${INCLUDE_ROOT}/util/template_renderer.hpp
+
+    ${SRC_ROOT}/util/forms.cpp
+    ${INCLUDE_ROOT}/util/forms.hpp
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})

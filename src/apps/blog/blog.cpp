@@ -19,6 +19,7 @@
 
 #include "user_controller.hpp"
 #include "page_controller.hpp"
+#include "menu_controller.hpp"
 
 using namespace std ;
 using namespace wspp ;
@@ -77,6 +78,18 @@ public:
         else if ( req.matches("GET", "/page/{id:a}", attributes) ) {
             PageController pages(req, resp, con, user, engine_) ;
             pages.show(attributes.get("id")) ;
+        }
+        else if ( req.matches("GET|POST", "/menu/edit/") ) {
+            MenuController menus(req, resp, con, user, engine_) ;
+            menus.edit() ;
+        }
+        else if ( req.matches("POST", "/menu/delete/") ) {
+            MenuController menus(req, resp, con, user, engine_) ;
+            menus.remove() ;
+        }
+        else if ( req.matches("POST", "/menu/fetch/") ) {
+            MenuController menus(req, resp, con, user, engine_) ;
+            menus.fetch() ;
         }
 
         else if ( req.matches("GET", "/post/{id:n}?", attributes) ) handlePost(resp,  attributes.get("id")) ;

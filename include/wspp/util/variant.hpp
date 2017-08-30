@@ -12,6 +12,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <wspp/util/dictionary.hpp>
 #include <wspp/util/detail/value_holder.hpp>
 
 namespace wspp {
@@ -52,6 +53,29 @@ public:
 
     Variant(const Object &values): value_(new ObjectValueHolder(values)) {}
     Variant(const Array &values): value_(new ArrayValueHolder(values)) {}
+
+    static Variant fromDictionary(const Dictionary &dict) {
+        Variant::Object obj ;
+        for( const auto &p: dict )
+            obj.insert({p.first, p.second}) ;
+        return obj ;
+    }
+
+    static Variant fromDictionaryAsArray(const Dictionary &dict, const std::string &keyname = "key", const std::string &valname = "val") {
+        Variant::Array ar ;
+        for( const auto &p: dict )
+            ar.emplace_back(Variant::Object({{keyname, p.first}, {valname, p.second}})) ;
+        return ar ;
+    }
+
+    template<class T>
+    static Variant fromVector(const std::vector<T> &vals) {
+        Variant::Array ar ;
+        for( const auto &p: vals )
+            ar.push_back(p) ;
+        return ar ;
+    }
+
 
     // check object type
     bool isObject() const { return value_->type() == IValueHolder::Object ; }

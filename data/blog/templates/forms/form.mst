@@ -1,0 +1,16 @@
+<div class="form-group {{#errors}}has-error has-feedback{{/errors}}">
+{{# label }}
+	<label class="control-label" for="{{id}}">{{ label }}</label>
+{{/label }}
+
+<input type="{{type}}" id="{{id}}" name={{name}} class="form-control" {{#required}}required{{/required}} {{#disabled}}disabled{{/disabled}} {{#placeholder}}placeholder={{/placeholder}} {{#extra_attrs}}{{key}}="{{val}}" {{/extra_attrs}} >
+
+{{#errors}}
+  <span class="glyphicon glyphicon-remove form-control-feedback"></span>       
+{{/errors}}
+
+{{#errors}}
+  <span class="help-block"><p>{{.}}</p></span>  </span>       
+{{/errors}}
+
+</div>
