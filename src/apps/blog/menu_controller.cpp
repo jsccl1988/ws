@@ -28,17 +28,18 @@ void MenuController::remove()
 }
 
 struct Column {
-    Column(const string &header, const string &name): header_(header), name_(name) {
+    Column(const string &header, const string &name, const string &value = string()): header_(header), name_(name), value_(value) {
 
     }
 
     string name_ ;
     string header_ ;
+    string value_ ;
 
 };
 
 
-static Variant makePagerData(uint page, uint max_page, const string url_prefix)
+static Variant makePagerData(uint page, uint max_page)
 {
     Variant::Array pages ;
     if ( max_page == 1 ) return pages ;
@@ -89,8 +90,8 @@ public:
 
     TableView() {}
 
-    void addColumn(const string &header, const string &name) {
-        columns_.emplace_back(header, name) ;
+    void addColumn(const string &header, const string &name_key, const string &value_key = std::string()) {
+        columns_.emplace_back(header, name_key, value_key) ;
     }
 
     virtual uint count() = 0 ;
@@ -114,7 +115,7 @@ public:
 
         Variant entries = rows(offset, results_per_page) ;
 
-        Variant pages = makePagerData(page, num_pages, "/page/list/%%page%%/") ;
+        Variant pages = makePagerData(page, num_pages) ;
 
         return Variant::Object({{"pages", pages}, {"headers", headers}, {"rows", entries}, {"total_rows", total_count}, {"total_pages", num_pages }} ) ;
     }
@@ -122,19 +123,16 @@ public:
     vector<Column> columns_ ;
 
 };
-
-
-class MenusView: public TableView {
+class SQLTableView: public TableView {
 public:
-    MenusView(Connection &con): con_(con) {
-        addColumn("Name", "name") ;
-        addColumn("Parent", "parent") ;
-        addColumn("Link", "link") ;
+    SQLTableView(Connection &con, const string &table, const string &table_fetch_sql): con_(con), table_(table), fetch_sql_(table_fetch_sql) {
+
+
     }
 
     Variant rows(uint offset, uint count) override {
 
-        sqlite::Query q(con_, "SELECT t1.name as name, t1.link as link, t2.name as parent FROM menus AS t1 LEFT JOIN menus AS t2 ON t1.parent = t2.id LIMIT ?, ?", offset, count) ;
+        sqlite::Query q(con_, fetch_sql_ + " LIMIT ?, ?", offset, count) ;
         sqlite::QueryResult res = q.exec() ;
 
         Variant::Array entries ;
@@ -143,29 +141,48 @@ public:
             Variant::Array columns ;
 
             for( const Column &c: columns_ ) {
+                Variant::Object col ;
                 string cname = c.name_ ;
                 if ( res.hasColumn(cname) ) {
-                    columns.emplace_back(Variant(res.get<string>(cname))) ;
+                    col.insert({{"text", res.get<string>(cname)}}) ;
                 }
+                string cval = c.value_ ;
+                if ( !cval.empty() && res.hasColumn(cval) ) {
+                    col.insert({{"value", res.get<string>(cval)}}) ;
+                }
+                columns.emplace_back(col) ;
             }
 
-            entries.emplace_back(Variant::Object{{"columns", columns}}) ;
-;
+            entries.emplace_back(Variant::Object{{"columns", columns}, {"id", res.get<int>("id")}}) ;
+
             res.next() ;
         };
 
         return entries ;
-
     }
 
     uint count() override {
-        sqlite::Query stmt(con_, "SELECT count(*) FROM menus") ;
+        sqlite::Query stmt(con_, "SELECT count(*) FROM " + table_) ;
         sqlite::QueryResult res = stmt.exec() ;
         return res.get<int>(0) ;
     }
 
-private:
+protected:
     Connection &con_ ;
+    string table_, fetch_sql_ ;
+};
+
+static string menu_fetch_sql = "SELECT t1.id as id, t1.name as name, t1.link as link, t1.parent as parent_id, t2.name as parent_name FROM menus AS t1 LEFT JOIN menus AS t2 ON t1.parent = t2.id " ;
+
+class MenusView: public SQLTableView {
+public:
+
+
+    MenusView(Connection &con): SQLTableView(con, "menus", menu_fetch_sql)  {
+        addColumn("Name", "name") ;
+        addColumn("Parent", "parent_name", "parent_id") ;
+        addColumn("Link", "link") ;
+    }
 };
 
 void MenuController::fetch()

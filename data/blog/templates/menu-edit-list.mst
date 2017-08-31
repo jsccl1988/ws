@@ -8,9 +8,9 @@
 	</thead>						     
 	<tbody>
 	{{#rows}}
-		<tr id="{{id}}">
+		<tr data-id="{{id}}">
 			{{#columns}}
-				<td>{{.}}</td>
+				<td {{#value}}data-value="{{value}}"{{/value}}>{{text}}</td>
 			{{/columns}}	
 			<td><a href="javascript:void(0)" class="edit-menu-button" aria-label="Edit">edit</a>|<a href="javascript:void(0)" class="delete-menu-button" aria-label="Delete">delete</a></td>
 		</tr>
