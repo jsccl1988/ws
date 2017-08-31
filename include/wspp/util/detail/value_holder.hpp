@@ -80,6 +80,8 @@ inline IValueHolder::Type ValueHolder<int64_t>::type() const { return IValueHold
 template<>
 inline IValueHolder::Type ValueHolder<bool>::type() const { return IValueHolder::Boolean ; }
 
+
+
 template<>
 inline bool ValueHolder<bool>::isFalse() const { return !value_ ; }
 

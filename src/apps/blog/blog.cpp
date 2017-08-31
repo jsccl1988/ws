@@ -79,15 +79,19 @@ public:
             PageController pages(req, resp, con, user, engine_) ;
             pages.show(attributes.get("id")) ;
         }
-        else if ( req.matches("GET|POST", "/menu/edit/") ) {
+        else if ( req.matches("GET", "/menu/edit/") ) {
             MenuController menus(req, resp, con, user, engine_) ;
             menus.edit() ;
+        }
+        else if ( req.matches("GET|POST", "/menu/create/") ) {
+            MenuController menus(req, resp, con, user, engine_) ;
+            menus.create() ;
         }
         else if ( req.matches("POST", "/menu/delete/") ) {
             MenuController menus(req, resp, con, user, engine_) ;
             menus.remove() ;
         }
-        else if ( req.matches("POST", "/menu/fetch/") ) {
+        else if ( req.matches("GET", "/menu/list/") ) {
             MenuController menus(req, resp, con, user, engine_) ;
             menus.fetch() ;
         }

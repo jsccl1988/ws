@@ -240,6 +240,7 @@ public:
     const char *columnName(int idx) const ;
     int columnIdx(const std::string &name) const ;
     int columnBytes(int idx) const ;
+    bool hasColumn(const std::string &name) const ;
 
     template<class T>
     T get(int idx) const ;

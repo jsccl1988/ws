@@ -12,80 +12,83 @@
 		
 		<h1>Menus</h1>
 		
-		<table id="menu-list-table" class="table table-striped">
-			<thead>
-   				 <tr>
-			        <th>Name</th>
-   			        <th>Parent</th>
-   			        <th>Link</th>
-					<th>Action</th>
-			     </tr>
-			</thead>						     
-    		<tbody id="menu-list-table">
-    			{{#menus.list}}
-					<tr id="menu-{{id}}"><td>{{name}}</td><td>{{parent_name}}</td><td>{{link}}</td>
-  					<td><a href="javascript:void(0)" class="edit-menu-button" aria-label="Edit">edit</a>|<a href="javascript:void(0)" class="delete-menu-button" aria-label="Delete">delete</a></td>
-					</tr>
-				{{/menus.list}}	
-			</tbody>
- 		</table>
- 		
-		
-		<form id="edit-menu" action="/menu/edit/" method="POST">
-		{{#menus_form}}
-			{{> @forms/error_message.mst}}
-			
-			{{# fields }}
-			
-				{{# name }}	{{> @forms/input_field.mst}} {{/ name }}
-				
-				{{# parent }} {{> @forms/select_field.mst}}	{{/ parent }}
-				
-				{{# link }}	{{> @forms/input_field.mst}} {{/ link }}
-				
-				{{# check }} {{> @forms/checkbox_field.mst}} {{/ check }}
-				
-			{{/ fields }}
-			
-			<button type="submit" class="btn btn-default" name="submit">Add</button>  
-		{{/menus_form}}
-		</form> 
+		<div id="menu-list-view">
+		</div>
 
+ 		<button type="button" class="btn btn-default" id="new-menu-button">New</button>
+		
 		</div>
 		   		
 
         <script src="js/jquery-3.1.1.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
         <script src="js/login.js"></script>
-        <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs/dt-1.10.15/datatables.min.css"/>
-		<script type="text/javascript" src="https://cdn.datatables.net/v/bs/dt-1.10.15/datatables.min.js"></script>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/css/bootstrap-dialog.min.css">
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/js/bootstrap-dialog.min.js"></script>
 
-
+		
         <script type="text/javascript">
   			$(document).ready(function() {
   		
-    		
-    		$('.delete-menu-button').click( function() {
-				var id = $(this).closest('tr').attr('id').substring(5) ;
-				 $.ajax({
-	        		url: '/menu/delete/',
-			        type: 'POST',
-	        		data: { 'id': id },
-	        		cache: false,
-	        		success: function(data, textStatus, jqXHR)
-	        		{
-	        			$('#menu-'+ id).remove() ;
-			        },
-	        		error: function(jqXHR, textStatus, errorThrown)
-	        		{
-	        		    // Handle errors here
-	        		    console.log('ERRORS: ' + textStatus);
-	        		    // STOP LOADING SPINNER
-	        		}
-			    }) ;
+				$('#menu-list-view').load("/menu/list/") ;
+					
+  				$('#new-menu-button').click(function() {
+					var msg = $('<div></div>').load("/menu/create/", 
+						function(response, status, xhr) {
+							var dialog = new BootstrapDialog({ 
+								title: 'New Menu',
+								message: msg
+							});
+							
+							dialog.realize() ;
+							dialog.open() ;
+        
+							var form = msg.find('#menu-edit-dlg') ;
+							form.submit(function(e) {
+
+								$.ajax({
+									type: "POST",
+									dataType: "json",
+									url: form.attr('action'),
+									data: form.serialize(), // serializes the form's elements.
+									success: function(data)
+									{
+										if ( data.success ) 
+											dialog.close() ;
+										else {
+											form.html(data.content) ;
+										}
+									} 
+								});
+								
+								e.preventDefault() ;
+							}) ;
+						}) ;
+					}) ;
+         			
+        		
+  			
+    			$('.delete-menu-button').click( function() {
+					var id = $(this).closest('tr').attr('id').substring(5) ;
+					 $.ajax({
+	        			url: '/menu/delete/',
+			    	    type: 'POST',
+	        			data: { 'id': id },
+	        			cache: false,
+	        			success: function(data, textStatus, jqXHR)
+	        			{
+	        				$('#menu-'+ id).remove() ;
+			    	    },
+	        			error: function(jqXHR, textStatus, errorThrown)
+	        			{
+	        			    // Handle errors here
+	        			    console.log('ERRORS: ' + textStatus);
+	        			    // STOP LOADING SPINNER
+	        			}
+			    	}) ;
 				
+				});
 			});
-		});
 		
 		</script>
     </body>

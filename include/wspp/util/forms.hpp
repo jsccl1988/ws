@@ -12,9 +12,19 @@ using std::string ;
 
 namespace wspp {
 
+// Form helper class. The aim of the class is:
+// 1) declare form in a view agnostic way
+// 2) validate input data for those fields e.g passed in a POST request
+// 3) pack data needed to render the form into an object that can be passed to the template engine
+
 class FormField {
 public:
+    // the validator checks the validity of the input string.
+    // if invalid then it should fill the error_messages_
     typedef boost::function<bool (const string &, FormField &)> Validator ;
+
+    // The normalizer preprocesses an input value before passing it to validators
+    typedef boost::function<string (const string &)> Normalizer ;
 
     static Validator requiredArgValidator ;
 public:
@@ -35,6 +45,8 @@ public:
     FormField &extraAttributes(const Dictionary &attrs) { extra_attrs_ = attrs ; return *this ;}
     // set custom validator
     FormField &addValidator(Validator val) { validators_.push_back(val) ; return *this ;}
+    // set custom normalizer
+    FormField &setNormalizer(Normalizer val) { normalizer_ = val ; return *this ;}
     // set field id
     FormField &id(const string &id) { id_ = id ; return *this ;}
     // set label
@@ -50,6 +62,7 @@ public:
 
 protected:
     virtual void fillData(Variant::Object &) const ;
+    // calls all validator
     virtual bool validate(const string &value) ;
 
 private:
@@ -62,14 +75,44 @@ private:
     Dictionary extra_attrs_ ;
     std::vector<string> error_messages_ ;
     std::vector<Validator> validators_ ;
+    Normalizer normalizer_ ;
     uint count_ = 0 ;
 
 };
 
-class OptionsFetcher {
+// This is used to abstract a data source which provides key value pairs to be used e.g. in selection boxes or radio boxes
+// e.g. when options have to be loaded from a database or file
+
+class OptionsModel {
 public:
+    typedef boost::shared_ptr<OptionsModel> Ptr ;
+
     virtual Dictionary fetch() = 0 ;
 };
+
+// convenience class for wrapping a dictionary
+
+class DictionaryOptionsModel: public OptionsModel {
+public:
+    DictionaryOptionsModel(const Dictionary &dict): dict_(dict) {}
+    virtual Dictionary fetch() override {
+        return dict_ ;
+    }
+
+private:
+    Dictionary dict_ ;
+};
+
+// wrapper for a lambda
+class CallbackOptionsModel: public OptionsModel {
+public:
+    CallbackOptionsModel(boost::function<Dictionary ()> cb): cb_(cb) {}
+
+    Dictionary fetch() override { return cb_() ; }
+private:
+    boost::function<Dictionary ()> cb_ ;
+};
+
 
 class Form {
 public:
@@ -78,23 +121,19 @@ public:
 
     // add an input field
     FormField &input(const string &name, const string &type) ;
-    // add a select field
-    FormField &select(const string &name, const Dictionary &options, bool multi = false) ;
 
     // add a select field
-    FormField &select(const string &name, boost::function<Dictionary ()> options, bool multi = false) ;
-
-    // add a select field
-    FormField &select(const string &name, boost::shared_ptr<OptionsFetcher> options, bool multi = false) ;
+    FormField &select(const string &name, boost::shared_ptr<OptionsModel> options, bool multi = false) ;
 
     // add a checkbox
     FormField &checkbox(const string &name, bool is_checked = false) ;
 
-    bool validate(const Dictionary &vals) ;
+    // call to validate the user data against the form
+    // the field values are stored in case of succesfull field validation
+    // override to add additional validation e.g. requiring more than one fields (do not forget to call base class)
+    virtual bool validate(const Dictionary &vals) ;
 
-    void addError(const string &msg) { errors_.push_back(msg) ; }
-
-    Variant::Object data(bool bound = false) const ;
+    Variant::Object data() const ;
 
     string getValue(const string &field_name) ;
 

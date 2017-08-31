@@ -37,6 +37,7 @@ public:
     void edit() ;
     void remove() ;
     void fetch() ;
+    void create() ;
 
 
 protected:

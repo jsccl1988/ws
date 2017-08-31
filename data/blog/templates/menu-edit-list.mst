@@ -1,0 +1,45 @@
+<table class="table table-striped table-bordered">
+	<thead>
+		 <tr>
+		 {{#headers}}
+	        <th>{{.}}</th>
+	     {{/headers}}   
+	     </tr>
+	</thead>						     
+	<tbody>
+	{{#rows}}
+		<tr id="{{id}}">
+			{{#columns}}
+				<td>{{.}}</td>
+			{{/columns}}	
+			<td><a href="javascript:void(0)" class="edit-menu-button" aria-label="Edit">edit</a>|<a href="javascript:void(0)" class="delete-menu-button" aria-label="Delete">delete</a></td>
+		</tr>
+	{{/rows}}
+	</tbody>
+</table>
+
+ <ul class="pagination pagination-sm">
+	 {{#pages}}
+		{{#active}}
+			<li class="active">
+		{{/active}}
+		 {{^active}}
+			<li>
+		{{/active}}
+		 <a href="#" {{#key}}data-key="{{key}}"{{/key}}>{{text}}</a>
+		 </li>
+	{{/pages}}
+	<li>
+		<select>
+			<option value="10">10</option>
+			<option value="20">20</option>
+			<option value="50">50</option>
+			<option value="100">100</option>
+		</select>
+	</li>
+</ul>	
+	
+
+
+	
+ 

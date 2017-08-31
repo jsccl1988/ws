@@ -18,7 +18,7 @@ private:
 
 class SelectField: public FormField {
 public:
-    SelectField(const string &name, boost::shared_ptr<OptionsFetcher> options, bool multi): FormField(name), options_(options), multiple_(multi) {
+    SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
         addValidator([&](const string &val, FormField &v) {
             Dictionary options = options_->fetch() ;
             if ( multiple_ ) {
@@ -48,7 +48,7 @@ public:
 
 private:
     bool multiple_ ;
-    boost::shared_ptr<OptionsFetcher> options_ ;
+    boost::shared_ptr<OptionsModel> options_ ;
 };
 
 class CheckBoxField: public FormField {
@@ -60,6 +60,7 @@ public:
     void fillData(Variant::Object &res) const override {
         FormField::fillData(res) ;
         if ( is_checked_ ) res.insert({"checked", "checked"}) ;
+        res.insert({"template", "checkbox"}) ;
     }
 private:
     bool is_checked_ = false ;
@@ -98,11 +99,19 @@ void FormField::fillData(Variant::Object &res) const {
 
 bool FormField::validate(const string &value)
 {
+    // normalize passed value
+
+    string n_value = normalizer_ ? normalizer_(value) : value ;
+
+    // call validators
+
     for( auto &v: validators_ ) {
-        if ( ! v(value, *this) ) return false ;
+        if ( ! v(n_value, *this) ) return false ;
     }
 
-    value_ = value ;
+    // store value
+
+    value_ = n_value ;
     return true ;
 }
 
@@ -110,6 +119,7 @@ void InputField::fillData(Variant::Object &base) const
 {
     FormField::fillData(base) ;
     base.insert({"type", type_}) ;
+    base.insert({"template", "input"}) ;
 }
 
 
@@ -117,6 +127,7 @@ void SelectField::fillData(Variant::Object &base) const
 {
     FormField::fillData(base) ;
     base.insert({"multiselect", multiple_}) ;
+    base.insert({"template", "select"}) ;
     if ( options_ ) {
         Dictionary options = options_->fetch() ;
         if ( !options.empty() ) base.insert({"options", Variant::fromDictionaryAsArray(options)}) ;
@@ -138,37 +149,8 @@ FormField &Form::input(const string &name, const string &type)
     return *field ;
 }
 
-class MemOptionsFetcher: public OptionsFetcher {
-public:
-    MemOptionsFetcher(const Dictionary &src): data_(src) {}
 
-    Dictionary fetch() override { return data_ ; }
-    Dictionary data_ ;
-};
-
-
-class CbOptionsFetcher: public OptionsFetcher {
-public:
-    CbOptionsFetcher(boost::function<Dictionary ()> cb): cb_(cb) {}
-
-    Dictionary fetch() override { return cb_() ; }
-    boost::function<Dictionary ()> cb_ ;
-};
-
-
-FormField &Form::select(const string &name, const Dictionary &options, bool multi)
-{
-
-    return select(name, boost::shared_ptr<OptionsFetcher>(new MemOptionsFetcher(options)), multi ) ;
-
-}
-
-FormField &Form::select(const string &name, boost::function<Dictionary ()> options, bool multi)
-{
-    return select(name, boost::shared_ptr<OptionsFetcher>(new CbOptionsFetcher(options)), multi ) ;
-}
-
-FormField &Form::select(const string &name, boost::shared_ptr<OptionsFetcher> options, bool multi) {
+FormField &Form::select(const string &name, boost::shared_ptr<OptionsModel> options, bool multi) {
     const auto &it = fields_.insert({name, boost::make_shared<SelectField>(name, options, multi)}) ;
     assert(it.second) ;
     auto &field = it.first->second ;
@@ -188,7 +170,7 @@ FormField &Form::checkbox(const string &name, bool is_checked)
 
 }
 
-Variant::Object Form::data(bool bound) const
+Variant::Object Form::data() const
 {
     Variant::Object form_data ;
     if ( !errors_.empty() )
@@ -210,7 +192,7 @@ Variant::Object Form::data(bool bound) const
         else if ( !p->initial_value_.empty() )
             field_data.insert({"value", p->initial_value_}) ;
 
-        field_data_list.push_back(Variant::Object{{p->name_, field_data}}) ;
+        field_data_list.push_back(field_data) ;
     }
 
     form_data.insert({"fields", field_data_list}) ;
@@ -229,6 +211,7 @@ bool Form::validate(const Dictionary &vals) {
     bool failed = false ;
     for( const auto &p: fields_ ) {
         if ( vals.contains(p.first) ) {
+
             bool res = p.second->validate(vals.get(p.first)) ;
             if ( !res ) failed = true ;
         }

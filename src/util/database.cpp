@@ -239,8 +239,8 @@ Query::Query(Connection &con, const string &sql):
 int Query::columnIdx(const string &name) const {
     auto it = field_map_.find(name) ;
     if ( it != field_map_.end() ) return (*it).second ;
-    else throw Exception("There is no column '" + name + "' in the results table") ;
-    return 0 ;
+    else return -1 ;
+
 }
 
 QueryResult Query::exec() {
@@ -285,6 +285,11 @@ int QueryResult::columnBytes(int idx) const
 {
     cmd_.check() ;
     return sqlite3_column_bytes(cmd_.handle(), idx);
+}
+
+bool QueryResult::hasColumn(const string &name) const
+{
+    return columnIdx(name) >= 0 ;
 }
 
 template<>

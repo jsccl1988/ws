@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/regex.hpp>
 
 using namespace std ;
 
@@ -164,6 +165,9 @@ struct SubstitutionNode: public Node {
     string var_ ;
     bool is_escaped_ ;
 };
+
+
+
 
 class Cache {
 public:
@@ -352,6 +356,54 @@ bool Parser::nextTag(const string &src, string &raw, Tag &tag) {
     return false ;
 }
 
+struct PartialNode: public Node {
+
+    typedef boost::shared_ptr<PartialNode> Ptr ;
+
+    // inherit parent parameters
+    PartialNode(const string &tag, const Partials &partials, const string &folder, bool caching):
+        key_(tag), partials_(partials), root_folder_(folder), caching_(caching) {
+    }
+
+    void eval(ContextStack &ctx, string &res) const override {
+
+        static boost::regex partial_rx("%([^%]+)%") ;
+
+        string key = boost::regex_replace(key_, partial_rx, [&](const boost::smatch &matches) -> string {
+                    string param = matches[1] ;
+                    if ( !param.empty() ) {
+                        Variant p = ctx.find(param) ;
+                        if ( p.isValue() ) return p.toString() ;
+                        else return string() ;
+                    }
+                    else return string() ;
+
+        }) ;
+
+        string partial_src ;
+
+        // check if the key has been declared in the partials map
+        auto p = partials_.find(key) ;
+        if ( p != partials_.end() )
+            partial_src = p->second ;
+        else if ( key.at(0) == '@' ) // else if the key starts with @ it points to a file
+            partial_src = key ;
+
+        if ( !partial_src.empty() ) {
+            Parser parser(partials_, root_folder_, caching_) ;
+            auto ast = parser.parse(partial_src) ;
+            if ( ast ) ast->eval(ctx, res) ;
+        }
+    }
+
+    Type type() const override { return Partial ; }
+
+    string key_ ;
+    const Partials &partials_ ;
+    const string &root_folder_ ;
+    bool caching_ ;
+};
+
 SectionNode::Ptr Parser::parseString(const string &src) {
 
     SectionNode::Ptr root(new SectionNode("$root")) ;
@@ -392,25 +444,8 @@ SectionNode::Ptr Parser::parseString(const string &src) {
             parent->children_.push_back(boost::make_shared<SubstitutionNode>(tag.name_, true)) ;
         }
         else if ( tag.type_ == Tag::Partial ) {
-            string partial_src ;
-
-            // check if the key has been declared in the partials map
-            auto p = partials_.find(tag.name_) ;
-            if ( p != partials_.end() )
-                partial_src = p->second ;
-            else if ( tag.name_.at(0) == '@' ) // else if the key starts with @ it points to a file
-                partial_src = tag.name_ ;
-
-            if ( !partial_src.empty() ) {
-                Parser parser(partials_, root_folder_, caching_) ;
-                auto ast = parser.parse(partial_src) ;
-                if ( ast ) {
-                    for( auto &c: ast->children_ )
-                        parent->children_.push_back(c) ;
-                }
-            }
+             parent->children_.push_back(boost::make_shared<PartialNode>(tag.name_, partials_, root_folder_, caching_)) ;
         }
-
 
         if ( !res ) stack.pop_back() ;
 
