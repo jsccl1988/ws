@@ -292,6 +292,7 @@ bool QueryResult::hasColumn(const string &name) const
     return columnIdx(name) >= 0 ;
 }
 
+
 template<>
 int QueryResult::get(int idx) const
 {
@@ -390,6 +391,16 @@ Blob QueryResult::get(int idx) const
     const void *data = sqlite3_column_blob(cmd_.handle(), idx);
     int bytes = sqlite3_column_bytes(cmd_.handle(), idx) ;
     return Blob((const char *)data, bytes) ;
+}
+
+
+Dictionary QueryResult::getAll() const
+{
+    Dictionary res ;
+    for( int i=0 ; i<columns() ; i++ ) {
+        res.add(columnName(i), get<string>(i) ) ;
+    }
+    return res ;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////

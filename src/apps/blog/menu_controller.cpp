@@ -1,5 +1,8 @@
 #include "menu_controller.hpp"
+
 #include <wspp/util/forms.hpp>
+#include <wspp/util/table_view.hpp>
+
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -9,178 +12,15 @@ using namespace wspp ;
 // CREATE TABLE menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name UNIQUE NOT NULL, parent INTEGER DEFAULT NULL, link TEXT DEFAULT NULL);
 
 
-void MenuController::remove()
-{
-    if ( !user_.isLoggedIn() ) {
-        response_.stock_reply(Response::unauthorized) ;
-        return ;
-    }
 
-    const Dictionary &params = request_.POST_ ;
-    string id = params.get("id") ;
-
-    if ( id.empty() )
-        response_.stock_reply(Response::not_found) ;
-    else {
-        sqlite::Statement stmt(con_, "DELETE FROM menus where id=?", id) ;
-        stmt.exec() ;
-    }
-}
-
-struct Column {
-    Column(const string &header, const string &name, const string &value = string()): header_(header), name_(name), value_(value) {
-
-    }
-
-    string name_ ;
-    string header_ ;
-    string value_ ;
-
-};
-
-
-static Variant makePagerData(uint page, uint max_page)
-{
-    Variant::Array pages ;
-    if ( max_page == 1 ) return pages ;
-
-    // Show pager
-
-    int delta = 4 ;
-
-    int min_surplus = (page <= delta) ? (delta - page + 1) : 0;
-    int max_surplus = (page >= (max_page - delta)) ?
-                       (page - (max_page - delta)) : 0;
-
-    int start =  std::max<int>(page - delta - max_surplus, 1) ;
-    int stop = std::min(page + delta + min_surplus, max_page) ;
-
-    // if ( start > 1 ) $nav .= '<li>...</li>' ;
-
-
-    if ( page > 1 )
-    {
-        uint p = page - 1 ;
-
-        pages.emplace_back(Variant::Object{{"key", p}, {"text", "Previews" }});
-        pages.emplace_back(Variant::Object{{"key", 1}, {"text", "First" }});
-    }
-
-    for( uint p = start ; p <= stop ; p++ )
-    {
-        if ( p == page ) pages.emplace_back(Variant::Object{ {"active", true }, {"text", p }}); // no need to create a link to current page
-        else {
-            pages.emplace_back(Variant::Object{{"key", p}, {"text", p }}); // no need to create a link to current page
-        }
-    }
-
-    if ( page < max_page )
-    {
-        uint p = page + 1 ;
-
-        pages.emplace_back(Variant::Object{{"key", p}, {"text", "Next"}});
-        pages.emplace_back(Variant::Object{{"key", max_page}, {"text", "Last"}});
-    }
-
-    return pages ;
-}
-
-class TableView {
+class MenusView: public SQLiteTableView {
 public:
+    MenusView(Connection &con): SQLiteTableView(con, "menus_list_view")  {
 
-    TableView() {}
+        con_.exec("CREATE TEMPORARY VIEW menus_list_view AS SELECT t1.id as id, t1.name as name, t1.link as link, t2.name as parent FROM menus AS t1 LEFT JOIN menus AS t2 ON t1.parent = t2.id") ;
 
-    void addColumn(const string &header, const string &name_key, const string &value_key = std::string()) {
-        columns_.emplace_back(header, name_key, value_key) ;
-    }
-
-    virtual uint count() = 0 ;
-    virtual Variant rows(uint offset, uint count) = 0 ;
-
-    Variant fetch(uint page, uint results_per_page) {
-
-        // get number of records
-
-        uint total_count = count() ;
-
-
-        Variant::Array headers ;
-        for( const Column &c: columns_ ) {
-            headers.push_back(c.header_)    ;
-        }
-
-        uint num_pages = ceil(total_count/(double)results_per_page) ;
-
-        uint offset = (page - 1) * results_per_page ;
-
-        Variant entries = rows(offset, results_per_page) ;
-
-        Variant pages = makePagerData(page, num_pages) ;
-
-        return Variant::Object({{"pages", pages}, {"headers", headers}, {"rows", entries}, {"total_rows", total_count}, {"total_pages", num_pages }} ) ;
-    }
-
-    vector<Column> columns_ ;
-
-};
-class SQLTableView: public TableView {
-public:
-    SQLTableView(Connection &con, const string &table, const string &table_fetch_sql): con_(con), table_(table), fetch_sql_(table_fetch_sql) {
-
-
-    }
-
-    Variant rows(uint offset, uint count) override {
-
-        sqlite::Query q(con_, fetch_sql_ + " LIMIT ?, ?", offset, count) ;
-        sqlite::QueryResult res = q.exec() ;
-
-        Variant::Array entries ;
-
-        while ( res ) {
-            Variant::Array columns ;
-
-            for( const Column &c: columns_ ) {
-                Variant::Object col ;
-                string cname = c.name_ ;
-                if ( res.hasColumn(cname) ) {
-                    col.insert({{"text", res.get<string>(cname)}}) ;
-                }
-                string cval = c.value_ ;
-                if ( !cval.empty() && res.hasColumn(cval) ) {
-                    col.insert({{"value", res.get<string>(cval)}}) ;
-                }
-                columns.emplace_back(col) ;
-            }
-
-            entries.emplace_back(Variant::Object{{"columns", columns}, {"id", res.get<int>("id")}}) ;
-
-            res.next() ;
-        };
-
-        return entries ;
-    }
-
-    uint count() override {
-        sqlite::Query stmt(con_, "SELECT count(*) FROM " + table_) ;
-        sqlite::QueryResult res = stmt.exec() ;
-        return res.get<int>(0) ;
-    }
-
-protected:
-    Connection &con_ ;
-    string table_, fetch_sql_ ;
-};
-
-static string menu_fetch_sql = "SELECT t1.id as id, t1.name as name, t1.link as link, t1.parent as parent_id, t2.name as parent_name FROM menus AS t1 LEFT JOIN menus AS t2 ON t1.parent = t2.id " ;
-
-class MenusView: public SQLTableView {
-public:
-
-
-    MenusView(Connection &con): SQLTableView(con, "menus", menu_fetch_sql)  {
         addColumn("Name", "name") ;
-        addColumn("Parent", "parent_name", "parent_id") ;
+        addColumn("Parent", "parent") ;
         addColumn("Link", "link") ;
     }
 };
@@ -198,7 +38,7 @@ void MenuController::fetch()
 
     Variant data = view.fetch(offset, results_per_page ) ;
 
-    response_.write(engine_.render("@menu-edit-list.mst", data )) ;
+    response_.write(engine_.render("@table-view.mst", data )) ;
 }
 
 
@@ -215,7 +55,6 @@ void MenuController::edit()
                           { "title", "Edit Menu" },
                       }
                      },
-                     {"menus", Variant::Object{{"list", fetchList()}}},
                      {"nav_brand", "blog"},
                      {"logged_in", user_.isLoggedIn()},
                      {"user_name", user_.name()}}) ;
@@ -251,40 +90,101 @@ void MenuController::create()
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
         }
         else {
-            Variant ctx( Variant::Object{{"menus_form", form.data()}} ) ;
+            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
             response_.writeJSONVariant(Variant::Object{{"success", false},
                                                        {"content", engine_.render("@menu-edit-dialog-new.mst", ctx)}});
         }
     }
     else {
-        Variant ctx( Variant::Object{{"menus_form", form.data()}} ) ;
+        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
         response_.write(engine_.render("@menu-edit-dialog-new.mst", ctx)) ;
     }
 }
 
-
-Variant MenuController::fetchList() {
-    sqlite::Query q(con_, "SELECT t1.*, t2.name FROM menus AS t1 LEFT JOIN menus AS t2 ON t1.parent = t2.id") ;
-    sqlite::QueryResult res = q.exec() ;
-
-    Variant::Array items ;
-
-
-    while ( res ) {
-        items.emplace_back(Variant::Object{{"id", res.get<string>(0)},
-                                           {"name", res.get<string>(1)},
-                                           {"parent_id", res.get<int>(2)},
-                                           {"parent_name", res.get<string>(4)},
-                                           {"link", res.get<string>(3)}
-                           }) ;
-        res.next() ;
-
+void MenuController::update()
+{
+    if ( !user_.isLoggedIn() ) {
+        response_.stock_reply(Response::unauthorized) ;
+        return ;
     }
 
-    return items ;
+    MenuForm form(con_) ;
+
+    if ( request_.method_ == "POST" ) {
+
+        if ( form.validate(request_.POST_) ) {
+
+            // write data to database
+
+            sqlite::Statement stmt(con_, "UPDATE menus SET name = ?, parent = ?, link = ? WHERE id = ?") ;
+
+            stmt.bind(1, form.getValue("name")) ;
+            stmt.bind(2, form.getValue("parent")) ;
+            string link = form.getValue("link") ;
+            if ( link.empty() ) stmt.bind(3, sqlite::Nil) ;
+            else stmt.bind(3, link) ;
+            stmt.bind(4, request_.POST_.get("id")) ;
+            stmt.exec() ;
+
+            // send a success message
+            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
+        }
+        else {
+            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+
+            response_.writeJSONVariant(Variant::Object{{"success", false},
+                                                       {"content", engine_.render("@menu-edit-dialog-new.mst", ctx)}});
+        }
+    }
+    else {
+
+        const Dictionary &params = request_.GET_ ;
+        string id = params.get("id") ;
+
+        if ( id.empty() ) {
+            response_.stock_reply(Response::not_found) ;
+            return ;
+        }
+
+        sqlite::Query q(con_, "SELECT * FROM menus WHERE id = ? LIMIT 1", id) ;
+        sqlite::QueryResult res = q.exec() ;
+
+        if ( !res ) {
+            response_.stock_reply(Response::not_found) ;
+            return ;
+        }
+
+        form.init(res.getAll()) ;
+
+        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+
+        response_.write(engine_.render("@menu-edit-dialog-new.mst", ctx)) ;
+    }
+
 }
+
+void MenuController::remove()
+{
+    if ( !user_.isLoggedIn() ) {
+        response_.stock_reply(Response::unauthorized) ;
+        return ;
+    }
+
+    const Dictionary &params = request_.POST_ ;
+    string id = params.get("id") ;
+
+    if ( id.empty() )
+        response_.stock_reply(Response::not_found) ;
+    else {
+        sqlite::Statement stmt(con_, "DELETE FROM menus where id=?", id) ;
+        stmt.exec() ;
+
+        response_.writeJSON("{}");
+    }
+}
+
 
 class MenuNamesModel: public OptionsModel {
 public:
@@ -308,8 +208,6 @@ private:
 };
 
 MenuForm::MenuForm(sqlite::Connection &con): con_(con) {
-
-
 
     input("name", "text").label("Name:").required().addValidator([&] (const string &val, FormField &f) {
         sqlite::Query q(con_, "SELECT count(*) FROM menus WHERE name = ?", val) ;
@@ -343,6 +241,4 @@ MenuForm::MenuForm(sqlite::Connection &con): con_(con) {
     }) ;
 
     input("link", "text").label("Link:") ;
-
-    checkbox("check", true).label("Options") ;
 }

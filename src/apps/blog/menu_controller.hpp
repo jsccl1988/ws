@@ -38,10 +38,7 @@ public:
     void remove() ;
     void fetch() ;
     void create() ;
-
-
-protected:
-    wspp::Variant fetchList();
+    void update() ;
 
 private:
     Connection &con_ ;

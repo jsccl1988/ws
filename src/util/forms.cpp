@@ -220,5 +220,14 @@ bool Form::validate(const Dictionary &vals) {
     return is_valid_ ;
 }
 
+void Form::init(const Dictionary &vals) {
+    for( const auto &p: vals ) {
+        auto it = fields_.find(p.first) ;
+        if ( it != fields_.end() ) {
+            it->second->value(p.second) ;
+        }
+    }
+}
+
 
 }

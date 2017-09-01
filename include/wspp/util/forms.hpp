@@ -133,6 +133,9 @@ public:
     // override to add additional validation e.g. requiring more than one fields (do not forget to call base class)
     virtual bool validate(const Dictionary &vals) ;
 
+    // init values with user supplied (no validation)
+    void init(const Dictionary &vals) ;
+
     Variant::Object data() const ;
 
     string getValue(const string &field_name) ;

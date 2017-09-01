@@ -1,0 +1,90 @@
+<div class="panel panel-default panel-table">
+   	<div class="panel-heading">
+       	<div class="row">
+           	<div class="col col-xs-6">
+               <h3 class="panel-title">Menus</h3>
+           	</div>
+       		<div class="col col-xs-6 text-right">
+            	<button id = "new-record" type="button" class="btn btn-sm btn-primary btn-create">Create New</button>
+            </div>	
+       	</div>
+   	</div>
+	<div class="panel-body">
+		<table class="table table-striped table-bordered table-list">
+			<thead>
+				 <tr>
+					 {{#headers}}
+	    			    <th>{{.}}</th>
+	    			 {{/headers}}   
+	    			 <th align="center"><em class="fa fa-cog"></em></th>
+	    		 </tr>
+			</thead>
+			<tbody id="data-grid">
+				{{#rows}}
+					<tr data-id="{{id}}">
+					{{#columns}}
+						<td>
+						{{#type}} {{> @table-cell-%type%.mst }}	{{/type}}
+						{{^type}} {{value}}	{{/type}}
+						</td>	
+					{{/columns}}	
+						<td align="center" style="width: 100px;">
+							<a id="edit-button" class="btn btn-default"><em class="fa fa-pencil"></em></a>
+                            <a id="delete-button" class="btn btn-danger"><em class="fa fa-trash"></em></a>
+						</td>
+					</tr>
+				{{/rows}}
+			</tbody>
+		</table>
+	</div>
+ 	<div class="panel-footer">
+		<div class="row">
+			<div class="col col-md-2 col-xs-6">Page {{page}} of {{total_pages}}</div>
+			<div class="col hidden-xs col-md-4">
+				<div style="display: inline-block;" class="hidden-xs" id="results-per-page">
+					<span>Results per page:</span>
+					<div class="btn-group" data-toggle="buttons">
+					  <label class="btn btn-default btn-sm">
+					    	<input type="radio" name="options" value="10" autocomplete="off">10</label>
+					  <label class="btn btn-default btn-sm">
+					    <input type="radio" name="options" value="20" autocomplete="off">20</label>
+					  <label class="btn btn-default btn-sm">
+					    <input type="radio" name="options" value="50" autocomplete="off">50</label>
+ 				      <label class="btn btn-default btn-sm">
+					    <input type="radio" name="options" value="100" autocomplete="off">100</label>
+					</div>
+					
+				</div>
+			</div>
+            <div class="col col-xs-6" id="pager">
+    	        <ul class="pagination pagination-sm hidden-xs pull-right" data-total-pages={{total_pages}}>
+   		 		{{#pager}}
+    	        	{{#first}} <li {{#disabled}}class="disabled"{{/disabled}}><a href="#" data-page="{{page}}" title="First"><i class="fa fa-backward" aria-hidden="true"></i></a></li> {{/first}}
+    	        	{{#previous}} <li {{#disabled}}class="disabled"{{/disabled}}><a href="#" data-page="{{page}}" title="Previous"><i class="fa fa-caret-left" aria-hidden="true"></i></a></li> {{/previous}}
+					{{#pages}}
+						{{#active}}	<li class="active">	{{/active}}
+			  		 	{{^active}}	<li> {{/active}}
+						 <a href="#" data-page="{{page}}" title="Jump to page {{page}}">{{text}}</a>
+					 </li>
+		 		 	{{/pages}}
+		 		 	{{#next}} <li {{#disabled}}class="disabled"{{/disabled}}><a href="#" data-page="{{page}}" title="Next"><i class="fa fa-caret-right" aria-hidden="true"></i></a></li> {{/next}}
+    	        	{{#last}} <li {{#disabled}}class="disabled"{{/disabled}}><a href="#" data-page="{{page}}" title="Last"><i class="fa fa-forward" aria-hidden="true"></i></a></li> {{/last}}
+				{{/pager}}
+				</ul>
+				<ul class="pagination pagination-sm visible-xs pull-right" data-total-pages={{total_pages}}>
+   		 		{{#pager}}
+    	        	{{#previous}} <li {{#disabled}}class="disabled"{{/disabled}}><a href="#" data-page="{{page}}" title="Previous"><i class="fa fa-caret-left" aria-hidden="true"></i></a></li> {{/previous}}
+		 		 	{{#next}} <li {{#disabled}}class="disabled"{{/disabled}}><a href="#" data-page="{{page}}" title="Next"><i class="fa fa-caret-right" aria-hidden="true"></i></a></li> {{/next}}
+				{{/pager}}
+				</ul>	
+            </div>
+       </div>
+   </div>
+</div>
+		
+
+	
+
+
+	
+ 

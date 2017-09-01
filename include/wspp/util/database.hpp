@@ -13,6 +13,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/utility.hpp>
 
+#include <wspp/util/dictionary.hpp>
 namespace wspp {
 
 namespace sqlite {
@@ -250,6 +251,8 @@ public:
         int idx = columnIdx(name) ;
         return get<T>(idx) ;
     }
+
+    Dictionary getAll() const ;
 
     class iterator {
        public:

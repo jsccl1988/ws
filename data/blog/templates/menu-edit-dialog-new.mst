@@ -1,8 +1,8 @@
 <div>
-	<form id="menu-edit-dlg" action="/menu/create/" method="POST">
-		{{#menus_form}}
+	<form action="#" method="POST">
+		{{#form}}
 			{{> @forms/form.mst}}
-			<button type="submit" class="btn btn-default" name="submit">Add</button>  
-		{{/menus_form}}
+			<button type="submit" class="btn btn-default" name="submit">Submit</button>  
+		{{/form}}
 	</form> 
 </div>

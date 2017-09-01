@@ -10,7 +10,14 @@
 	{{#rows}}
 		<tr data-id="{{id}}">
 			{{#columns}}
-				<td {{#value}}data-value="{{value}}"{{/value}}>{{text}}</td>
+				<td>
+				{{#type}}
+					{{> @table-cell-%type%.mst }}
+				{{/type}}
+				{{^type}}
+				{{value}}
+				{{/type}}
+				</td>	
 			{{/columns}}	
 			<td><a href="javascript:void(0)" class="edit-menu-button" aria-label="Edit">edit</a>|<a href="javascript:void(0)" class="delete-menu-button" aria-label="Delete">delete</a></td>
 		</tr>

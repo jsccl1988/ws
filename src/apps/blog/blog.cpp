@@ -87,6 +87,10 @@ public:
             MenuController menus(req, resp, con, user, engine_) ;
             menus.create() ;
         }
+        else if ( req.matches("GET|POST", "/menu/update/") ) {
+            MenuController menus(req, resp, con, user, engine_) ;
+            menus.update() ;
+        }
         else if ( req.matches("POST", "/menu/delete/") ) {
             MenuController menus(req, resp, con, user, engine_) ;
             menus.remove() ;
