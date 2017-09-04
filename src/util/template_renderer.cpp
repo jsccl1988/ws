@@ -19,7 +19,7 @@ namespace mustache {
 
 struct Tag {
 
-    enum Type { None, EscapedSubstitution, RawSubstitutionAmpersand, RawSubstitutionCurlyBracket, Comment, SectionBegin, SectionEnd, InvertedSectionBegin, Partial } ;
+    enum Type { None, EscapedSubstitution, RawSubstitutionAmpersand, RawSubstitutionCurlyBracket, Comment, Block, Extension, SectionBegin, SectionEnd, InvertedSectionBegin, Partial } ;
 
     Tag(): type_(None)  {}
     string name_ ;
@@ -53,7 +53,7 @@ struct Node {
 
     typedef boost::shared_ptr<Node> Ptr ;
 
-    enum Type { RawText, Section, Comment, Substitution, Partial } ;
+    enum Type { RawText, Section, Comment, Substitution, Partial, Extension, Block } ;
 
     virtual Type type() const = 0;
     virtual void eval(ContextStack &ctx, string &res) const = 0 ;
@@ -74,11 +74,23 @@ struct RawTextNode: public Node {
     string text_ ;
 };
 
-struct SectionNode: public Node {
+struct BlockNode ;
+
+struct ContainerNode: public Node {
+    typedef boost::shared_ptr<ContainerNode> Ptr ;
+
+    ContainerNode(const string &name): name_(name) {}
+
+    string name_ ;
+    vector<Node::Ptr> children_ ;
+    map<string, Node::Ptr> blocks_ ;
+};
+
+struct SectionNode: public ContainerNode {
 
     typedef boost::shared_ptr<SectionNode> Ptr ;
 
-    SectionNode(const string &name, bool is_inverted = false): name_(name), is_inverted_(is_inverted) {}
+    SectionNode(const string &name, bool is_inverted = false): ContainerNode(name), is_inverted_(is_inverted) {}
 
     Type type() const override { return Section ; }
     void eval(ContextStack &ctx, string &res) const override {
@@ -117,10 +129,23 @@ struct SectionNode: public Node {
         }
     }
 
-    string name_ ;
     bool is_inverted_ ;
-    vector<Node::Ptr> children_ ;
 };
+
+struct BlockNode: public ContainerNode {
+
+    typedef boost::shared_ptr<BlockNode> Ptr ;
+
+    BlockNode(const string &name): ContainerNode(name) {}
+
+    Type type() const override { return Block ; }
+    void eval(ContextStack &ctx, string &res) const override {
+       for( auto &c: children_) {
+           c->eval(ctx, res) ;
+       }
+    }
+};
+
 
 static string escape(const string &src) {
     string buffer ;
@@ -240,15 +265,23 @@ private:
     string eatTag(const string &) ;
     void parseTag(const string &src, Tag &tag) ;
     bool nextTag(const string &src, string &raw, Tag &tag) ;
+    bool parsePartialTag(const string &tag, string &name, Dictionary &args) ;
 
 
 private:
+    friend class PartialNode ;
+    friend class ExtensionNode ;
+
     uint idx_ ;
     const Partials &partials_ ;
     const string &root_folder_ ;
     bool caching_ ;
 };
 
+bool Parser::parsePartialTag(const string &tag, string &name, Dictionary &args) {
+    name = tag ;
+    return true ;
+}
 
 bool Parser::expect(const string &src, char c) {
     if ( idx_ < src.length() ) {
@@ -289,6 +322,8 @@ void Parser::parseTag(const string &src, Tag &tag) {
     case '{':  tag.type_ = Tag::RawSubstitutionCurlyBracket ; ++idx_ ; break ;
     case '!':  tag.type_ = Tag::Comment ; ++idx_ ; break ;
     case '>':  tag.type_ = Tag::Partial ; ++idx_ ; break ;
+    case '<':  tag.type_ = Tag::Extension ; ++idx_ ; break ;
+    case '$':  tag.type_ = Tag::Block ; ++idx_ ; break ;
     default: tag.type_ = Tag::EscapedSubstitution ; break ;
     }
 
@@ -361,8 +396,8 @@ struct PartialNode: public Node {
     typedef boost::shared_ptr<PartialNode> Ptr ;
 
     // inherit parent parameters
-    PartialNode(const string &tag, const Partials &partials, const string &folder, bool caching):
-        key_(tag), partials_(partials), root_folder_(folder), caching_(caching) {
+    PartialNode(const string &name, const Dictionary &args, const Parser &context):
+        key_(name), args_(args), context_(context) {
     }
 
     void eval(ContextStack &ctx, string &res) const override {
@@ -383,14 +418,14 @@ struct PartialNode: public Node {
         string partial_src ;
 
         // check if the key has been declared in the partials map
-        auto p = partials_.find(key) ;
-        if ( p != partials_.end() )
+        auto p = context_.partials_.find(key) ;
+        if ( p != context_.partials_.end() )
             partial_src = p->second ;
         else if ( key.at(0) == '@' ) // else if the key starts with @ it points to a file
             partial_src = key ;
 
         if ( !partial_src.empty() ) {
-            Parser parser(partials_, root_folder_, caching_) ;
+            Parser parser(context_.partials_, context_.root_folder_, context_.caching_) ;
             auto ast = parser.parse(partial_src) ;
             if ( ast ) ast->eval(ctx, res) ;
         }
@@ -399,25 +434,78 @@ struct PartialNode: public Node {
     Type type() const override { return Partial ; }
 
     string key_ ;
-    const Partials &partials_ ;
-    const string &root_folder_ ;
-    bool caching_ ;
+    Dictionary args_ ;
+    const Parser &context_ ;
+};
+
+struct ExtensionNode: public ContainerNode {
+
+    typedef boost::shared_ptr<ExtensionNode> Ptr ;
+
+    // inherit parent parameters
+    ExtensionNode(const string &name, const Parser &context): context_(context), ContainerNode(name) {
+    }
+
+    void eval(ContextStack &ctx, string &res) const override {
+
+        // load base node
+
+        string partial_src ;
+
+        // check if the key has been declared in the partials map
+        auto p = context_.partials_.find(name_) ;
+        if ( p != context_.partials_.end() )
+            partial_src = p->second ;
+        else if ( name_.at(0) == '@' ) // else if the key starts with @ it points to a file
+            partial_src = name_ ;
+
+        if ( !partial_src.empty() ) {
+            // parse base node
+            Parser parser(context_.partials_, context_.root_folder_, context_.caching_) ;
+            auto ast = parser.parse(partial_src) ;
+            if ( ast ) {
+                // replace parent blocks with child blocks
+
+                for( auto &c: ast->children_ ) {
+                    if ( c->type() == Node::Block ) {
+                        BlockNode::Ptr block = boost::dynamic_pointer_cast<BlockNode>(c) ;
+                        auto it = blocks_.find(block->name_) ;
+                        if ( it == blocks_.end() ) {
+                            block->eval(ctx, res) ; // render default block
+                        }
+                        else
+                            it->second->eval(ctx, res) ; // render child block
+                    }
+                    else
+                        c->eval(ctx, res) ;
+                }
+            }
+        }
+
+    }
+
+    Type type() const override { return Extension ; }
+    const Parser &context_ ;
+
 };
 
 SectionNode::Ptr Parser::parseString(const string &src) {
 
     SectionNode::Ptr root(new SectionNode("$root")) ;
 
-    deque<SectionNode::Ptr> stack ;
+    deque<ContainerNode::Ptr> stack ;
 
     stack.push_back(root) ;
 
     while (!stack.empty()) {
-        SectionNode::Ptr parent = stack.back() ;
+        ContainerNode::Ptr parent = stack.back() ;
 
         string raw ;
         Tag tag ;
         bool res = nextTag(src, raw, tag)  ;
+
+        string name ;
+        Dictionary args ;
 
         if ( !raw.empty() ) {
             parent->children_.push_back(boost::make_shared<RawTextNode>(raw)) ;
@@ -444,7 +532,20 @@ SectionNode::Ptr Parser::parseString(const string &src) {
             parent->children_.push_back(boost::make_shared<SubstitutionNode>(tag.name_, true)) ;
         }
         else if ( tag.type_ == Tag::Partial ) {
-             parent->children_.push_back(boost::make_shared<PartialNode>(tag.name_, partials_, root_folder_, caching_)) ;
+            if ( parsePartialTag(tag.name_, name, args) )
+                parent->children_.push_back(boost::make_shared<PartialNode>(name, args, *this)) ;
+        }
+        else if ( tag.type_ == Tag::Extension ) {
+
+            ExtensionNode::Ptr new_section(new ExtensionNode(tag.name_, *this)) ;
+            parent->children_.push_back(new_section) ;
+            stack.push_back(new_section) ;
+        }
+        else if ( tag.type_ == Tag::Block ) {
+            BlockNode::Ptr new_block(new BlockNode(tag.name_)) ;
+            parent->children_.push_back(new_block) ;
+            parent->blocks_.insert({tag.name_, new_block}) ;
+            stack.push_back(new_block) ;
         }
 
         if ( !res ) stack.pop_back() ;

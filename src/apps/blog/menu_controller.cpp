@@ -220,9 +220,6 @@ MenuForm::MenuForm(sqlite::Connection &con): con_(con) {
         return true ;
     }) ;
 
-    auto fetcher = [&] () {
-
-    } ;
 
     select("parent", boost::make_shared<MenuNamesModel>(con_)).label("Parent:").required().addValidator([&] (const string &val, FormField &f) {
 
