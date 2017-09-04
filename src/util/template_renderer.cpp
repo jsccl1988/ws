@@ -401,7 +401,7 @@ struct PartialNode: public Node {
     }
 
     void eval(ContextStack &ctx, string &res) const override {
-
+/*
         static boost::regex partial_rx("%([^%]+)%") ;
 
         string key = boost::regex_replace(key_, partial_rx, [&](const boost::smatch &matches) -> string {
@@ -414,15 +414,15 @@ struct PartialNode: public Node {
                     else return string() ;
 
         }) ;
-
+*/
         string partial_src ;
 
         // check if the key has been declared in the partials map
-        auto p = context_.partials_.find(key) ;
+        auto p = context_.partials_.find(key_) ;
         if ( p != context_.partials_.end() )
             partial_src = p->second ;
-        else if ( key.at(0) == '@' ) // else if the key starts with @ it points to a file
-            partial_src = key ;
+        else if ( key_.at(0) == '@' ) // else if the key starts with @ it points to a file
+            partial_src = key_ ;
 
         if ( !partial_src.empty() ) {
             Parser parser(context_.partials_, context_.root_folder_, context_.caching_) ;
@@ -536,7 +536,6 @@ SectionNode::Ptr Parser::parseString(const string &src) {
                 parent->children_.push_back(boost::make_shared<PartialNode>(name, args, *this)) ;
         }
         else if ( tag.type_ == Tag::Extension ) {
-
             ExtensionNode::Ptr new_section(new ExtensionNode(tag.name_, *this)) ;
             parent->children_.push_back(new_section) ;
             stack.push_back(new_section) ;
