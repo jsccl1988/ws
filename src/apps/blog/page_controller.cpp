@@ -24,7 +24,7 @@ void PageController::create()
                  {"logged_in", user_.isLoggedIn()},
                  {"user_name", user_.name()}}) ;
 
-    response_.write(engine_.render("@page-edit.mst", ctx)) ;
+    response_.write(engine_.render("page-edit", ctx)) ;
 }
 
 void PageController::publish()
@@ -125,7 +125,7 @@ void PageController::show(const std::string &page_id)
                      {"nav_brand", "blog"},
                      {"logged_in", user_.isLoggedIn()},
                      {"user_name", user_.name()}}) ;
-        response_.write(engine_.render("@page.mst", ctx)) ;
+        response_.write(engine_.render("page", ctx)) ;
     }
     else
         response_.stock_reply(Response::not_found);
@@ -230,6 +230,6 @@ void PageController::list(uint view) {
                                 {"logged_in", user_.isLoggedIn()},
                                 {"user_name", user_.name()}}) ;
 
-    response_.write(engine_.render("@pages.mst", ctx)) ;
+    response_.write(engine_.render("pages", ctx)) ;
 
 }

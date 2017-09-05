@@ -9,12 +9,33 @@
 
 namespace wspp {
 
-typedef std::map<std::string, std::string> Partials ;
+// abstract template loader
+class TemplateLoader {
+public:
+    // override to return a template string from a key
+    virtual std::string load(const std::string &src) =0 ;
+    // this is used to implement recursive loading e.g. of partials or inheritance where keys may be relative to the parent
+};
+
+// loads templates from file system relative to root folders.
+
+class FileSystemTemplateLoader: public TemplateLoader {
+
+public:
+    FileSystemTemplateLoader(const std::initializer_list<std::string> &root_folders, const std::string &suffix = ".mst") ;
+
+    virtual std::string load(const std::string &src) override ;
+private:
+    std::vector<std::string> root_folders_ ;
+    std::string suffix_ ;
+};
 
 // Mustache template engine implementation
 
 class TemplateRenderer {
 public:
+
+    TemplateRenderer( const boost::shared_ptr<TemplateLoader> &loader, bool caching = false ): loader_(loader), caching_(caching) {}
 
     // Render a template file or template string using given context and list of partials.
     // If the resource is a file the string has to be prefixed by '@' which is relative to the root folder.
@@ -26,21 +47,12 @@ public:
     // Also the substitution pattern {{.}} is used to render the current array element in an array section (in this case the data object should point to an array of literals)
     // Lambdas are not supported.
 
-    std::string render(const std::string &pathOrString, const Variant &context, const Partials &partials = Partials()) ;
-
-    // enable caching of top level templates (disable for debugging the templates)
-    void setCaching(bool enable = true) {
-        caching_ = enable ;
-    }
-
-    void setRootFolder(const std::string &folder) {
-        root_folder_ = folder ;
-    }
+    std::string render(const std::string &key, const Variant &context) ;
 
 private:
 
-    std::string root_folder_ ;
-    bool caching_ = false ;
+    boost::shared_ptr<TemplateLoader> loader_ ;
+    bool caching_ ;
 } ;
 
 }

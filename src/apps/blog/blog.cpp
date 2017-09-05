@@ -15,6 +15,8 @@
 #include <wspp/util/variant.hpp>
 #include <wspp/util/template_renderer.hpp>
 
+#include <boost/make_shared.hpp>
+
 #include <iostream>
 
 #include "user_controller.hpp"
@@ -39,8 +41,9 @@ public:
     MyServer(const std::string &port,
              const std::string &root_dir,
              const std::string &logger_dir):
-        logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port, logger_) {
-        engine_.setRootFolder(root_ + "/templates/");
+        logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port, logger_),
+        engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
+    {
     }
 
     void handle(const Request &req, Response &resp) override {
@@ -153,24 +156,6 @@ public:
 
 
 int main(int argc, char *argv[]) {
-
-    TemplateRenderer rdr ;
-
-    Variant::Object ctx{
-           {  { "id", 1 },
-           {  "children", Variant::Array{
-                        Variant::Object{{"id", 2}, {"href", string("h1")}, {"active", true }},
-                        Variant::Object{{"id", string("item2")}, {"href", string("h2")} },
-                        Variant::Object{{"id", string("item3")}, {"href", string("h3")} },
-                        Variant::Object{{"name", string("item4")}, {"href", string("h4")} },
-                    }
-           }
-        }} ;
-
-    rdr.setRootFolder("/home/malasiot/tmp/");
-    cout << rdr.render("@page.mst",
-                       ctx
-                    ) << endl << "ok" << endl;
 
 
 /*

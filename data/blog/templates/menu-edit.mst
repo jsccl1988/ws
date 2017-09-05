@@ -1,19 +1,35 @@
 <!DOCTYPE html>
 <html>
     <head>
-{{> @head.mst }}
+{{> head }}
 
     </head>
 
     <body>
         <div class="container">
 
-		{{> @navbar.mst }}
+		{{> navbar }}
 		
 				
 		<div id="menu-list-view"/>
 
 		</div>
+		
+		{{< modal }}
+		{{$title}}
+		Menu
+		{{/title}}
+		{{$body}}
+		<form action ="/menu/edit/" method="POST"/>
+			{{< form }}
+				{{$fields}}
+					{{> input_field id="hello"}}
+					{{> select_field }}
+				{{/fields}}
+			{{/ form }}
+		</form>
+		{{/body}}
+		{{/ modal }}
 		   		
 
         <script src="js/jquery-3.1.1.min.js"></script>

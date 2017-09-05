@@ -1,5 +1,5 @@
-{{> @forms/error_message.mst}} 
+{{> error_message.mst}} 
 {{# fields }} 
-	{{> @forms/%template%_field.mst}}
+	{{> input_field }}
 {{/fields}}
 

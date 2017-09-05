@@ -9,11 +9,37 @@
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/regex.hpp>
+#include <boost/tokenizer.hpp>
 
 using namespace std ;
 
 namespace wspp {
 
+FileSystemTemplateLoader::FileSystemTemplateLoader(const std::initializer_list<string> &root_folders, const string &suffix):
+    root_folders_(root_folders), suffix_(suffix) {
+}
+
+string FileSystemTemplateLoader::load(const string &key) {
+
+    using namespace boost::filesystem ;
+
+    for ( const string &r: root_folders_ ) {
+        path p(r) ;
+
+        p /= key + suffix_;
+
+        if ( !exists(p) ) continue ;
+
+        std::ifstream strm(p.string()) ;
+
+        if ( strm ) {
+            string contents((istreambuf_iterator<char>(strm)), istreambuf_iterator<char>());
+            return contents ;
+        }
+    }
+
+    return string() ;
+}
 
 namespace mustache {
 
@@ -140,9 +166,9 @@ struct BlockNode: public ContainerNode {
 
     Type type() const override { return Block ; }
     void eval(ContextStack &ctx, string &res) const override {
-       for( auto &c: children_) {
-           c->eval(ctx, res) ;
-       }
+        for( auto &c: children_) {
+            c->eval(ctx, res) ;
+        }
     }
 };
 
@@ -151,12 +177,12 @@ static string escape(const string &src) {
     string buffer ;
     for ( char c: src ) {
         switch(c) {
-            case '&':  buffer.append("&amp;");       break;
-            case '\"': buffer.append("&quot;");      break;
-            case '\'': buffer.append("&apos;");      break;
-            case '<':  buffer.append("&lt;");        break;
-            case '>':  buffer.append("&gt;");        break;
-            default:   buffer.push_back(c);          break;
+        case '&':  buffer.append("&amp;");       break;
+        case '\"': buffer.append("&quot;");      break;
+        case '\'': buffer.append("&apos;");      break;
+        case '<':  buffer.append("&lt;");        break;
+        case '>':  buffer.append("&gt;");        break;
+        default:   buffer.push_back(c);          break;
         }
     }
 
@@ -193,22 +219,21 @@ struct SubstitutionNode: public Node {
 
 
 
-
 class Cache {
 public:
 
-    typedef std::pair<time_t, SectionNode::Ptr> Entry ;
+    typedef SectionNode::Ptr Entry ;
 
-    void add(const string &key, time_t ts, SectionNode::Ptr &val) {
+    void add(const string &key, SectionNode::Ptr &val) {
         boost::mutex::scoped_lock lock(guard_);
-        compiled_.insert({key, std::make_pair(ts, val)}) ;
+        compiled_.insert({key, val}) ;
     }
 
     Entry fetch(const string &key) {
         boost::mutex::scoped_lock lock(guard_);
         auto it = compiled_.find(key) ;
         if ( it != compiled_.end() ) return it->second ;
-        else return Entry(0, nullptr) ;
+        else return nullptr ;
     }
 
 private:
@@ -220,40 +245,27 @@ private:
 class Parser {
 public:
 
-    Parser(const Partials &partials, const string &folder, bool caching): idx_(0), partials_(partials), root_folder_(folder), caching_(caching) {
+    Parser(const boost::shared_ptr<TemplateLoader> &loader, bool caching): idx_(0), loader_(loader), caching_(caching) {
     }
 
-    SectionNode::Ptr parse(const string &src) {
-        if ( !src.empty() && src.at(0) == '@' ) { // pointing to a file
-            string filepath = src.substr(1) ;
+    SectionNode::Ptr parse(const string &key) {
+        static Cache g_cache ;
 
-            using namespace boost::filesystem ;
+        if ( key.empty() ) return nullptr ;
 
-            path p(root_folder_) ;
-            p /= filepath ;
-
-            if ( !exists(p) ) return nullptr ;
-            std::time_t t = last_write_time( p ) ;
-
-            static Cache g_cache ;
-
-            if ( caching_ ) {
-                auto stored = g_cache.fetch(p.string()) ;
-                if ( stored.second && stored.first >= t ) return stored.second ;
-            }
-
-            std::ifstream strm(p.string()) ;
-
-            if ( strm ) {
-                string contents((istreambuf_iterator<char>(strm)), istreambuf_iterator<char>());
-                auto compiled = parseString(contents) ;
-                if ( caching_ ) g_cache.add(p.string(), t, compiled) ;
-                return compiled ;
-            }
-            else return nullptr ;
+        if ( caching_ ) {
+            auto stored = g_cache.fetch(key) ;
+            if ( stored ) return stored ;
         }
-        else
-            return parseString(src) ;
+
+        string src = loader_->load(key) ;
+
+        if  ( src.empty() ) return nullptr ;
+
+        auto compiled = parseString(src) ;
+        if ( caching_ ) g_cache.add(key, compiled) ;
+
+        return compiled ;
     }
 
     SectionNode::Ptr parseString(const string &src) ;
@@ -265,7 +277,8 @@ private:
     string eatTag(const string &) ;
     void parseTag(const string &src, Tag &tag) ;
     bool nextTag(const string &src, string &raw, Tag &tag) ;
-    bool parsePartialTag(const string &tag, string &name, Dictionary &args) ;
+    bool parseComplexTag(const string &tag, string &name, Dictionary &args) ;
+    bool parseSimpleTag(const string &tag, string &name) ;
 
 
 private:
@@ -273,14 +286,36 @@ private:
     friend class ExtensionNode ;
 
     uint idx_ ;
-    const Partials &partials_ ;
-    const string &root_folder_ ;
+    boost::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;
 };
 
-bool Parser::parsePartialTag(const string &tag, string &name, Dictionary &args) {
-    name = tag ;
+bool Parser::parseComplexTag(const string &tag, string &name, Dictionary &args) {
+    static boost::regex rx_args(R"%((\w+)\s*=\s*"([^"]*)")%") ;
+    static boost::regex rx_name(R"(^\s*(\w+)\s*)") ;
+
+    boost::smatch tmatch ;
+    if ( !boost::regex_search(tag, tmatch, rx_name) ) return false ;
+    name = tmatch[1] ;
+
+    std::string::const_iterator start = tmatch[0].second;
+    boost::sregex_iterator it(start, tag.end(), rx_args), end ;
+
+    while ( it != end ) {
+        string key = (*it)[1] ;
+        string val = (*it)[2] ;
+        args.add(key, val) ;
+        ++ it ;
+    }
+
     return true ;
+}
+
+bool Parser::parseSimpleTag(const string &tag, string &name) {
+
+    name = boost::trim_copy(tag) ;
+    return !name.empty() ;
+
 }
 
 bool Parser::expect(const string &src, char c) {
@@ -357,13 +392,13 @@ void Parser::parseTag(const string &src, Tag &tag) {
                 return ;
             }
             else if ( idx_ < nc ) {
-                if ( !isspace(src[idx_]) )
+              //  if ( !isspace(src[idx_]) )
                     tag.name_.push_back(src[idx_]) ;
                 ++idx_ ;
             }
         }
         else if ( idx_ < nc ) {
-            if ( !isspace(src[idx_]) )
+      //      if ( !isspace(src[idx_]) )
                 tag.name_.push_back(src[idx_]) ;
             ++idx_ ;
         }
@@ -401,7 +436,7 @@ struct PartialNode: public Node {
     }
 
     void eval(ContextStack &ctx, string &res) const override {
-/*
+        /*
         static boost::regex partial_rx("%([^%]+)%") ;
 
         string key = boost::regex_replace(key_, partial_rx, [&](const boost::smatch &matches) -> string {
@@ -415,20 +450,13 @@ struct PartialNode: public Node {
 
         }) ;
 */
-        string partial_src ;
-
-        // check if the key has been declared in the partials map
-        auto p = context_.partials_.find(key_) ;
-        if ( p != context_.partials_.end() )
-            partial_src = p->second ;
-        else if ( key_.at(0) == '@' ) // else if the key starts with @ it points to a file
-            partial_src = key_ ;
-
-        if ( !partial_src.empty() ) {
-            Parser parser(context_.partials_, context_.root_folder_, context_.caching_) ;
-            auto ast = parser.parse(partial_src) ;
-            if ( ast ) ast->eval(ctx, res) ;
-        }
+        Parser parser(context_.loader_, context_.caching_) ;
+        auto ast = parser.parse(key_) ;
+        if ( ast ) {
+            ctx.push(Variant::fromDictionary(args_)) ;
+            ast->eval(ctx, res) ;
+            ctx.pop() ;
+         }
     }
 
     Type type() const override { return Partial ; }
@@ -443,49 +471,39 @@ struct ExtensionNode: public ContainerNode {
     typedef boost::shared_ptr<ExtensionNode> Ptr ;
 
     // inherit parent parameters
-    ExtensionNode(const string &name, const Parser &context): context_(context), ContainerNode(name) {
+    ExtensionNode(const string &name, const Dictionary &args, const Parser &context): context_(context), ContainerNode(name) {
     }
 
     void eval(ContextStack &ctx, string &res) const override {
 
         // load base node
 
-        string partial_src ;
+        Parser parser(context_.loader_, context_.caching_) ;
+        auto ast = parser.parse(name_) ;
+        if ( ast ) {
+            // replace parent blocks with child blocks
 
-        // check if the key has been declared in the partials map
-        auto p = context_.partials_.find(name_) ;
-        if ( p != context_.partials_.end() )
-            partial_src = p->second ;
-        else if ( name_.at(0) == '@' ) // else if the key starts with @ it points to a file
-            partial_src = name_ ;
-
-        if ( !partial_src.empty() ) {
-            // parse base node
-            Parser parser(context_.partials_, context_.root_folder_, context_.caching_) ;
-            auto ast = parser.parse(partial_src) ;
-            if ( ast ) {
-                // replace parent blocks with child blocks
-
-                for( auto &c: ast->children_ ) {
-                    if ( c->type() == Node::Block ) {
-                        BlockNode::Ptr block = boost::dynamic_pointer_cast<BlockNode>(c) ;
-                        auto it = blocks_.find(block->name_) ;
-                        if ( it == blocks_.end() ) {
-                            block->eval(ctx, res) ; // render default block
-                        }
-                        else
-                            it->second->eval(ctx, res) ; // render child block
+            for( auto &c: ast->children_ ) {
+                if ( c->type() == Node::Block ) {
+                    BlockNode::Ptr block = boost::dynamic_pointer_cast<BlockNode>(c) ;
+                    auto it = blocks_.find(block->name_) ;
+                    if ( it == blocks_.end() ) {
+                        block->eval(ctx, res) ; // render default block
                     }
                     else
-                        c->eval(ctx, res) ;
+                        it->second->eval(ctx, res) ; // render child block
                 }
+                else
+                    c->eval(ctx, res) ;
             }
         }
+
 
     }
 
     Type type() const override { return Extension ; }
     const Parser &context_ ;
+    Dictionary args_ ;
 
 };
 
@@ -512,39 +530,51 @@ SectionNode::Ptr Parser::parseString(const string &src) {
         }
 
         if ( tag.type_ == Tag::SectionBegin  ) {
-            SectionNode::Ptr new_section(new SectionNode(tag.name_)) ;
-            parent->children_.push_back(new_section) ;
-            stack.push_back(new_section) ;
+            if ( parseSimpleTag(tag.name_, name)) {
+                SectionNode::Ptr new_section(new SectionNode(name)) ;
+                parent->children_.push_back(new_section) ;
+                stack.push_back(new_section) ;
+            }
         }
         else if ( tag.type_ == Tag::InvertedSectionBegin  ) {
-            SectionNode::Ptr new_section(new SectionNode(tag.name_, true)) ;
-            parent->children_.push_back(new_section) ;
-            stack.push_back(new_section) ;
+            if ( parseSimpleTag(tag.name_, name)) {
+                SectionNode::Ptr new_section(new SectionNode(name, true)) ;
+                parent->children_.push_back(new_section) ;
+                stack.push_back(new_section) ;
+            }
         }
         else if ( tag.type_ == Tag::SectionEnd ) {
-            if ( tag.name_ != parent->name_ ) return nullptr ;
-            else stack.pop_back() ;
+            if ( parseSimpleTag(tag.name_, name)) {
+                if ( name != parent->name_ ) return nullptr ;
+                else stack.pop_back() ;
+            }
         }
         else if ( tag.type_ == Tag::RawSubstitutionAmpersand || tag.type_ == Tag::RawSubstitutionCurlyBracket ) {
-            parent->children_.push_back(boost::make_shared<SubstitutionNode>(tag.name_, false)) ;
+            if ( parseSimpleTag(tag.name_, name))
+                parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, false)) ;
         }
         else if ( tag.type_ == Tag::EscapedSubstitution ) {
-            parent->children_.push_back(boost::make_shared<SubstitutionNode>(tag.name_, true)) ;
+            if ( parseSimpleTag(tag.name_, name))
+                parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, true)) ;
         }
         else if ( tag.type_ == Tag::Partial ) {
-            if ( parsePartialTag(tag.name_, name, args) )
+            if ( parseComplexTag(tag.name_, name, args) )
                 parent->children_.push_back(boost::make_shared<PartialNode>(name, args, *this)) ;
         }
         else if ( tag.type_ == Tag::Extension ) {
-            ExtensionNode::Ptr new_section(new ExtensionNode(tag.name_, *this)) ;
-            parent->children_.push_back(new_section) ;
-            stack.push_back(new_section) ;
+            if ( parseComplexTag(tag.name_, name, args) ) {
+                ExtensionNode::Ptr new_section(new ExtensionNode(name, args, *this)) ;
+                parent->children_.push_back(new_section) ;
+                stack.push_back(new_section) ;
+            }
         }
         else if ( tag.type_ == Tag::Block ) {
-            BlockNode::Ptr new_block(new BlockNode(tag.name_)) ;
-            parent->children_.push_back(new_block) ;
-            parent->blocks_.insert({tag.name_, new_block}) ;
-            stack.push_back(new_block) ;
+             if ( parseSimpleTag(tag.name_, name)) {
+                BlockNode::Ptr new_block(new BlockNode(name)) ;
+                parent->children_.push_back(new_block) ;
+                parent->blocks_.insert({name, new_block}) ;
+                stack.push_back(new_block) ;
+             }
         }
 
         if ( !res ) stack.pop_back() ;
@@ -556,10 +586,10 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 
 }
 
-string TemplateRenderer::render(const string &src, const Variant &ctx, const Partials &partials) {
+string TemplateRenderer::render(const string &src, const Variant &ctx) {
     using namespace mustache ;
 
-    Parser parser(partials, root_folder_, caching_) ;
+    Parser parser(loader_,  caching_) ;
 
     string res ;
     SectionNode::Ptr ast = parser.parse(src) ;

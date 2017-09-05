@@ -38,7 +38,7 @@ void MenuController::fetch()
 
     Variant data = view.fetch(offset, results_per_page ) ;
 
-    response_.write(engine_.render("@table-view.mst", data )) ;
+    response_.write(engine_.render("table-view", data )) ;
 }
 
 
@@ -59,7 +59,7 @@ void MenuController::edit()
                      {"logged_in", user_.isLoggedIn()},
                      {"user_name", user_.name()}}) ;
 
-    response_.write(engine_.render("@menu-edit.mst", ctx)) ;
+    response_.write(engine_.render("menu-edit", ctx)) ;
 }
 
 void MenuController::create()
@@ -93,13 +93,13 @@ void MenuController::create()
             Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
             response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("@menu-edit-dialog-new.mst", ctx)}});
+                                                       {"content", engine_.render("menu-edit-dialog-new", ctx)}});
         }
     }
     else {
         Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
-        response_.write(engine_.render("@menu-edit-dialog-new.mst", ctx)) ;
+        response_.write(engine_.render("menu-edit-dialog-new", ctx)) ;
     }
 }
 
@@ -160,7 +160,7 @@ void MenuController::update()
 
         Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
-        response_.write(engine_.render("@menu-edit-dialog-new.mst", ctx)) ;
+        response_.write(engine_.render("menu-edit-dialog-new", ctx)) ;
     }
 
 }

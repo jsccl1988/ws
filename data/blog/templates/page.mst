@@ -2,14 +2,14 @@
 
 <html>
     <head>
-{{> @head.mst }}
+{{> head }}
 
     </head>
 
     <body>
         <div class="container">
 
-		{{> @navbar.mst }}
+		{{> navbar }}
 		
 		{{#logged_in}}
 		<div class="row">
@@ -20,7 +20,7 @@
 		{{/logged_in}}
 		
             <div class="row">
-                {{> @content.mst}}
+                {{> content }}
             </div>
        </div>
 
