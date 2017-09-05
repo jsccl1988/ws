@@ -23,7 +23,7 @@
 		<form action ="/menu/edit/" method="POST"/>
 			{{< form }}
 				{{$fields}}
-					{{> input_field id="hello"}}
+					{{> input_field id="hello" name="name" type="text"}}
 					{{> select_field }}
 				{{/fields}}
 			{{/ form }}

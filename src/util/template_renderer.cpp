@@ -436,20 +436,7 @@ struct PartialNode: public Node {
     }
 
     void eval(ContextStack &ctx, string &res) const override {
-        /*
-        static boost::regex partial_rx("%([^%]+)%") ;
 
-        string key = boost::regex_replace(key_, partial_rx, [&](const boost::smatch &matches) -> string {
-                    string param = matches[1] ;
-                    if ( !param.empty() ) {
-                        Variant p = ctx.find(param) ;
-                        if ( p.isValue() ) return p.toString() ;
-                        else return string() ;
-                    }
-                    else return string() ;
-
-        }) ;
-*/
         Parser parser(context_.loader_, context_.caching_) ;
         auto ast = parser.parse(key_) ;
         if ( ast ) {
@@ -483,6 +470,7 @@ struct ExtensionNode: public ContainerNode {
         if ( ast ) {
             // replace parent blocks with child blocks
 
+            ctx.push(Variant::fromDictionary(args_)) ;
             for( auto &c: ast->children_ ) {
                 if ( c->type() == Node::Block ) {
                     BlockNode::Ptr block = boost::dynamic_pointer_cast<BlockNode>(c) ;
@@ -496,6 +484,7 @@ struct ExtensionNode: public ContainerNode {
                 else
                     c->eval(ctx, res) ;
             }
+            ctx.pop() ;
         }
 
 
