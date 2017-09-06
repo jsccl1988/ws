@@ -1,60 +1,43 @@
-<!DOCTYPE html>
-<html>
-    <head>
-{{> @head.mst }}
+{{<layout }}
 
-    </head>
-
-    <body>
-        <div class="container">
-
-		{{> @navbar.mst }}
-		
-		<ul class="nav nav-tabs">
-			<li class="active"><a href="#edit" data-toggle="tab">Page</a></li>
-			<li><a href="#preview" data-toggle="tab">Preview</a></li>
-		</ul>
+{{$contents}}
+	<ul class="nav nav-tabs">
+		<li class="active"><a href="#edit" data-toggle="tab">Page</a></li>
+		<li><a href="#preview" data-toggle="tab">Preview</a></li>
+	</ul>
 		
             
-         <div class="tab-content clearfix" style="margin-top: 10px">
-            <div class="tab-pane active" id="edit">
-             	 <form id="edit-content" action="/page/publish/" method="POST">
-  					<div class="form-group">
-    					<label class="control-label" for="title">Title:</label>
-						    <input class="form-control" name="title" value="{{page.title}}">
-				  	</div>
- 					<div class="form-group">
-    					<label class="control-label" for="title">Permalink:</label>
-						    <input class="form-control" name="permalink" value="{{page.permalink}}">
-				  	</div>
+     <div class="tab-content clearfix" style="margin-top: 10px">
+          <div class="tab-pane active" id="edit">
+            	 <form id="edit-content" action="/page/publish/" method="POST">
 				  	<div class="form-group">
-				    	<label for="Content">Content:</label>
-					    <textarea class="mce-editable form-control" name="content" id="content">{{{page.content}}}</textarea>
+					    <textarea class="mce-editable form-control" name="content" id="content">{{{content}}}</textarea>
 				   </div>
-				   <input type="hidden" name="id" id="page_id" value="{{page.id}}">
+				   <input type="hidden" name="id" id="page_id" value="{{id}}">
+				   <input type="hidden" name="slug" id="page_slug" value="{{slug}}">
 				   <p class="form-control-static" id="message"></p>
-
 				    
 					<button type="submit" class="btn btn-default">Publish</button>
 				</form> 
 	   		</div>
 		   		
 		   	 <div class="tab-pane" id="preview">
-            	Preview
+            
 	   		</div>
-
        </div>
+{{/contents}}
 
-        <script src="js/jquery-3.1.1.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script src="js/login.js"></script>
+{{$extra_footers}}
+
         <script language="javascript" type="text/javascript" src="js/tinymce/js/tinymce/tinymce.min.js"></script>
 
         <script type="text/javascript">
   			$(document).ready(function() {
   			  			
   			
-	        {{> @tinymce.mst }}
+	        {{> tinymce }}
+	        
+	        $("#preview").html($("#content").val());
 	        
 	        $("#edit-content").submit(function(e) {
 	            var f = $(this) ;
@@ -82,5 +65,7 @@
 		});
 		
 		</script>
-    </body>
-</html>
+{{/extra_footers}}
+
+{{/layout}}
+

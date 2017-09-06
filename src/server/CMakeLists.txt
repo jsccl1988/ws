@@ -20,6 +20,9 @@ SET( UTIL_SOURCES
 
     ${SRC_ROOT}/util/table_view.cpp
     ${INCLUDE_ROOT}/util/table_view.hpp
+
+    ${SRC_ROOT}/views/menu.cpp
+    ${INCLUDE_ROOT}/views/menu.hpp
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})

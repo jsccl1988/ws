@@ -2,7 +2,7 @@
    	<div class="panel-heading">
        	<div class="row">
            	<div class="col col-xs-6">
-               <h3 class="panel-title">Menus</h3>
+               <h3 class="panel-title">{{title}}</h3>
            	</div>
        		<div class="col col-xs-6 text-right">
             	<button id = "new-record" type="button" class="btn btn-sm btn-primary btn-create">Create New</button>
@@ -24,7 +24,7 @@
 					<tr data-id="{{id}}">
 					{{#columns}}
 						<td>
-						{{#type}} {{> @table-cell-%type%.mst }}	{{/type}}
+						{{#type}} {{> widget }}	{{/type}}
 						{{^type}} {{value}}	{{/type}}
 						</td>	
 					{{/columns}}	

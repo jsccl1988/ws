@@ -27,7 +27,7 @@ public:
     virtual Variant rows(uint offset, uint count) = 0 ;
 
     // fetch data to pass to the template renderer
-    Variant fetch(uint page, uint results_per_page);
+    Variant::Object fetch(uint page, uint results_per_page);
 
 protected:
 

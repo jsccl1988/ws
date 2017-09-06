@@ -119,7 +119,7 @@ void InputField::fillData(Variant::Object &base) const
 {
     FormField::fillData(base) ;
     base.insert({"type", type_}) ;
-    base.insert({"template", "input"}) ;
+    base.insert({"widget", "input-field"}) ;
 }
 
 
@@ -127,7 +127,7 @@ void SelectField::fillData(Variant::Object &base) const
 {
     FormField::fillData(base) ;
     base.insert({"multiselect", multiple_}) ;
-    base.insert({"template", "select"}) ;
+    base.insert({"widget", "select-field"}) ;
     if ( options_ ) {
         Dictionary options = options_->fetch() ;
         if ( !options.empty() ) base.insert({"options", Variant::fromDictionaryAsArray(options)}) ;

@@ -9,6 +9,6 @@
 {{/options}}
 </select>
 
-{{> field_errors }}
+{{> field-errors }}
 
 </div>

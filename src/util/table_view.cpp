@@ -52,7 +52,7 @@ static Variant make_pager_data(uint page, uint max_page)
     return pages ;
 }
 
-Variant TableView::fetch(uint page, uint results_per_page) {
+Variant::Object TableView::fetch(uint page, uint results_per_page) {
 
     // get number of records
 

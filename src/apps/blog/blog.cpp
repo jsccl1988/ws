@@ -15,6 +15,8 @@
 #include <wspp/util/variant.hpp>
 #include <wspp/util/template_renderer.hpp>
 
+#include <wspp/views/menu.hpp>
+
 #include <boost/make_shared.hpp>
 
 #include <iostream>
@@ -25,6 +27,7 @@
 
 using namespace std ;
 using namespace wspp ;
+using namespace wspp::views ;
 
 class DefaultLogger: public Logger
 {
@@ -35,6 +38,8 @@ public:
     }
 };
 
+
+
 class MyServer: public Server {
 
 public:
@@ -44,6 +49,7 @@ public:
         logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port, logger_),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
+
     }
 
     void handle(const Request &req, Response &resp) override {
@@ -53,35 +59,13 @@ public:
 
         UserController user(req, resp, con, session) ;
 
+        PageView page(user) ;
+
         // request router
 
         Dictionary attributes ;
 
-
-        if ( req.matches("GET", "/page/add/", attributes) ) {
-            PageController pages(req, resp, con, user, engine_) ;
-            pages.create() ;
-        }
-        else if ( req.matches("GET", "/page/list/{pager:n}?", attributes) ) {
-            PageController pages(req, resp, con, user, engine_) ;
-            pages.list(attributes.value<int>("pager", 0)) ;
-        }
-        else if ( req.matches("GET", "/page/edit/{id:a}", attributes) ) {
-            PageController pages(req, resp, con, user, engine_) ;
-            pages.edit(attributes.get("id")) ;
-        }
-        else if ( req.matches("POST", "/page/publish") ) {
-            PageController pages(req, resp, con, user, engine_) ;
-            pages.publish() ;
-        }
-        else if ( req.matches("POST", "/page/delete") ) {
-            PageController pages(req, resp, con, user, engine_) ;
-            pages.remove() ;
-        }
-        else if ( req.matches("GET", "/page/{id:a}", attributes) ) {
-            PageController pages(req, resp, con, user, engine_) ;
-            pages.show(attributes.get("id")) ;
-        }
+        if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
         else if ( req.matches("GET", "/menu/edit/") ) {
             MenuController menus(req, resp, con, user, engine_) ;
             menus.edit() ;
@@ -112,6 +96,11 @@ public:
             resp.encode_file(root_ + fpath);
         }
         else resp.stock_reply(Response::not_found) ;
+    }
+
+
+    Variant pageData(UserController &user) {
+        ;
     }
 
     void handlePage(Response &response, const UserController &user, const string &page_id) {
@@ -152,6 +141,7 @@ public:
     DefaultLogger logger_ ;
     string root_ ;
     TemplateRenderer engine_ ;
+
 };
 
 

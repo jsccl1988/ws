@@ -1,32 +1,16 @@
-<!DOCTYPE html>
+{{<layout }}
 
-<html>
-    <head>
-{{> head }}
-
-    </head>
-
-    <body>
-        <div class="container">
-
-		{{> navbar }}
-		
-		{{#logged_in}}
-		<div class="row">
-			<div class="col-md-12">
-			<a href="/page/edit/{{page.id}}">Edit</a>
-			</div>
+{{$contents}}
+	{{#page.nav.username}}
+	<div class="row">
+		<div class="col-md-12">
+		<a href="/page/edit/{{id}}">Edit</a>
 		</div>
-		{{/logged_in}}
-		
-            <div class="row">
-                {{> content }}
-            </div>
-       </div>
+	</div>
+	{{/page.nav.username}}	
+    <div class="row">
+        {{> content }}
+    </div>
+{{/contents}}
 
-        <script src="js/jquery-3.1.1.min.js"></script>
-        <script src="js/bootstrap.min.js"></script>
-        <script src="js/login.js"></script>
-        <script src="js/validator.min.js" type="application/javascript"></script>
-    </body>
-</html>
+{{/layout}}

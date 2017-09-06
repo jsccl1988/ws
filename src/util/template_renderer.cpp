@@ -292,7 +292,7 @@ private:
 
 bool Parser::parseComplexTag(const string &tag, string &name, Dictionary &args) {
     static boost::regex rx_args(R"%((\w+)\s*=\s*"([^"]*)")%") ;
-    static boost::regex rx_name(R"(^\s*(\w+)\s*)") ;
+    static boost::regex rx_name(R"(^\s*([^\s]+)\s*)") ;
 
     boost::smatch tmatch ;
     if ( !boost::regex_search(tag, tmatch, rx_name) ) return false ;
@@ -437,8 +437,16 @@ struct PartialNode: public Node {
 
     void eval(ContextStack &ctx, string &res) const override {
 
+        string key ;
+
+        Variant v = ctx.find(key_) ;
+        if ( v.isValue() )
+            key = v.toString() ;
+
+        if ( key.empty() ) key = key_ ;
+
         Parser parser(context_.loader_, context_.caching_) ;
-        auto ast = parser.parse(key_) ;
+        auto ast = parser.parse(key) ;
         if ( ast ) {
             ctx.push(Variant::fromDictionary(args_)) ;
             ast->eval(ctx, res) ;

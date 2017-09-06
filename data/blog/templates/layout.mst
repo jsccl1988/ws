@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+{{> head }}
+	{{$extra_headers}}
+	{{/extra_headers}}
+    </head>
+
+    <body>
+        <div class="container">
+
+			{{#page.nav}}
+			{{> navbar }}
+			{{/page.nav}}
+		
+			{{$contents}}
+			{{/contents}}
+       </div>
+
+        <script src="js/jquery-3.1.1.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/login.js"></script>
+        
+        {{$extra_footers}}
+        {{/extra_footers}}
+    </body>
+</html>

@@ -2,100 +2,208 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <wspp/util/table_view.hpp>
+
 using namespace std ;
 using namespace wspp ;
 
+PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
+
+    input("title", "text").label("Title:").required().addValidator([&] (const string &val, FormField &f) {
+        if ( val.empty() ) {
+            f.addErrorMsg("The field is required") ;
+            return false ;
+        }
+        return true ;
+    }) ;
+
+    input("slug", "text").label("Slug:").required().addValidator([&] (const string &val, FormField &f) {
+        bool error ;
+        if ( id_.empty() ) {
+            sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?", val) ;
+            sqlite::QueryResult res = q.exec() ;
+            error = res.get<int>(0) ;
+        }
+        else {
+            sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
+            sqlite::QueryResult res = q.exec() ;
+            error = res.get<int>(0) ;
+        }
+
+        if ( error ) {
+            f.addErrorMsg("A page with this slug already exists") ;
+            return false ;
+        }
+        return true ;
+    }) ;
+}
+
+
+class PageTableView: public SQLiteTableView {
+public:
+    PageTableView(Connection &con): SQLiteTableView(con, "pages_list_view")  {
+
+        con_.exec("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
+
+        addColumn("Title", "title") ;
+        addColumn("Slug", "slug") ;
+    }
+};
+
+void PageController::fetch()
+{
+    PageTableView view(con_) ;
+    uint offset = request_.GET_.value<int>("page", 1) ;
+    uint results_per_page = request_.GET_.value<int>("total", 10) ;
+
+    Variant data = view.fetch(offset, results_per_page ) ;
+
+    response_.write(engine_.render("pages-table-view", data )) ;
+}
 // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, permalink TEXT);
 
-void PageController::create()
+void PageController::edit()
 {
-    if ( !user_.isLoggedIn() ) {
-        response_.stock_reply(Response::unauthorized) ;
-        return ;
-    }
-
-
     Variant ctx( Variant::Object{
-                 {"page_title", Variant::Object{
-                            { "title", "Add new page" },
-                          }
-                 },
-                 {"nav_brand", "blog"},
-                 {"logged_in", user_.isLoggedIn()},
-                 {"user_name", user_.name()}}) ;
+                 { "page", page_.data("edit_pages", "Edit pages") }
+    }) ;
 
-    response_.write(engine_.render("page-edit", ctx)) ;
+    response_.write(engine_.render("pages-edit", ctx)) ;
 }
 
 void PageController::publish()
 {
-    if ( !user_.isLoggedIn() ) {
-        response_.stock_reply(Response::unauthorized) ;
-        return ;
-    }
-
     const Dictionary &params = request_.POST_ ;
-    string title = params.get("title") ;
     string content = params.get("content") ;
-    string permalink = params.get("permalink") ;
+    string permalink = params.get("slug") ;
     string id = params.get("id") ;
 
-    if ( id.empty() ) {
-        sqlite::Statement stmt(con_, "INSERT INTO pages (title, content, permalink) VALUES (?, ?, ?)", title, content, permalink) ;
-        stmt.exec() ;
-        int id = con_.last_insert_rowid() ;
-        string href = "/page/" + to_string(id) ;
-        response_.writeJSONVariant(Variant::Object{{"id", to_string(id)}, {"msg", "Page succesfully created. View <a href=\"" + href + "\">page</a>"}}) ;
+    sqlite::Statement stmt(con_, "UPDATE pages SET content = ? WHERE id = ?", content, id) ;
+    stmt.exec() ;
+    string href = "/page/" + permalink ;
+    response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Page succesfully updated. View <a href=\"" + href + "\">page</a>"}}) ;
+
+}
+
+void PageController::create()
+{
+    PageEditForm form(con_) ;
+
+    if ( request_.method_ == "POST" ) {
+
+        if ( form.validate(request_.POST_) ) {
+
+            // write data to database
+
+            sqlite::Statement stmt(con_, "INSERT INTO pages ( title, permalink ) VALUES ( ?, ? )") ;
+
+            stmt.bind(1, form.getValue("title")) ;
+            stmt.bind(2, form.getValue("slug")) ;
+            stmt.exec() ;
+
+            // send a success message
+            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
+        }
+        else {
+            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+
+            response_.writeJSONVariant(Variant::Object{{"success", false},
+                                                       {"content", engine_.render("page-edit-dialog-new", ctx)}});
+        }
     }
     else {
-        sqlite::Statement stmt(con_, "REPLACE INTO pages (id, title, content, permalink) VALUES (?, ?, ?, ?)", id, title, content, permalink) ;
-        stmt.exec() ;
-        string href = "/page/" + id ;
-        response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Page succesfully updated. View <a href=\"" + href + "\">page</a>"}}) ;
+        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+
+        response_.write(engine_.render("page-edit-dialog-new", ctx)) ;
     }
+
 }
 
 void PageController::edit(const string &id)
 {
-    if ( !user_.isLoggedIn() ) {
-        response_.stock_reply(Response::unauthorized) ;
-        return ;
-    }
 
     sqlite::Query stmt(con_, "SELECT title, content, permalink FROM pages WHERE id=?", id) ;
     sqlite::QueryResult res = stmt.exec() ;
 
     if ( res ) {
-
         Variant ctx( Variant::Object{
-                     {"page_title", "Add new page" },
-                     {"nav_brand", "blog"},
-                     {"logged_in", user_.isLoggedIn()},
-                     {"user_name", user_.name()},
-                     {"page", Variant::Object({
-                          {"id", id},
-                          {"title", res.get<string>("title")},
-                          {"content", res.get<string>("content")},
-                          {"permalink", res.get<string>("permalink")}
-                         })
-                     } }) ;
+                     { "page", page_.data(res.get<string>("permalink"), res.get<string>("title")) },
+                     { "id", res.get<int>("id") },
+                     { "title", res.get<string>("title")},
+                     { "content", res.get<string>("content")},
+                     { "slug", res.get<string>("permalink")}
+        }) ;
 
-
-        response_.write(engine_.render("@page-edit.mst", ctx)) ;
+        response_.write(engine_.render("page-edit", ctx)) ;
 
     }
     else
         response_.stock_reply(Response::not_found) ;
 }
 
-void PageController::remove()
+void PageController::update()
 {
-    if ( !user_.isLoggedIn() ) {
-        response_.stock_reply(Response::unauthorized) ;
-        return ;
+
+
+    if ( request_.method_ == "POST" ) {
+
+        string id = request_.POST_.get("id") ;
+
+        PageEditForm form(con_, id) ;
+
+        if ( form.validate(request_.POST_) ) {
+
+            // write data to database
+
+            sqlite::Statement stmt(con_, "UPDATE pages SET title = ?, permalink = ? WHERE id = ?") ;
+
+            stmt.bind(1, form.getValue("title")) ;
+            stmt.bind(2, form.getValue("slug")) ;
+            stmt.bind(3, request_.POST_.get("id")) ;
+            stmt.exec() ;
+
+            // send a success message
+            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
+        }
+        else {
+            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+
+            response_.writeJSONVariant(Variant::Object{{"success", false},
+                                                       {"content", engine_.render("page-edit-dialog-new", ctx)}});
+        }
+    }
+    else {
+
+        const Dictionary &params = request_.GET_ ;
+        string id = params.get("id") ;
+
+        PageEditForm form(con_, id) ;
+
+        if ( id.empty() ) {
+            response_.stock_reply(Response::not_found) ;
+            return ;
+        }
+
+        sqlite::Query q(con_, "SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
+        sqlite::QueryResult res = q.exec() ;
+
+        if ( !res ) {
+            response_.stock_reply(Response::not_found) ;
+            return ;
+        }
+
+        form.init(res.getAll()) ;
+
+        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+
+        response_.write(engine_.render("page-edit-dialog-new", ctx)) ;
     }
 
-    const Dictionary &params = request_.POST_ ;
+}
+
+void PageController::remove()
+{
+   const Dictionary &params = request_.POST_ ;
     string id = params.get("id") ;
 
     if ( id.empty() )
@@ -103,28 +211,73 @@ void PageController::remove()
     else {
         sqlite::Statement stmt(con_, "DELETE FROM pages where id=?", id) ;
         stmt.exec() ;
+        response_.writeJSON("{}") ;
     }
 
 }
 
+bool PageController::dispatch()
+{
+    if ( !boost::starts_with(request_.path_, "/page") ) return false ;
+
+    Dictionary attributes ;
+
+    if ( request_.matches("GET", "/pages/edit/", attributes) ) { // load page list editor
+        if ( user_.isLoggedIn() ) edit() ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    if ( request_.matches("GET", "/pages/list/", attributes) ) { // fetch table data
+        if ( user_.isLoggedIn() ) fetch() ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    if ( request_.matches("GET|POST", "/pages/add/", attributes) ) {
+        if ( user_.isLoggedIn() ) create() ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    if ( request_.matches("GET|POST", "/pages/update/", attributes) ) {
+        if ( user_.isLoggedIn() ) update() ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    else if ( request_.matches("GET", "/page/edit/{id:a}", attributes) ) {
+        if ( user_.isLoggedIn() ) edit(attributes.get("id")) ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    else if ( request_.matches("POST", "/page/publish") ) {
+        if ( user_.isLoggedIn() ) publish() ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    else if ( request_.matches("POST", "/page/delete") ) {
+        if ( user_.isLoggedIn() ) remove() ;
+        else  response_.stock_reply(Response::unauthorized) ;
+        return true ;
+    }
+    else if ( request_.matches("GET", "/page/{id:a}", attributes) ) {
+        show(attributes.get("id")) ;
+        return true ;
+    }
+    else
+        return false ;
+}
+
 void PageController::show(const std::string &page_id)
 {
-
-
-    sqlite::Query q(con_, "SELECT title, content FROM pages WHERE id=? ;", page_id) ;
+    sqlite::Query q(con_, "SELECT id, title, content FROM pages WHERE permalink=?", page_id) ;
     sqlite::QueryResult res = q.exec() ;
 
     if ( res ) {
         Variant ctx( Variant::Object{
-                     {"page", Variant::Object{
-                                { "id", page_id },
-                                { "title", res.get<string>("title") },
-                                { "content", res.get<string>("content") }
-                              }
-                     },
-                     {"nav_brand", "blog"},
-                     {"logged_in", user_.isLoggedIn()},
-                     {"user_name", user_.name()}}) ;
+                     { "page", page_.data(page_id, res.get<string>("title")) },
+                     { "content", res.get<string>("content") },
+                     { "id", res.get<int>("id") }
+        }) ;
+
+//        cout << ctx.toJSON() << endl ;
         response_.write(engine_.render("page", ctx)) ;
     }
     else
@@ -133,103 +286,3 @@ void PageController::show(const std::string &page_id)
 }
 
 
-void makePagerData(Variant::Array &pages, uint page, uint max_page, const string url_prefix)
-{
-    if ( max_page == 1 ) return ;
-
-    // Show pager
-
-    int delta = 4 ;
-
-    int min_surplus = (page <= delta) ? (delta - page + 1) : 0;
-    int max_surplus = (page >= (max_page - delta)) ?
-                       (page - (max_page - delta)) : 0;
-
-    int start =  std::max<int>(page - delta - max_surplus, 1) ;
-    int stop = std::min(page + delta + min_surplus, max_page) ;
-
-    // if ( start > 1 ) $nav .= '<li>...</li>' ;
-
-
-    if ( page > 1 )
-    {
-        uint p = page - 1 ;
-        string url_prev = boost::replace_all_copy(url_prefix, "%%page%%", to_string(p)) ;
-        string url_first = boost::replace_all_copy(url_prefix, "%%page%%", "1") ;
-
-
-        pages.emplace_back(Variant::Object{{"href", url_prev}, {"text", "Previews" }});
-        pages.emplace_back(Variant::Object{{"href", url_first}, {"text", "First" }});
-    }
-
-    for( uint p = start ; p <= stop ; p++ )
-    {
-        if ( p == page ) pages.emplace_back(Variant::Object{{"href", "#"}, {"active", true }, {"text", p }}); // no need to create a link to current page
-        else {
-            string url = boost::replace_all_copy(url_prefix, "%%page%%", to_string(p)) ;
-            pages.emplace_back(Variant::Object{{"href", url}, {"text", p }}); // no need to create a link to current page
-        }
-    }
-
-    if ( page < max_page )
-    {
-        uint p = page + 1 ;
-        string url_next = boost::replace_all_copy(url_prefix, "%%page%%", to_string(p)) ;
-        string url_last = boost::replace_all_copy(url_prefix, "%%page%%", to_string(max_page)) ;
-
-        pages.emplace_back(Variant::Object{{"href", url_next}, {"text", "Next"}});
-        pages.emplace_back(Variant::Object{{"href", url_last}, {"text", "Last"}});
-    }
-
-}
-
-void PageController::list(uint view) {
-
-    if ( !user_.isLoggedIn() ) {
-        response_.stock_reply(Response::unauthorized) ;
-        return ;
-    }
-
-    uint total_pages = 0 ;
-
-    {
-        sqlite::Query q(con_, "SELECT count(*) FROM pages") ;
-        sqlite::QueryResult res = q.exec() ;
-        if ( res ) total_pages = res.get<int>(0) ;
-    }
-
-
-    const uint max_pages_per_view = 1 ;
-
-    uint num_views = ceil(total_pages/(double)max_pages_per_view) ;
-
-    uint page_offset = (view - 1) * max_pages_per_view ;
-
-
-    sqlite::Query q(con_, "SELECT id, title FROM pages LIMIT ?, ?;", page_offset, max_pages_per_view) ;
-    sqlite::QueryResult res = q.exec() ;
-
-    Variant::Array entries ;
-
-    while ( res ) {
-        Variant::Object page {
-            { "id", res.get<string>("id") },
-            { "title", res.get<string>("title") }
-        } ;
-        entries.emplace_back(page) ;
-        res.next() ;
-    };
-
-    Variant::Array pages ;
-
-    makePagerData(pages, view, num_views, "/page/list/%%page%%/") ;
-
-    Variant ctx(Variant::Object{{"entries", entries},
-                                {"pages", pages},
-                                {"nav_brand", "blog"},
-                                {"logged_in", user_.isLoggedIn()},
-                                {"user_name", user_.name()}}) ;
-
-    response_.write(engine_.render("pages", ctx)) ;
-
-}

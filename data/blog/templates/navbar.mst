@@ -11,51 +11,34 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a href="page/{{ page_id }}/" class="navbar-brand">{{nav_brand}}</a>
+<!--                <a href="page/{{ page_id }}/" class="navbar-brand">{{nav_brand}}</a> -->
     </div>
 
     <div id="navbarCollapse" class="collapse navbar-collapse">
 
+        	{{#menu}}
+        		{{> menu}}
+        	{{/menu}}
 
-        <ul class="nav navbar-nav">
-{{!
-  
-        <?php foreach( $nav_menu as $menu_id => $menu_item ) { ?>
-                <li>
-                <a href="<?php echo $menu_item["link"] ?>"
-                <?php if ( $current_page == $menu_id ) echo ' class="active"' ; ?>
-                >
-                <?php echo $menu_item["name"] ; ?>
-                        </a>
-                </li>
-                <?php } ?>
-         </ul>
-}}
-
-                 <ul class="nav navbar-nav navbar-right">
-                {{#logged_in}}
+            <ul class="nav navbar-nav navbar-right">
+                {{#username}}
                         <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                                         <span class="glyphicon glyphicon-user"></span>
-                                        <strong>{{ user_name }}</strong>
+                                        <strong>{{ username }}</strong>
                     <span class="glyphicon glyphicon-chevron-down"></span>
                         </a>
                         <ul class="dropdown-menu" role="menu">
 	                         <li><a  href="#" id="logout">Logout</a></li>
                              <li role="separator" class="divider"></li>
-                             <li><a href="/page/add/">New Page</a></li>
-                             <li><a href="/page/list/">List Pages</a></li>
-                             <li role="separator" class="divider"></li>
-                             <li><a href="/menu/edit/">Edit Menus</a></li>
+                             <li><a href="/page/edit/">Edit Pages</a></li>
                         </ul>
-                        
                 </ul>
                         </li>
-				{{/logged_in}}
-				{{^logged_in}}
+				{{/username}}
+				{{^username}}
                     <li><a href="#login-modal" data-toggle="modal">Login</a></li>
-				{{/logged_in}}
-
+				{{/username}}
                   </ul>
         </div>
 </nav>
