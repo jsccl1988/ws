@@ -1,4 +1,5 @@
-#include <wspp/util/template_renderer.hpp>
+#include <wspp/views/renderer.hpp>
+
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -12,8 +13,9 @@
 #include <boost/tokenizer.hpp>
 
 using namespace std ;
+using namespace wspp::util ;
 
-namespace wspp {
+namespace wspp { namespace web {
 
 FileSystemTemplateLoader::FileSystemTemplateLoader(const std::initializer_list<string> &root_folders, const string &suffix):
     root_folders_(root_folders), suffix_(suffix) {
@@ -603,7 +605,5 @@ string TemplateRenderer::render(const string &src, const Variant &ctx) {
 }
 
 
-
-
-
-}
+} // namespace web
+} // namespace wspp

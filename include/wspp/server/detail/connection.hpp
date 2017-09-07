@@ -25,9 +25,12 @@
 #include <wspp/server/detail/request_parser.hpp>
 #include <wspp/server/detail/connection_manager.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
+
 class ConnectionManager ;
 class Server ;
+
+using util::Logger ;
 
 extern std::vector<boost::asio::const_buffer> response_to_buffers(Response &rep, bool) ;
 
@@ -39,14 +42,13 @@ class Connection:
 public:
     explicit Connection(boost::asio::ip::tcp::socket socket,
                         ConnectionManager& manager,
-                        Logger &logger,
                         RequestHandler &handler) : socket_(std::move(socket)),
-        connection_manager_(manager), handler_(handler), logger_(logger) {}
+        connection_manager_(manager), handler_(handler) {}
 
 private:
 
-    friend class wspp::Server ;
-    friend class wspp::ConnectionManager ;
+    friend class Server ;
+    friend class ConnectionManager ;
 
 
 
@@ -74,14 +76,6 @@ private:
                     else {
                          try {
                              handler_.handle(request_, response_) ;
-
-                             LOG_X_STREAM(logger_, Info, "Response to " <<
-                                          socket_.remote_endpoint().address().to_string()
-                                            << ": \"" << request_.method_ << " " << request_.path_
-                                            << ((request_.query_.empty()) ? "" : "?" + request_.query_) << " "
-                                            << request_.protocol_ << "\" "
-                                            << response_.status_ << " " << response_.headers_.value<int>("Content-Length", 0)
-                                          ) ;
 
                          }
                          catch ( ... ) {
@@ -143,13 +137,13 @@ private:
       /// The parser for the incoming HttpRequest.
      detail::RequestParser request_parser_;
 
-     Logger &logger_ ;
-
      Request request_ ;
      Response response_ ;
 
 };
 
 
-}
-#endif // HTTP_SERVER_CONNECTION_HPP
+} // namespace server
+} // namespace wspp
+
+#endif

@@ -2,10 +2,11 @@
 
 #include <boost/algorithm/string.hpp>
 
-#include <wspp/util/table_view.hpp>
+#include <wspp/views/table.hpp>
 
 using namespace std ;
-using namespace wspp ;
+using namespace wspp::util ;
+using namespace wspp::web ;
 
 PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
 

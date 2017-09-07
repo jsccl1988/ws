@@ -6,7 +6,9 @@
 
 #include <string>
 
-namespace wspp {
+namespace wspp { namespace server {
+
+using util::Dictionary ;
 
 // SQlite3 storage of session data
 
@@ -34,18 +36,11 @@ private:
 
     void gc() ;
 
-    sqlite::Connection db_ ;
+    util::sqlite::Connection db_ ;
 };
 
 
-
-
-
-
-
-
-
-
-}
+} // namespace server
+} // namespace wspp
 
 #endif

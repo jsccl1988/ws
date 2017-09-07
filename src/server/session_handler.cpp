@@ -3,7 +3,9 @@
 
 using namespace std ;
 
-namespace wspp {
+namespace wspp { namespace server {
+
+using namespace util ;
 
 string SessionHandler::generateSID() {
     string code = encodeBase64(randomBytes(32)) ;
@@ -13,4 +15,5 @@ string SessionHandler::generateSID() {
     return code ;
 }
 
-}
+} // namespace server
+} // namespace wspp

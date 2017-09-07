@@ -5,7 +5,7 @@
 
 using namespace std ;
 
-namespace wspp {
+namespace wspp { namespace server {
 
 typedef std::pair<vector<boost::regex>, std::vector<string>> RxPattern ;
 
@@ -171,4 +171,5 @@ bool Request::matchesMethod(const string &method) const
     return std::find(methods.begin(), methods.end(), method_) != methods.end() ;
 }
 
-}
+} // namespace server
+} // namespace wspp

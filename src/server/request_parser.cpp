@@ -26,8 +26,9 @@
 #include <boost/iostreams/stream.hpp>
 
 using namespace std ;
+using namespace wspp::server ;
 
-namespace wspp {
+namespace wspp { namespace server {
 namespace detail {
 
 RequestParser::RequestParser()
@@ -633,5 +634,6 @@ bool RequestParser::decode_message(Request &req) const {
     return true ;
 }
 
+} // namespace detail
 } // namespace server
-} // namespace http
+} // namespace wspp

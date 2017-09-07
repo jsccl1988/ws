@@ -27,6 +27,8 @@
 
 using namespace std;
 
+namespace wspp { namespace util {
+
 const std::string LogPatternFormatter::DefaultFormat = "%d{%c}-%r-(%t) %f %l %c:";
 
 static string levelToString(LogLevel ltype)
@@ -441,3 +443,6 @@ void LogFileAppender::append(LogLevel level, const LogContext &ctx, const string
 
     fd_ = ::open(file_name_.c_str(), flags, 00644);
 }
+
+} // namespace util
+} // namespace wspp

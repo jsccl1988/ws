@@ -11,8 +11,7 @@
 #include <wspp/server/detail/connection_manager.hpp>
 #include <wspp/server/detail/connection.hpp>
 
-namespace wspp {
-
+namespace wspp { namespace server {
 
 ConnectionManager::ConnectionManager()
 {
@@ -42,4 +41,5 @@ void ConnectionManager::stop_all()
     connections_.clear();
 }
 
-} // namespace http
+} // namespace server
+} // namespace wspp

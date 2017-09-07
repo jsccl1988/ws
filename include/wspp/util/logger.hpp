@@ -9,6 +9,7 @@
 #include <vector>
 #include <sstream>
 
+namespace wspp { namespace util {
 // Context of application logging passed with its log message to the logger
 
 struct LogContext
@@ -413,5 +414,6 @@ do {\
 #define LOG_FATAL_ONCE_IF(condition, msg, ...) LOG_X_FORMAT_ONCE_IF(get_current_logger(), Fatal, condition, msg, ##__VA_ARGS__)
 #define LOG_FATAL_FIRST_N_IF(n, condition, msg, ...) LOG_X_FORMAT_FIRST_N_IF(get_current_logger(), Fatal, n, condition, msg, ##__VA_ARGS__)
 
-
+} // namespace util
+} // namespace wspp
 #endif

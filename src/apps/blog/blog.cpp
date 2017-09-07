@@ -13,21 +13,23 @@
 #include <wspp/util/database.hpp>
 #include <wspp/util/crypto.hpp>
 #include <wspp/util/variant.hpp>
-#include <wspp/util/template_renderer.hpp>
 
+#include <wspp/views/renderer.hpp>
 #include <wspp/views/menu.hpp>
 
 #include <boost/make_shared.hpp>
 
 #include <iostream>
 
-#include "user_controller.hpp"
+#include <wspp/controllers/user_controller.hpp>
+
 #include "page_controller.hpp"
 #include "menu_controller.hpp"
 
 using namespace std ;
-using namespace wspp ;
-using namespace wspp::views ;
+using namespace wspp::util ;
+using namespace wspp::web ;
+using namespace wspp::server ;
 
 class DefaultLogger: public Logger
 {
@@ -46,9 +48,21 @@ public:
     MyServer(const std::string &port,
              const std::string &root_dir,
              const std::string &logger_dir):
-        logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port, logger_),
+        logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
+
+    }
+
+    void log(const Request &req, Response &resp) {
+
+        LOG_X_STREAM(logger_, Info, "Response to " <<
+                     getIPAddress()
+                       << ": \"" << req.method_ << " " << req.path_
+                       << ((req.query_.empty()) ? "" : "?" + req.query_) << " "
+                       << req.protocol_ << "\" "
+                       << resp.status_ << " " << resp.headers_.value<int>("Content-Length", 0)
+                     ) ;
 
     }
 
@@ -86,9 +100,6 @@ public:
             MenuController menus(req, resp, con, user, engine_) ;
             menus.fetch() ;
         }
-
-        else if ( req.matches("GET", "/post/{id:n}?", attributes) ) handlePost(resp,  attributes.get("id")) ;
-        else if ( req.matches("GET", "/posts/{category:a}?", attributes) ) handlePosts(resp, attributes.get("category")) ;
         else if ( req.matches("POST", "/user/login/") ) user.login() ;
         else if ( req.matches("POST", "/user/logout/") ) user.logout() ;
         else if ( req.matches("GET", "/{fpath:**}", attributes) ) {
@@ -96,44 +107,8 @@ public:
             resp.encode_file(root_ + fpath);
         }
         else resp.stock_reply(Response::not_found) ;
-    }
 
-
-    Variant pageData(UserController &user) {
-        ;
-    }
-
-    void handlePage(Response &response, const UserController &user, const string &page_id) {
-        // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT);
-
-        sqlite::Connection con(root_ + "/db.sqlite") ;
-        sqlite::Query q(con, "SELECT title, content FROM pages WHERE id=?;", page_id) ;
-        sqlite::QueryResult res = q.exec() ;
-
-        if ( res ) {
-
-            Variant ctx( Variant::Object{
-                         {"page", Variant::Object{
-                                    { "id", page_id },
-                                    { "title", res.get<string>("title") },
-                                    { "content", res.get<string>("content") }
-                                  }
-                         },
-                         {"nav_brand", "blog"},
-                         {"logged_in", user.isLoggedIn()},
-                         {"user_name", user.name()}}) ;
-            response.write(engine_.render("@page.mst", ctx)) ;
-        }
-        else
-            response.stock_reply(Response::not_found);
-    }
-
-    void handlePost(Response &response, const string &post_id) {
-
-    }
-
-    void handlePosts(Response &response, const string &category) {
-
+        log(req, resp) ;
     }
 
 
@@ -147,34 +122,6 @@ public:
 
 int main(int argc, char *argv[]) {
 
-
-/*
-    Variant::Object ctx{
-           {  { "id", 1 },
-           {  "children", Variant::Array{
-                        Variant::Object{{"id", 2}, {"href", string("h1")}, {"active", true }},
-                        Variant::Object{{"id", string("item2")}, {"href", string("h2")} },
-                        Variant::Object{{"id", string("item3")}, {"href", string("h3")} },
-                        Variant::Object{{"name", string("item4")}, {"href", string("h4")} },
-                    }
-           }
-        }} ;
-
-    Variant v(Variant::Object{{"node", ctx}}) ;
-
-    cout << v.at("node.children").at(0).at("href").toJSON() << endl ;
-
-    cout << rdr.render(R"(
-                       {{ id }}
-                       {{#children}}
-                           {{id}}  {{! will also output node.children[i].id }}
-                       {{/children}}
-
-                     )",
-                       ctx,
-                     {{"partial1", "This is my {{{name}}}"}}
-                    ) << endl ;
-*/
     MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
     server.run() ;
 }

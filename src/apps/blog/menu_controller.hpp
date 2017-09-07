@@ -5,19 +5,21 @@
 #include <wspp/server/request.hpp>
 #include <wspp/server/response.hpp>
 #include <wspp/util/database.hpp>
-#include <wspp/util/template_renderer.hpp>
-#include <wspp/util/forms.hpp>
 
-#include "user_controller.hpp"
+#include <wspp/views/renderer.hpp>
+#include <wspp/views/forms.hpp>
 
-using wspp::sqlite::Connection ;
-using wspp::Response ;
-using wspp::Request ;
-using wspp::Session ;
+#include <wspp/controllers/user_controller.hpp>
+
+using wspp::util::sqlite::Connection ;
+using wspp::server::Response ;
+using wspp::server::Request ;
+using wspp::server::Session ;
 using std::string ;
-using wspp::TemplateRenderer ;
+using wspp::web::TemplateRenderer ;
+using wspp::web::UserController ;
 
-class MenuForm: public wspp::Form {
+class MenuForm: public wspp::web::Form {
 public:
     MenuForm(Connection &con) ;
 

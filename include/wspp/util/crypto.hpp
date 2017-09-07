@@ -3,7 +3,7 @@
 
 #include <string>
 
-namespace wspp {
+namespace wspp { namespace util {
 
 // generate random bytes string of specified length
 std::string randomBytes(size_t len = 32) ;
@@ -26,7 +26,7 @@ bool passwordVerify(const std::string &password, const std::string &hash) ;
 // hashes input string using SHA256 alogorithm, returning binary string
 std::string hashSHA256(const std::string &src) ;
 
-}
+} }
 
 
 #endif

@@ -8,7 +8,9 @@
 #include <vector>
 
 namespace wspp {
+namespace web {
 
+using namespace util ;
 // abstrcation of a table view
 
 class TableView {
@@ -66,7 +68,7 @@ protected:
 
 
 
-
+}
 }
 
 

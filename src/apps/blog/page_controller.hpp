@@ -5,20 +5,21 @@
 #include <wspp/server/request.hpp>
 #include <wspp/server/response.hpp>
 #include <wspp/util/database.hpp>
-#include <wspp/util/forms.hpp>
-#include <wspp/util/template_renderer.hpp>
 
-#include "user_controller.hpp"
+#include <wspp/views/forms.hpp>
+#include <wspp/views/renderer.hpp>
+
+#include <wspp/controllers/user_controller.hpp>
 #include "page_view.hpp"
 
-using wspp::sqlite::Connection ;
-using wspp::Response ;
-using wspp::Request ;
-using wspp::Session ;
+using wspp::util::sqlite::Connection ;
+using wspp::server::Response ;
+using wspp::server::Request ;
+using wspp::server::Session ;
 using std::string ;
-using wspp::TemplateRenderer ;
+using wspp::web::TemplateRenderer ;
 
-class PageEditForm: public wspp::Form {
+class PageEditForm: public wspp::web::Form {
 public:
     PageEditForm(Connection &con, const string &id = string()) ;
 

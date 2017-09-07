@@ -1,12 +1,14 @@
-#ifndef __HTTP_SERVER_SESSION_HPP__
-#define __HTTP_SERVER_SESSION_HPP__
+#ifndef __SERVER_SESSION_HPP__
+#define __SERVER_SESSION_HPP__
 
 #include <string>
 #include <wspp/util/dictionary.hpp>
 #include <wspp/server/request.hpp>
 #include <wspp/server/response.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
+
+using util::Dictionary ;
 
 class SessionHandler ;
 
@@ -31,6 +33,7 @@ private:
     SessionHandler &handler_ ;
 };
 
+}
 }
 
 

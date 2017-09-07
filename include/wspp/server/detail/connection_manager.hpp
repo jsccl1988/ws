@@ -1,21 +1,12 @@
-//
-// connection_manager.hpp
-// ~~~~~~~~~~~~~~~~~~~~~~
-//
-// Copyright (c) 2003-2013 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
-#ifndef HTTP_CONNECTION_MANAGER_HPP
-#define HTTP_CONNECTION_MANAGER_HPP
+#ifndef __SERVER_CONNECTION_MANAGER_HPP__
+#define __SERVER_CONNECTION_MANAGER_HPP__
 
 #include <set>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
+
 class Connection ;
 typedef boost::shared_ptr<Connection> ConnectionPtr;
 
@@ -47,7 +38,8 @@ private:
 };
 
 
-} // namespace http
+} // namespace server
+} // namespace wspp
 
-#endif // HTTP_CONNECTION_MANAGER_HPP
+#endif
 

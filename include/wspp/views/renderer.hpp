@@ -1,5 +1,5 @@
-#ifndef __WSPP_UTIL_TEMPLATE_RENDERER_HPP__
-#define __WSPP_UTIL_TEMPLATE_RENDERER_HPP__
+#ifndef __WSPP_TEMPLATE_RENDERER_HPP__
+#define __WSPP_TEMPLATE_RENDERER_HPP__
 
 #include <string>
 #include <iostream>
@@ -7,7 +7,9 @@
 #include <boost/variant.hpp>
 #include <wspp/util/variant.hpp>
 
-namespace wspp {
+namespace wspp { namespace web {
+
+using util::Variant ;
 
 // abstract template loader
 class TemplateLoader {
@@ -56,6 +58,7 @@ private:
     bool caching_ ;
 } ;
 
-}
+} // namespace web
 
+} // namespace wspp
 #endif

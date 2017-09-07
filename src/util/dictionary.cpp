@@ -4,7 +4,7 @@
 
 using namespace std ;
 
-namespace wspp {
+namespace wspp { namespace util {
 
 Dictionary::Dictionary() {}
 
@@ -161,4 +161,5 @@ uint64_t Dictionary::capacity() const
     return bytes ;
 }
 
-}
+} // namespace util
+} // namespce wspp

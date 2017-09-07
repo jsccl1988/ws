@@ -15,7 +15,7 @@
 #include <boost/bind.hpp>
 #include <boost/shared_ptr.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
 namespace detail {
 
 io_service_pool::io_service_pool(std::size_t pool_size)
@@ -68,5 +68,6 @@ boost::asio::io_service& io_service_pool::get_io_service()
     return io_service;
 }
 
+} // namespace detail
 } // namespace server
-} // namespace http
+} // namespace wspp

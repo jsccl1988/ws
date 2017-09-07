@@ -17,7 +17,7 @@
 
 #include <wspp/server/detail/http_parser.h>
 
-namespace wspp {
+namespace wspp { namespace server {
 
 struct Request;
 
@@ -59,6 +59,7 @@ protected:
 };
 
 } // namespace detail
-} // namespace http
+} // namespace server
+} // namespace wspp
 
-#endif // HTTP_SERVER2_REQUEST_PARSER_HPP
+#endif

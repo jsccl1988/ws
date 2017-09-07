@@ -7,8 +7,9 @@
 #include <boost/scoped_ptr.hpp>
 #include <wspp/util/variant.hpp>
 
-namespace wspp {
-namespace views {
+namespace wspp { namespace views {
+
+using namespace util ;
 
 class Menu {
 public:

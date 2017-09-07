@@ -14,7 +14,9 @@
 #include <boost/utility.hpp>
 
 #include <wspp/util/dictionary.hpp>
+
 namespace wspp {
+namespace util {
 
 namespace sqlite {
 
@@ -29,7 +31,7 @@ extern NullType Nil;
 
 class Connection: boost::noncopyable {
 
-    public:
+public:
 
     explicit Connection();
     explicit Connection(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
@@ -39,7 +41,7 @@ class Connection: boost::noncopyable {
     void open(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
     void close() ;
 
-     operator int () { return handle_ != nullptr ; }
+    operator int () { return handle_ != nullptr ; }
     /**
      * @brief Helper for executing an sql statement, including a colon separated list of statements
      * @param sql Format string similar to printf. Use %q for arguments that need quoting (see sqlite3_mprintf documentation)
@@ -255,31 +257,31 @@ public:
     Dictionary getAll() const ;
 
     class iterator {
-       public:
-           iterator(QueryResult &res, bool at_end);
-           iterator(const iterator &other) = delete;
-           iterator(iterator &&other) = default;
+    public:
+        iterator(QueryResult &res, bool at_end);
+        iterator(const iterator &other) = delete;
+        iterator(iterator &&other) = default;
 
-           iterator& operator=(const iterator &other) = delete;
-           iterator& operator=(iterator &&other) = default;
+        iterator& operator=(const iterator &other) = delete;
+        iterator& operator=(iterator &&other) = default;
 
-           bool operator==(const iterator &other) const { return ( qres_ == other.qres_) && ( at_end_ == other.at_end_ ) ; }
-           bool operator!=(const iterator &other) const { return ( qres_ != other.qres_) || ( at_end_ != other.at_end_ ) ; }
+        bool operator==(const iterator &other) const { return ( qres_ == other.qres_) && ( at_end_ == other.at_end_ ) ; }
+        bool operator!=(const iterator &other) const { return ( qres_ != other.qres_) || ( at_end_ != other.at_end_ ) ; }
 
-           iterator& operator++() {
-                qres_.next() ;
-                at_end_ = !qres_ ;
-                return *this;
-           }
+        iterator& operator++() {
+            qres_.next() ;
+            at_end_ = !qres_ ;
+            return *this;
+        }
 
-           const Row& operator*() const { return *current_; }
+        const Row& operator*() const { return *current_; }
 
-       private:
-           QueryResult &qres_ ;
-           bool at_end_ ;
-           std::unique_ptr<Row> current_ ;
+    private:
+        QueryResult &qres_ ;
+        bool at_end_ ;
+        std::unique_ptr<Row> current_ ;
 
-   };
+    };
 
     iterator begin() { return iterator(*this, empty_) ; }
     iterator end() { return iterator(*this, true) ; }
@@ -337,18 +339,20 @@ public:
     Transaction(Connection &con_); // the construcctor starts the constructor
 
     // you should explicitly call commit or rollback to close it
-   void commit();
-   void rollback();
+    void commit();
+    void rollback();
 
 private:
 
-   Connection &con_ ;
- };
+    Connection &con_ ;
+};
 
 
 
 
 } // namespace sqlite
+
+} // namespace util
 
 } // namespace wspp
 

@@ -15,8 +15,10 @@
 #include <iostream>
 
 #include <wspp/util/variant.hpp>
+
 using namespace std ;
-using namespace wspp ;
+using namespace wspp::util ;
+using namespace wspp::server ;
 
 class DefaultLogger: public Logger
 {
@@ -31,7 +33,7 @@ public:
 class MyServer: public Server {
 
 public:
-    MyServer(const std::string &port, const std::string &logger_dir): logger_(logger_dir, true), Server("127.0.0.1", port, logger_) {
+    MyServer(const std::string &port, const std::string &logger_dir): logger_(logger_dir, true), Server("127.0.0.1", port) {
     }
 
     void deleteUser(const Request& req, Response& resp, int user) {

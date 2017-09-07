@@ -1,16 +1,14 @@
 #include <wspp/server/server.hpp>
 #include <boost/make_shared.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
 
 Server::Server(const std::string& address, const std::string& port,
-               Logger &logger,
                std::size_t io_service_pool_size)
     : io_service_pool_(io_service_pool_size),
       signals_(io_service_pool_.get_io_service()),
       acceptor_(io_service_pool_.get_io_service()),
-      socket_(io_service_pool_.get_io_service()),
-      logger_(logger)
+      socket_(io_service_pool_.get_io_service())
 {
     // Register to handle the signals that indicate when the server should exit.
     // It is safe to register for the same signal multiple times in a program,
@@ -57,7 +55,7 @@ void Server::start_accept()
              {
 
                connection_manager_.start(boost::make_shared<Connection>(
-                   std::move(socket_), connection_manager_, logger_, *this));
+                   std::move(socket_), connection_manager_, *this));
              }
 
         //if (!e) new_connection_->start();
@@ -90,4 +88,9 @@ void Server::stop()
     handle_stop() ;
 }
 
-} // namespace http
+std::string Server::getIPAddress() {
+    return socket_.remote_endpoint().address().to_string() ;
+}
+
+} // namespace server
+} // namespace wspp

@@ -17,6 +17,7 @@
 #include <boost/shared_ptr.hpp>
 
 namespace wspp {
+namespace server {
 namespace detail {
 
 /// A pool of io_service objects.
@@ -50,7 +51,8 @@ private:
     std::size_t next_io_service_;
 };
 
+} // namespace detail
 } // namespace server
-} // namespace http
+} // namespace wspp
 
 #endif // HTTP_SERVER2_IO_SERVICE_POOL_HPP

@@ -1,13 +1,14 @@
 #include "menu_controller.hpp"
 
-#include <wspp/util/forms.hpp>
-#include <wspp/util/table_view.hpp>
+#include <wspp/views/forms.hpp>
+#include <wspp/views/table.hpp>
 
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string.hpp>
 
 using namespace std ;
-using namespace wspp ;
+using namespace wspp::web ;
+using namespace wspp::util ;
 
 // CREATE TABLE menus (id INTEGER PRIMARY KEY AUTOINCREMENT, name UNIQUE NOT NULL, parent INTEGER DEFAULT NULL, link TEXT DEFAULT NULL);
 

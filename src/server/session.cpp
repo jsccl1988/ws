@@ -3,7 +3,7 @@
 
 using namespace std ;
 
-namespace wspp {
+namespace wspp { namespace server {
 
 Session::Session(SessionHandler &handler, const Request &req, Response &resp, const std::string &suffix): handler_(handler) {
     if ( handler_.open() ) {
@@ -30,4 +30,5 @@ Session::~Session() {
     handler_.close() ;
 }
 
-}
+} // namespace server
+} // namesace wspp

@@ -1,15 +1,5 @@
-//
-// request.hpp
-// ~~~~~~~~~~~
-//
-// Copyright (c) 2003-2012 Christopher M. Kohlhoff (chris at kohlhoff dot com)
-//
-// Distributed under the Boost Software License, Version 1.0. (See accompanying
-// file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
-//
-
-#ifndef HTTP_SERVER_REQUEST_HPP
-#define HTTP_SERVER_REQUEST_HPP
+#ifndef __SERVER_REQUEST_HPP__
+#define __SERVER_REQUEST_HPP__
 
 #include <string>
 #include <vector>
@@ -18,7 +8,9 @@
 #include <boost/regex.hpp>
 #include <boost/thread.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
+
+using util::Dictionary ;
 
 class UriPatternMatcher ;
 
@@ -73,6 +65,7 @@ private:
 };
 
 
-} // namespace http
+} // namespace server
+} // namespave wspp
 
-#endif // HTTP_SERVER2_REQUEST_HPP
+#endif

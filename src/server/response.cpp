@@ -24,7 +24,7 @@
 using namespace std ;
 namespace fs = boost::filesystem ;
 
-namespace wspp {
+namespace wspp { namespace server {
 
 namespace status_strings {
 
@@ -403,4 +403,5 @@ void Response::setCookie(const string &name, const string &value, time_t expires
 
 }
 
-} // namespace http
+} // namespace server
+} // namespace wspp

@@ -4,7 +4,8 @@
 #include <regex>
 #include <map>
 
-namespace wspp {
+namespace wspp { namespace util {
+
 // A class of key/value pairs of strings. 
 
 typedef std::map<std::string, std::string> SSMap ;
@@ -102,6 +103,7 @@ class DictionaryIterator
     Dictionary::const_iterator it_ ;
 } ;
 
-}
+} // namespace util
+} // namespace wspp
 
 #endif

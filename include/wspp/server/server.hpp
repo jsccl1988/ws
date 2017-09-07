@@ -20,11 +20,10 @@
 #include <wspp/util/logger.hpp>
 #include <wspp/server/detail/connection.hpp>
 #include <wspp/server/detail/io_service_pool.hpp>
-#include <wspp/server/detail/request_handler_factory.hpp>
 #include <wspp/server/detail/connection_manager.hpp>
 
 
-namespace wspp {
+namespace wspp { namespace server {
 
 /// The top-level class of the HTTP server.
 ///
@@ -34,7 +33,6 @@ public:
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
     explicit Server(const std::string& address, const std::string& port,
-                    Logger &logger,
                     std::size_t io_service_pool_size = 4);
 
 
@@ -43,6 +41,8 @@ public:
 
     /// Stop server loop
     void stop() ;
+
+    std::string getIPAddress() ;
 
 private:
     /// Initiate an asynchronous accept operation.
@@ -69,10 +69,9 @@ private:
 
      /// The next socket to be accepted.
     boost::asio::ip::tcp::socket socket_;
-
-    Logger &logger_ ;
 };
 
-} // namespace http
+} // namespace server
+} // namespace wspp
 
-#endif // HTTP_SERVER_SERVER_HPP
+#endif

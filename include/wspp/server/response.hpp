@@ -7,7 +7,10 @@
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/variant.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
+
+using util::Variant ;
+using util::Dictionary ;
 
 /// A reply to be sent to a client.
 struct Response
@@ -83,6 +86,7 @@ struct Response
 };
 
 
-} // namespace http
+} // namespace server
+} // namespace wspp
 
 #endif // HTTP_SERVER2_REPLY_HPP

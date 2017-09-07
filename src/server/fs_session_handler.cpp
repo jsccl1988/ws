@@ -4,9 +4,10 @@
 #include <chrono>
 
 using namespace std ;
+using namespace wspp::util ;
 namespace fs = boost::filesystem ;
 
-namespace wspp {
+namespace wspp { namespace server {
 
 FileSystemSessionHandler::FileSystemSessionHandler(const std::string &db_file) {
 
@@ -218,5 +219,5 @@ void FileSystemSessionHandler::gc() {
 }
 
 
-
-}
+} // namespace server
+} // namespace wspp

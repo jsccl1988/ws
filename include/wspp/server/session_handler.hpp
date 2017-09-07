@@ -7,7 +7,7 @@
 #include <wspp/server/response.hpp>
 #include <wspp/server/session.hpp>
 
-namespace wspp {
+namespace wspp { namespace server {
 
 class Session ;
 
@@ -37,19 +37,8 @@ protected:
     std::string session_cookie_path_, session_cookie_domain_ ;
 };
 
-/*
-class MemSessionManager: public SessionManager {
-public:
-    MemSessionManager() {}
-
-    void save(const Session &session) ;
-    void load(Session &session) ;
-
-private:
-    std::map<std::string, Dictionary> data_ ;
-};
-*/
-}
+} // namespace server
+} // namespace wspp
 
 
 #endif

@@ -8,7 +8,8 @@
 
 #include <boost/type_traits.hpp>
 
-namespace wspp {
+namespace wspp { namespace util {
+
 class Variant ;
 class IValueHolder {
 
@@ -80,8 +81,6 @@ inline IValueHolder::Type ValueHolder<int64_t>::type() const { return IValueHold
 template<>
 inline IValueHolder::Type ValueHolder<bool>::type() const { return IValueHolder::Boolean ; }
 
-
-
 template<>
 inline bool ValueHolder<bool>::isFalse() const { return !value_ ; }
 
@@ -135,7 +134,8 @@ public:
     Variant fetchKey(const std::string &key) const override ;
     Variant fetchIndex(uint idx) const override ;
 };
-}
 
+} // namespace util
+} // namespace wspp
 
 #endif

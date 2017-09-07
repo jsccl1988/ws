@@ -1,4 +1,4 @@
-#include "user_controller.hpp"
+#include <wspp/controllers/user_controller.hpp>
 
 #include <wspp/util/crypto.hpp>
 #include <wspp/util/variant.hpp>
@@ -7,13 +7,15 @@
 #include <boost/regex.hpp>
 
 using namespace std ;
-using namespace wspp ;
+using namespace wspp::util ;
 
 /*
  * CREATE TABLE users ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, password TEXT NOT NULL );
  * CREATE TABLE auth_tokens ( id INTEGER PRIMARY KEY AUTOINCREMENT, selector TEXT, token TEXT, user_id INTEGER NOT NULL, expires INTEGER );
  *
  */
+
+namespace wspp { namespace web {
 
 void UserController::login()
 {
@@ -210,3 +212,6 @@ void UserController::fetchUser(const string &username, string &id, string &passw
         password = res.get<string>("password") ;
     }
 }
+
+} // namespace web
+} // namespace wspp

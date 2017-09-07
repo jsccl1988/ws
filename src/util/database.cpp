@@ -6,6 +6,7 @@
 using namespace std ;
 
 namespace wspp {
+namespace util {
 namespace sqlite {
 
 class NullType {} ;
@@ -437,6 +438,8 @@ void Transaction::rollback()
 
 QueryResult::iterator::iterator(QueryResult &res, bool at_end): qres_(res), at_end_(at_end), current_(new Row(qres_)) {}
 
-}
+} // sqlite
 
-}
+} // util
+
+} // wspp

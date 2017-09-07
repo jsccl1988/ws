@@ -1,8 +1,9 @@
-#include <wspp/util/table_view.hpp>
+#include <wspp/views/table.hpp>
 
 using namespace std ;
 
 namespace wspp {
+namespace web {
 
 static Variant make_pager_data(uint page, uint max_page)
 {
@@ -105,13 +106,6 @@ Variant SQLiteTableView::rows(uint offset, uint count)  {
 }
 
 
+} // namespace web
 
-
-
-
-
-
-
-
-
-}
+} // namespace wspp

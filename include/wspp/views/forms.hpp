@@ -10,23 +10,27 @@
 
 using std::string ;
 
-namespace wspp {
+namespace wspp { namespace web {
 
 // Form helper class. The aim of the class is:
 // 1) declare form in a view agnostic way
 // 2) validate input data for those fields e.g passed in a POST request
 // 3) pack data needed to render the form into an object that can be passed to the template engine
 
+using wspp::util::Variant ;
+using wspp::util::Dictionary ;
+
 class FormField {
 public:
     // the validator checks the validity of the input string.
-    // if invalid then it should fill the error_messages_
+    // if invalid then it should fill the error_messages_ of the field
     typedef boost::function<bool (const string &, FormField &)> Validator ;
 
     // The normalizer preprocesses an input value before passing it to validators
     typedef boost::function<string (const string &)> Normalizer ;
 
     static Validator requiredArgValidator ;
+
 public:
 
     FormField(const string &name): name_(name) {
@@ -62,12 +66,11 @@ public:
 
 protected:
     virtual void fillData(Variant::Object &) const ;
-    // calls all validator
+    // calls all validators
     virtual bool validate(const string &value) ;
 
 private:
     friend class Form ;
-
 
     string label_, name_, value_, id_, place_holder_, initial_value_, help_text_ ;
     bool required_ = false, disabled_ = false ;
@@ -149,11 +152,7 @@ protected:
 } ;
 
 
-
-
-
-
-
-}
+} // namespace web
+} // namespace wspp
 
 #endif

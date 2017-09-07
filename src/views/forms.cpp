@@ -1,11 +1,11 @@
-#include <wspp/util/forms.hpp>
+#include <wspp/views/forms.hpp>
+
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string.hpp>
 
-
 using namespace std ;
 
-namespace wspp {
+namespace wspp { namespace web {
 
 class InputField: public FormField {
 public:
@@ -230,4 +230,5 @@ void Form::init(const Dictionary &vals) {
 }
 
 
-}
+} // namespace web
+} // namespace wspp

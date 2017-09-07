@@ -12,7 +12,7 @@
 
 using namespace std ;
 
-namespace wspp {
+namespace wspp { namespace util {
 
 string randomBytes(size_t len) {
     using namespace CryptoPP ;
@@ -146,4 +146,6 @@ string hashSHA256(const string &src)
 
 
 
-}
+} // namespace util
+
+} // namespace wspp
