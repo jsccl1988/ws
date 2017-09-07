@@ -144,8 +144,6 @@ void PageController::edit(const string &id)
 
 void PageController::update()
 {
-
-
     if ( request_.method_ == "POST" ) {
 
         string id = request_.POST_.get("id") ;
@@ -223,38 +221,40 @@ bool PageController::dispatch()
 
     Dictionary attributes ;
 
+    bool logged_in = user_.check() ;
+
     if ( request_.matches("GET", "/pages/edit/", attributes) ) { // load page list editor
-        if ( user_.isLoggedIn() ) edit() ;
+        if ( logged_in ) edit() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET", "/pages/list/", attributes) ) { // fetch table data
-        if ( user_.isLoggedIn() ) fetch() ;
+        if ( logged_in ) fetch() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET|POST", "/pages/add/", attributes) ) {
-        if ( user_.isLoggedIn() ) create() ;
+        if ( logged_in ) create() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET|POST", "/pages/update/", attributes) ) {
-        if ( user_.isLoggedIn() ) update() ;
+        if ( logged_in ) update() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("GET", "/page/edit/{id:a}", attributes) ) {
-        if ( user_.isLoggedIn() ) edit(attributes.get("id")) ;
+        if ( logged_in ) edit(attributes.get("id")) ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("POST", "/page/publish") ) {
-        if ( user_.isLoggedIn() ) publish() ;
+        if ( logged_in ) publish() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("POST", "/page/delete") ) {
-        if ( user_.isLoggedIn() ) remove() ;
+        if ( logged_in ) remove() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
@@ -278,7 +278,6 @@ void PageController::show(const std::string &page_id)
                      { "id", res.get<int>("id") }
         }) ;
 
-//        cout << ctx.toJSON() << endl ;
         response_.write(engine_.render("page", ctx)) ;
     }
     else

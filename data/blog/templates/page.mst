@@ -9,7 +9,11 @@
 	</div>
 	{{/page.nav.username}}	
     <div class="row">
-        {{> content }}
+        <div class="col-md-12">
+			<div id="page-content">
+			    {{{ content }}}
+			</div>
+		</div>
     </div>
 {{/contents}}
 

@@ -42,8 +42,6 @@ public:
     /// Stop server loop
     void stop() ;
 
-    std::string getIPAddress() ;
-
 private:
     /// Initiate an asynchronous accept operation.
     void start_accept();

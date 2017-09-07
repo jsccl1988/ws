@@ -74,12 +74,14 @@ private:
                         response_.stock_reply(Response::bad_request);
                     }
                     else {
+                        request_.SERVER_.add("REMOTE_ADDR", socket_.remote_endpoint().address().to_string() ) ;
+
                          try {
                              handler_.handle(request_, response_) ;
-
                          }
                          catch ( ... ) {
-                             response_.stock_reply(Response::internal_server_error);
+
+                            response_.stock_reply(Response::internal_server_error);
                          }
                     }
 

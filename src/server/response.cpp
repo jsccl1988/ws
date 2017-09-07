@@ -9,11 +9,13 @@
 //
 
 #include <wspp/server/response.hpp>
+#include <wspp/util/zstream.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/asio.hpp>
 #include <boost/date_time.hpp>
+#include <boost/regex.hpp>
 
 #include <fstream>
 #include <iostream>
@@ -23,6 +25,7 @@
 
 using namespace std ;
 namespace fs = boost::filesystem ;
+using namespace wspp::util ;
 
 namespace wspp { namespace server {
 
@@ -270,7 +273,7 @@ static void gmt_time_string(char *buf, size_t buf_len, time_t *t) {
     strftime(buf, buf_len, "%a, %d %b %Y %H:%M:%S GMT", gmtime(t));
 }
 
-void Response::encode_file_data(const std::string &bytes, const std::string &encoding, const std::string &mime, time_t mod_time )
+void Response::encode_file_data(const std::string &bytes, const std::string &encoding, const std::string &mime, time_t mod_time)
 {
     status_ = ok ;
 
@@ -278,7 +281,7 @@ void Response::encode_file_data(const std::string &bytes, const std::string &enc
 
     if ( encoding.empty() ) // try gzip encoding
     {
-        if ( bytes.size() > 2 && bytes[0] == 31 && bytes[1] == 139 )
+        if ( bytes.size() > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b )
             headers_.add("Content-Encoding", "gzip") ;
     }
     else
@@ -331,7 +334,22 @@ static string get_file_mime(const string &mime,  const boost::filesystem::path &
 
     return "application/octet-stream" ;
 }
+/*
+mod_gzip_item_include file .(html?|txt|css|js|php|pl)$
+mod_gzip_item_include handler ^cgi-script$
+mod_gzip_item_include mime ^text/.*
+mod_gzip_item_include mime ^application/x-javascript.*
+mod_gzip_item_exclude mime ^image/.*
+*/
 
+static boost::regex gzip_include_extension_rx(".(html?|txt|css|js)") ;
+static boost::regex gzip_include_mime_rx("(text/.*)|(application/x-javascript.*)") ;
+
+bool file_benefits_from_compression(const string &extension, const string &mime) {
+    if ( boost::regex_match(extension, gzip_include_extension_rx) ) return true ;
+    if ( boost::regex_match(mime,  gzip_include_mime_rx) ) return true ;
+    return false ;
+}
 
 void Response::encode_file(const std::string &file_path, const std::string &encoding, const std::string &mime )
 {
@@ -345,7 +363,18 @@ void Response::encode_file(const std::string &file_path, const std::string &enco
     ifstream istr(file_path.c_str(), ios::binary) ;
     string bytes = string(std::istreambuf_iterator<char>(istr), std::istreambuf_iterator<char>());
 
-    encode_file_data(bytes, encoding, mime.empty() ? get_file_mime(mime, file_path) : mime, mod_time) ;
+    string omime = mime.empty() ? get_file_mime(mime, file_path) : mime ;
+
+    if ( encoding == "gzip" || file_benefits_from_compression(fs::path(file_path).extension().string(), mime) ) {
+        ostringstream compressed ;
+        ozstream zstrm(compressed) ;
+        zstrm.write(bytes.c_str(), bytes.size()) ;
+        zstrm.flush() ;
+        encode_file_data(compressed.str(), "gzip", omime, mod_time) ;
+    }
+    else
+        encode_file_data(bytes, encoding, omime, mod_time) ;
+
 }
 
 void Response::writeJSON(const string &obj)

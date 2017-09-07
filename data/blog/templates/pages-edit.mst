@@ -6,10 +6,7 @@
 {{/contents}}
 
 {{$extra_footers}}
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css">
-		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/css/bootstrap-dialog.min.css">
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap3-dialog/1.34.7/js/bootstrap-dialog.min.js"></script>
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.4.0/css/font-awesome.min.css" rel='stylesheet' type='text/css'>
+        
 		<script src="js/tableview.js"></script>
 
 		
@@ -22,61 +19,6 @@
   					updateUrl: "/pages/update/"
   				
   				}) ;
-  				/*
-  				var current_page = 1 ;
-  				var results_per_view = 10 ;
-  				
-  				
-				
-  				
-  				function reload() {
-  		
-					$('#pages-list-view').load("/pages/list/", $.param({page: current_page, total: results_per_view}), function(response, status, xhr) {
-						var item = $(this) ;
-						
-						// add handler for pager links
-						$(item).find('#pager li a').click(function(e) {
-							e.preventDefault() ;
-							current_page = $(this).data('page') ;
-							reload() ;
-						}) ;
-						
-						// select correct button in results per view group
-						
-						var rpv_buttons = $(item).find('#results-per-page input') ;
-						
-						$(rpv_buttons).each(function(item, value) {
-							if ( $(value).val() == results_per_view ) $(value).parent().addClass("active") ;
-							else $(value).parent().removeClass("active") ;
-						}) ;
-						
-						// assure that the current page is within range
-						var num_pages = $(item).find('ul').data('total-pages') ;
-						if ( current_page > num_pages ) current_page = 1 ;
-						
-						// handle results per view change
-
-						$(rpv_buttons).change(function(){
-							results_per_view = $(this).val() ;
-							reload() ;
-						})
-						
-						// handle new record action
-						
-		  				$(item).find('#new-record').click(onNewRecord) ;
-		  				
-		  				// handle detete record
-		  				$(item).find('#data-grid #delete-button').click(onDeleteRecord) ;
-		  				
-						// handle edit record
-		  				$(item).find('#data-grid #edit-button').click(onEditRecord) ;
-					}) ;
-				}
-				
-				reload() ;
-					
-         			*/
-        		
 			});
 		
 		</script>

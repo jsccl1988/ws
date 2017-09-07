@@ -50,11 +50,13 @@ struct Response
     void encode_file_data(const std::string &bytes,
                      const std::string &encoding,
                      const std::string &mime,
-                     const time_t mod_time) ;
+                     const time_t mod_time
+                     ) ;
 
     void encode_file(const std::string &path_name,
                      const std::string &encoding = std::string(),
-                     const std::string &mime = std::string()) ;
+                     const std::string &mime = std::string()
+                     ) ;
 
     void writeJSON(const std::string &json) ;
     void writeJSONVariant(const Variant &json) ;

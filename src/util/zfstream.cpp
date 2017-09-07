@@ -7,7 +7,8 @@
  * This version is standard-compliant and compatible with gcc 3.x.
  */
 
-#include "zfstream.hpp"
+#include <wspp/util/zfstream.hpp>
+
 #include <cstring>          // for strcpy, strcat, strlen (mode strings)
 #include <cstdio>           // for BUFSIZ
 
@@ -19,6 +20,8 @@
 //#pragma comment(lib, "zdll.lib")
 /*****************************************************************************/
 using namespace std ;
+
+namespace wspp { namespace util {
 
 // Default constructor
 gzfilebuf::gzfilebuf()
@@ -476,3 +479,6 @@ gzofstream::close()
   if (!sb.close())
     this->setstate(std::ios_base::failbit);
 }
+
+} // namespace util
+} // namespace wspp

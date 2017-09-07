@@ -31,6 +31,8 @@ public:
     bool matches(const std::string &method, const std::string &pattern, Dictionary &attributes) const ;
     bool matches(const std::string &method, const std::string &pattern) const;
 
+    bool supportsGzip() ;
+
 public:
     Dictionary SERVER_ ; // Server variables
     Dictionary GET_ ;	 // Query variables for GET requests

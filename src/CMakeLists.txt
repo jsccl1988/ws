@@ -4,30 +4,34 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/logger.cpp
     ${SRC_ROOT}/util/database.cpp
     ${SRC_ROOT}/util/crypto.cpp
+    ${SRC_ROOT}/util/zfstream.cpp
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
     ${INCLUDE_ROOT}/util/database.hpp
     ${INCLUDE_ROOT}/util/crypto.hpp
+    ${INCLUDE_ROOT}/util/zfstream.hpp
 )
 
-SET ( VIEWS_SOURCES
+SET ( WEB_SOURCES
     ${SRC_ROOT}/views/renderer.cpp
     ${SRC_ROOT}/views/forms.cpp
     ${SRC_ROOT}/views/table.cpp
     ${SRC_ROOT}/views/menu.cpp
 
+    ${SRC_ROOT}/controllers/login.cpp
+
+    ${SRC_ROOT}/models/auth.cpp
+
     ${INCLUDE_ROOT}/views/renderer.hpp
     ${INCLUDE_ROOT}/views/forms.hpp
     ${INCLUDE_ROOT}/views/table.hpp
     ${INCLUDE_ROOT}/views/menu.hpp
-)
 
-SET ( CONTROLLERS_SOURCES
-    ${SRC_ROOT}/controllers/user_controller.cpp
+    ${INCLUDE_ROOT}/controllers/login.hpp
 
-    ${INCLUDE_ROOT}/controllers/user_controller.hpp
-)
+    ${INCLUDE_ROOT}/models/auth.hpp
+    )
 
 SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/detail/connection.hpp
@@ -59,13 +63,11 @@ SET ( SERVER_SOURCES
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_util ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} ${CRYPTOPP_LIBRARIES} dl z pthread )
 
-ADD_LIBRARY(wspp_web SHARED ${VIEWS_SOURCES} ${CONTROLLERS_SOURCES})
+ADD_LIBRARY(wspp_web SHARED ${WEB_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_web wspp_util ${Boost_LIBRARIES} )
 
 ADD_LIBRARY(wspp_http_server SHARED ${SERVER_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_http_server wspp_util ${Boost_LIBRARIES} dl z pthread )
-
-
 
 ADD_SUBDIRECTORY(apps)
 ADD_SUBDIRECTORY(tools)

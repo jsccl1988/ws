@@ -173,8 +173,13 @@ FormField &Form::checkbox(const string &name, bool is_checked)
 Variant::Object Form::data() const
 {
     Variant::Object form_data ;
-    if ( !errors_.empty() )
-        form_data.insert({"global_errors", Variant::Object{{"messages", Variant::fromVector(errors_)}}}) ;
+
+    if ( !errors_.empty() ) {
+        Variant::Array errors ;
+        for( const string &msg: errors_ )
+            errors.emplace_back(Variant::Object{{"message", msg}}) ;
+        form_data.insert({"global-errors", errors}) ;
+    }
 
     vector<boost::shared_ptr<FormField>> fieldv ;
 

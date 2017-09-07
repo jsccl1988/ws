@@ -88,9 +88,6 @@ void Server::stop()
     handle_stop() ;
 }
 
-std::string Server::getIPAddress() {
-    return socket_.remote_endpoint().address().to_string() ;
-}
 
 } // namespace server
 } // namespace wspp

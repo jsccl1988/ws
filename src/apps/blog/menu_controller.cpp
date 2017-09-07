@@ -28,7 +28,7 @@ public:
 
 void MenuController::fetch()
 {
-    if ( !user_.isLoggedIn() ) {
+    if ( !user_.check() ) {
         response_.stock_reply(Response::unauthorized) ;
         return ;
     }
@@ -46,7 +46,7 @@ void MenuController::fetch()
 
 void MenuController::edit()
 {
-    if ( !user_.isLoggedIn() ) {
+    if ( !user_.check() ) {
         response_.stock_reply(Response::unauthorized) ;
         return ;
     }
@@ -57,15 +57,15 @@ void MenuController::edit()
                       }
                      },
                      {"nav_brand", "blog"},
-                     {"logged_in", user_.isLoggedIn()},
-                     {"user_name", user_.name()}}) ;
+                     {"logged_in", user_.check()},
+                     {"user_name", user_.userName()}}) ;
 
     response_.write(engine_.render("menu-edit", ctx)) ;
 }
 
 void MenuController::create()
 {
-    if ( !user_.isLoggedIn() ) {
+    if ( !user_.check() ) {
         response_.stock_reply(Response::unauthorized) ;
         return ;
     }
@@ -106,7 +106,7 @@ void MenuController::create()
 
 void MenuController::update()
 {
-    if ( !user_.isLoggedIn() ) {
+    if ( !user_.check() ) {
         response_.stock_reply(Response::unauthorized) ;
         return ;
     }
@@ -168,7 +168,7 @@ void MenuController::update()
 
 void MenuController::remove()
 {
-    if ( !user_.isLoggedIn() ) {
+    if ( !user_.check() ) {
         response_.stock_reply(Response::unauthorized) ;
         return ;
     }

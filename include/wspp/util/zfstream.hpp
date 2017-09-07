@@ -14,6 +14,7 @@
 #include <ostream>
 #include <fstream>
 
+namespace wspp { namespace util {
 /*****************************************************************************/
 
 /**
@@ -463,4 +464,6 @@ inline gzomanip2<int,int>
 setcompression(int l, int s)
 { return gzomanip2<int,int>(&setcompression, l, s); }
 
+}
+}
 #endif // ZFSTREAM_H

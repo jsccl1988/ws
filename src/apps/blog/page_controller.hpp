@@ -9,7 +9,7 @@
 #include <wspp/views/forms.hpp>
 #include <wspp/views/renderer.hpp>
 
-#include <wspp/controllers/user_controller.hpp>
+#include <wspp/controllers/login.hpp>
 #include "page_view.hpp"
 
 using wspp::util::sqlite::Connection ;
@@ -32,7 +32,7 @@ private:
 class PageController {
 public:
     PageController(const Request &req, Response &resp,
-                   Connection &con, UserController &user, TemplateRenderer &engine,
+                   Connection &con, Authentication &user, TemplateRenderer &engine,
                    PageView &page): con_(con),
     request_(req), response_(resp), user_(user), engine_(engine), page_(page) {}
 
@@ -54,7 +54,7 @@ private:
     Connection &con_ ;
     const Request &request_ ;
     Response &response_ ;
-    UserController &user_ ;
+    Authentication &user_ ;
     TemplateRenderer &engine_ ;
     PageView &page_ ;
 

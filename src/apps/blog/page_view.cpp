@@ -1,9 +1,9 @@
 #include "page_view.hpp"
 
 using namespace std ;
-using namespace wspp ;
+using namespace wspp::server ;
 
-PageView::PageView(const UserController &user): user_(user) {
+PageView::PageView(const Authentication &user): auth_(user) {
     menu_.addItem("home", "Home", "/") ;
     menu_.addItem("maps", "Maps", "/maps") ;
     menu_.addItem("segments", "Segments", "/segments") ;
@@ -16,7 +16,7 @@ PageView::PageView(const UserController &user): user_(user) {
 Variant PageView::data(const std::string &page_id, const std::string &title) const {
 
     Variant::Object nav{{"menu", menu_.data(page_id) }} ;
-    if ( user_.isLoggedIn() ) nav.insert({"username", user_.name()}) ;
+    if ( auth_.check() ) nav.insert({"username", auth_.userName()}) ;
 
     Variant page(
                 Variant::Object{

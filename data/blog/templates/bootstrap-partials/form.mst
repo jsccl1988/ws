@@ -1,4 +1,4 @@
-{{> error_message }} 
+{{> error-message }} 
 {{# fields }} 
 {{> widget }}
 {{/fields}}
