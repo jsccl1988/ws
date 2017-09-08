@@ -9,14 +9,15 @@ using namespace wspp::util ;
 
 namespace wspp { namespace web {
 
-void Authentication::persist(const std::string &username, const std::string &user_id, bool remember_me)
+void User::persist(const std::string &user_name, const std::string &user_id, const std::string &user_role, bool remember_me)
 {
     // fill in session cache with user information
 
     //        session_regenerate_id(true) ;
 
-    session_.data().add("username", username) ;
+    session_.data().add("user_name", user_name) ;
     session_.data().add("user_id", user_id) ;
+    session_.data().add("user_role", user_role) ;
 
     // remove any expired tokens
 
@@ -44,15 +45,15 @@ void Authentication::persist(const std::string &username, const std::string &use
 
 }
 
-void Authentication::forget()
+void User::forget()
 {
     if ( check() ) {
 
         string user_id = session_.data().get("user_id") ;
 
-        session_.data().remove("username") ;
+        session_.data().remove("user_name") ;
         session_.data().remove("user_id") ;
-        session_.data().remove("role") ;
+        session_.data().remove("user_role") ;
 
         string cookie = request_.COOKIE_.get("auth_token") ;
 
@@ -77,18 +78,23 @@ static bool hash_equals(const std::string &query, const std::string &stored) {
     return ncount == 0 ;
 }
 
-string Authentication::userName() const {
-    return session_.data().get("username") ;
+string User::userName() const {
+    return session_.data().get("user_name") ;
 }
 
-string Authentication::userId() const {
+string User::userId() const {
     return session_.data().get("user_id") ;
 }
 
+string User::userRole() const {
+    return session_.data().get("user_role") ;
+}
 
-bool Authentication::check() const
+
+
+bool User::check() const
 {
-    if ( session_.data().contains("username") ) return true ;
+    if ( session_.data().contains("user_name") ) return true ;
 
     // No session information. Check if there is user info in the cookie
 
@@ -102,7 +108,7 @@ bool Authentication::check() const
         if ( tokens.size() == 2 && !tokens[0].empty() && !tokens[1].empty() ) {
             // if both selector and token were found check if database has the specific token
 
-            sqlite::Query stmt(con_, "SELECT a.user_id as user_id, a.token as token, u.name as username FROM auth_tokens AS a JOIN users AS u ON a.user_id = u.id WHERE a.selector = ? AND a.expires > ? LIMIT 1",
+            sqlite::Query stmt(con_, "SELECT a.user_id as user_id, a.token as token, u.name as username, r.role_id as role FROM auth_tokens AS a JOIN users AS u ON a.user_id = u.id JOIN user_roles AS r ON r.user_id = u.id WHERE a.selector = ? AND a.expires > ? LIMIT 1",
                                tokens[0], std::time(nullptr)) ;
             sqlite::QueryResult res = stmt.exec() ;
 
@@ -112,9 +118,9 @@ bool Authentication::check() const
                 string stored_token = res.get<string>("token") ;
 
                 if ( hash_equals(stored_token, cookie_token) ) {
-                    session_.data().add("username", res.get<string>("username")) ;
+                    session_.data().add("user_name", res.get<string>("username")) ;
                     session_.data().add("user_id", res.get<string>("user_id")) ;
-                    session_.data().add("role", "admin") ;
+                    session_.data().add("user_role", res.get<string>("role")) ;
 
                     return true ;
                 }
@@ -127,26 +133,106 @@ bool Authentication::check() const
     return false ;
 }
 
-bool Authentication::userNameExists(const string &username)
+bool User::userNameExists(const string &username)
 {
     sqlite::Query stmt(con_, "SELECT id FROM 'users' WHERE name = ? LIMIT 1;", username) ;
     sqlite::QueryResult res = stmt.exec() ;
     return (bool)res ;
 }
 
-bool Authentication::verifyPassword(const string &query, const string &stored) {
+bool User::verifyPassword(const string &query, const string &stored) {
     return passwordVerify(query, decodeBase64(stored)) ;
 }
 
-void Authentication::load(const string &username, string &id, string &password)
+void User::load(const string &username, string &id, string &password, string &role)
 {
-    sqlite::Query stmt(con_, "SELECT id, password FROM users WHERE name = ? LIMIT 1;", username) ;
+    sqlite::Query stmt(con_, "SELECT u.id AS id, u.password as password, r.role_id as role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id WHERE name = ? LIMIT 1;", username) ;
     sqlite::QueryResult res = stmt.exec() ;
 
     if ( res ) {
         id = res.get<string>("id") ;
         password = res.get<string>("password") ;
+        role = res.get<string>("role") ;
     }
+}
+
+static string glob_to_regex(const string &pat)
+{
+    // Convert pattern
+    string rx = "^", be ;
+
+    string::const_iterator cursor = pat.begin(), end = pat.end() ;
+    bool in_char_class = false ;
+
+    while ( cursor != end )
+    {
+        char c = *cursor++;
+
+        switch (c)
+        {
+            case '*':
+                rx += "[^\\\\.]*" ;
+                break;
+            case '$':  //Regex special characters
+            case '(':
+            case ')':
+            case '+':
+            case '.':
+            case '|':
+                rx += '\\';
+                rx += c;
+                break;
+            case '\\':
+                if ( *cursor == '*' ) rx += "\\*" ;
+                else if ( *cursor == '?' )  rx += "\\?" ;
+                cursor ++ ;
+            break ;
+            default:
+                rx += c;
+        }
+    }
+
+    rx += "$" ;
+    return rx ;
+}
+
+static bool match_permissions(const string &glob, const string &action) {
+    boost::regex rx(glob_to_regex(glob)) ;
+    return boost::regex_match(action, rx) ;
+
+}
+
+bool User::can(const string &action) const {
+    string role = userRole() ;
+    vector<string> permissions  = auth_.getPermissions(role) ;
+    for( uint i=0 ; i<permissions.size() ; i++ ) {
+        if ( match_permissions(permissions[i], action) ) return true ;
+    }
+    return false ;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
+DefaultAuthorizationModel::DefaultAuthorizationModel(Variant role_map)
+{
+    for( const string &key: role_map.keys() ) {
+        Variant pv = role_map.at(key) ;
+        vector<string> permissions ;
+        if ( pv.isArray() ) {
+            for( uint i=0 ; i<pv.length() ; i++ ) {
+                Variant val = pv.at(i) ;
+                if ( val.isValue() ) permissions.emplace_back(val.toString()) ;
+            }
+        }
+        role_map_.insert({key, permissions}) ;
+    }
+}
+
+std::vector<string> DefaultAuthorizationModel::getPermissions(const std::string &role) const
+{
+    auto it = role_map_.find(role) ;
+    if ( it != role_map_.end() ) return it->second ;
+    else return {} ;
 }
 
 } // namespace web

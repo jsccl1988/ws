@@ -6,7 +6,7 @@
 
 #include <wspp/models/auth.hpp>
 
-using wspp::web::Authentication ;
+using wspp::web::User ;
 using wspp::util::Variant ;
 
 // Helper for global page layout
@@ -14,12 +14,12 @@ using wspp::util::Variant ;
 class PageView {
  public:
 
-    PageView(const Authentication &user);
+    PageView(const User &user, Variant menu);
 
     Variant data(const std::string &page_id, const std::string &title) const;
 
-    wspp::views::Menu menu_ ;
-    const Authentication &auth_ ;
+    Variant menu_ ;
+    const User &auth_ ;
 } ;
 
 

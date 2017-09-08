@@ -21,7 +21,7 @@ namespace web {
 
 class LoginController {
 public:
-    LoginController(Authentication &user, const Request &req, Response &resp, TemplateRenderer &engine):
+    LoginController(User &user, const Request &req, Response &resp, TemplateRenderer &engine):
     request_(req), response_(resp), user_(user), engine_(engine) {}
 
     bool dispatch() ;
@@ -36,7 +36,7 @@ protected:
     bool sanitizePassword(string &password) ;
 
 private:
-    Authentication &user_ ;
+    User &user_ ;
     const Request &request_ ;
     Response &response_ ;
     TemplateRenderer &engine_ ;

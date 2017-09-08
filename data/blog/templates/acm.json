@@ -1,0 +1,13 @@
+{ 
+	"admin" : [ 
+		"users.*",
+		"pages.*"
+	],
+	"author" : [ 
+		"pages.edit_own",
+		"pages.delete_own",
+		"pages.add"
+	]
+	
+}
+

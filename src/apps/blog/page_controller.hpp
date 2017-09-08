@@ -32,7 +32,7 @@ private:
 class PageController {
 public:
     PageController(const Request &req, Response &resp,
-                   Connection &con, Authentication &user, TemplateRenderer &engine,
+                   Connection &con, User &user, TemplateRenderer &engine,
                    PageView &page): con_(con),
     request_(req), response_(resp), user_(user), engine_(engine), page_(page) {}
 
@@ -54,7 +54,7 @@ private:
     Connection &con_ ;
     const Request &request_ ;
     Response &response_ ;
-    Authentication &user_ ;
+    User &user_ ;
     TemplateRenderer &engine_ ;
     PageView &page_ ;
 

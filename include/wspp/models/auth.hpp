@@ -11,26 +11,30 @@ using wspp::util::sqlite::Connection ;
 using wspp::server::Session ;
 using wspp::server::Request ;
 using wspp::server::Response ;
+using wspp::util::Variant ;
 
-// a user model that handles authentication via username and password stored in database
+// a user model that handles authentication via username and password stored in database and authroization via role/permission models
 
 /*
  * CREATE TABLE users ( id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE NOT NULL, password TEXT NOT NULL );
  * CREATE TABLE auth_tokens ( id INTEGER PRIMARY KEY AUTOINCREMENT, selector TEXT, token TEXT, user_id INTEGER NOT NULL, expires INTEGER );
- *
+ * CREATE TABLE user_roles ( id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, role_id TEXT );
  */
 
-class Authentication {
+class AuthorizationModel ;
+class User {
 public:
-    Authentication(const Request &req, Response &resp, Session &session, Connection &con): con_(con), session_(session), request_(req), response_(resp) {}
+    User(const Request &req, Response &resp, Session &session, Connection &con, AuthorizationModel &auth):
+        con_(con), session_(session), request_(req), response_(resp), auth_(auth) {}
 
-    void persist(const std::string &username, const std::string &id, bool remember_me = false) ;
+    void persist(const std::string &username, const std::string &id, const std::string &role, bool remember_me = false) ;
     void forget() ;
 
     bool check() const ;
 
     std::string userName() const ;
     std::string userId() const ;
+    std::string userRole() const ;
 
     // check database for username
     bool userNameExists(const std::string &username) ;
@@ -39,7 +43,10 @@ public:
     bool verifyPassword(const std::string &query, const std::string &stored) ;
 
     // fetch user from database
-    void load(const std::string &username, std::string &id, std::string &password) ;
+    void load(const std::string &username, std::string &id, std::string &password, std::string &role) ;
+
+    std::string role() const ;
+    bool can(const std::string &action) const ;
 
 protected:
 
@@ -47,7 +54,35 @@ protected:
     Session &session_ ;
     const Request &request_ ; // used to get remember me cookie
     Response &response_ ; // used to set remember me cookie
+    AuthorizationModel &auth_ ;
 } ;
+
+class AuthorizationModel {
+public:
+    AuthorizationModel() {}
+
+    virtual std::vector<std::string> getPermissions(const std::string &role) const = 0 ;
+
+/*    virtual std::string roleId(const std::string &role) const = 0 ;
+    virtual std::string getPermission(const std::string &id) const = 0 ;
+    virtual void addRole(const std::string &role_name) = 0 ;
+    virtual void addPermissionToRole(const std::string &role_id, const std::string &permission) = 0;
+*/
+};
+
+class DefaultAuthorizationModel: public AuthorizationModel {
+public:
+    // In memory access control model
+    // roles is an array of roles of the form [ "role.1": [ "permision.1", "permision.2", permision.3" ], "role.2": ["permission.1", "permission.2"]
+
+    DefaultAuthorizationModel(Variant role_map) ;
+
+    std::vector<std::string> getPermissions(const std::string &role) const override ;
+
+private:
+    std::map<std::string, std::vector<std::string>> role_map_ ;
+};
+
 
 } // namespace web
 } // namespace user

@@ -224,7 +224,7 @@ bool PageController::dispatch()
     bool logged_in = user_.check() ;
 
     if ( request_.matches("GET", "/pages/edit/", attributes) ) { // load page list editor
-        if ( logged_in ) edit() ;
+        if ( logged_in && user_.can("pages.edit")) edit() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }

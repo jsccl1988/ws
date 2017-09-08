@@ -17,7 +17,7 @@ using wspp::server::Request ;
 using wspp::server::Session ;
 using std::string ;
 using wspp::web::TemplateRenderer ;
-using wspp::web::Authentication ;
+using wspp::web::User ;
 
 class MenuForm: public wspp::web::Form {
 public:
@@ -30,7 +30,7 @@ private:
 class MenuController {
 public:
     MenuController(const Request &req, Response &resp,
-                   Connection &con, Authentication &user, TemplateRenderer &engine): con_(con),
+                   Connection &con, User &user, TemplateRenderer &engine): con_(con),
     request_(req), response_(resp), user_(user), engine_(engine), menu_form_(con) {
 
     }
@@ -46,7 +46,7 @@ private:
     Connection &con_ ;
     const Request &request_ ;
     Response &response_ ;
-    Authentication &user_ ;
+    User &user_ ;
     TemplateRenderer &engine_ ;
     MenuForm menu_form_ ;
 

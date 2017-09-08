@@ -5,6 +5,7 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/database.cpp
     ${SRC_ROOT}/util/crypto.cpp
     ${SRC_ROOT}/util/zfstream.cpp
+    ${SRC_ROOT}/util/json.cpp
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp

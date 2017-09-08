@@ -15,6 +15,8 @@
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/detail/value_holder.hpp>
 
+class JSONParser ;
+
 namespace wspp { namespace util {
 
 class IValueHolder ;
@@ -76,6 +78,9 @@ public:
         return ar ;
     }
 
+    // may optionaly throw a JSONParseException ;
+    static Variant fromJSONString(const std::string &src, bool throw_exception = false) ;
+    static Variant fromJSONFile(const std::string &path, bool throw_exception = false) ;
 
     // check object type
     bool isObject() const { return value_->type() == IValueHolder::Object ; }
@@ -101,6 +106,19 @@ public:
         if ( isValue() ) {
             return value_->toString() ;
         }
+    }
+
+    std::vector<std::string> keys() const {
+        std::vector<std::string> res ;
+
+        if ( !isObject() ) return res ;
+
+         boost::shared_ptr<ObjectValueHolder> e = boost::dynamic_pointer_cast<ObjectValueHolder>(value_) ;
+
+         for( const auto &p: e->values_ )
+             res.push_back(p.first) ;
+
+         return res ;
     }
 
     // length of object or array
@@ -152,6 +170,18 @@ public:
 private:
 
     boost::shared_ptr<IValueHolder> value_ ;
+};
+
+class JSONParseException: public std::exception {
+private:
+    friend class ::JSONParser ;
+    JSONParseException(const std::string &msg, uint line, uint col) ;
+public:
+    const char *what() const noexcept override {
+        return msg_.c_str() ;
+    }
+protected:
+    std::string msg_ ;
 };
 
 

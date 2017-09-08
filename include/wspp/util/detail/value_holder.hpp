@@ -70,6 +70,9 @@ private:
 };
 
 template<>
+inline std::string ValueHolder<std::string>::toString() const { return value_ ; }
+
+template<>
 inline IValueHolder::Type ValueHolder<double>::type() const { return IValueHolder::Float ; }
 
 template<>

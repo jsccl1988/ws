@@ -71,9 +71,10 @@ public:
         sqlite::Connection con(root_ + "/db.sqlite") ; // establish connection with database
         Session session(sm_, req, resp) ; // start a new session
 
-        Authentication user(req, resp, session, con) ; // setup authentication
+        DefaultAuthorizationModel auth(Variant::fromJSONFile(root_ + "templates/acm.json")) ;
+        User user(req, resp, session, con, auth) ; // setup authentication
 
-        PageView page(user) ; // global page data
+        PageView page(user, Variant::fromJSONFile(root_ + "templates/menu.json")) ; // global page data
 
         // request router
 
@@ -99,6 +100,34 @@ public:
 
 
 int main(int argc, char *argv[]) {
+
+    string json = R"%(
+                  {
+                      "count" : "\u20AC",
+                      "name" :  "aka" : "T.E.S.T.", "id" : 1239.87 },
+                      "attribute" : [
+                          "random",
+                          "short",
+                          "bold",
+                          12,
+                          { "height" : 7, "width" : 64 }
+                          ],
+                      "test": { "1" :
+                          { "2" :
+                              { "3" :  { "coord" : [ 1,2] }
+                              }
+                          }
+                      }
+                  }
+
+
+
+                  )%";
+
+    cout << json << endl ;
+   // Variant v = Variant::fromJSONString(json) ;
+
+   // cout << v.toJSON() << endl ;
 
     MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
     server.run() ;

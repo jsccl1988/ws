@@ -16,14 +16,14 @@ namespace wspp { namespace web {
 
 class LoginForm: public wspp::web::Form {
 public:
-    LoginForm(Authentication &auth) ;
+    LoginForm(User &auth) ;
 
     string sanitizeUserName(const string &username);
     string sanitizePassword(const string &password);
 
     bool validate(const Dictionary &vals) override ;
 private:
-    Authentication &auth_ ;
+    User &auth_ ;
     string username_ ;
 };
 
@@ -55,7 +55,7 @@ string LoginForm::sanitizePassword(const string &password)
     return boost::trim_copy(password) ;
 }
 
-LoginForm::LoginForm(Authentication &auth): auth_(auth) {
+LoginForm::LoginForm(User &auth): auth_(auth) {
 
     input("username", "text").label("User Name:").required()
             .setNormalizer([&] (const string &val) {
@@ -100,8 +100,8 @@ bool LoginForm::validate(const Dictionary &vals) {
         return false ;
     }
 
-    string stored_password, user_id ;
-    auth_.load(username, user_id, stored_password) ;
+    string stored_password, user_id, role ;
+    auth_.load(username, user_id, stored_password, role) ;
 
     if ( !auth_.verifyPassword(password, stored_password) ) {
         errors_.push_back("Password mismatch") ;
@@ -130,9 +130,9 @@ void LoginController::login()
             string username = form.getValue("username") ;
             bool remember_me = form.getValue("remember-me") == "on" ;
 
-            string stored_password, user_id ;
-            user_.load(username, user_id, stored_password) ;
-            user_.persist(username, user_id, remember_me) ;
+            string stored_password, user_id, role ;
+            user_.load(username, user_id, stored_password, role) ;
+            user_.persist(username, user_id, role, remember_me) ;
 
             // send a success message
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
