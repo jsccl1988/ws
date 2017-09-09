@@ -1,6 +1,7 @@
 #include "page_controller.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/make_shared.hpp>
 
 #include <wspp/views/table.hpp>
 
@@ -10,7 +11,10 @@ using namespace wspp::web ;
 
 PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
 
-    input("title", "text").label("Title:").required().addValidator([&] (const string &val, FormField &f) {
+    title_field_ = boost::make_shared<InputField>("title", "text") ;
+    title_field_->label("Title") ;
+    title_field_->required() ;
+    title_field_->addValidator([&] (const string &val, FormField &f) {
         if ( val.empty() ) {
             f.addErrorMsg("The field is required") ;
             return false ;
@@ -18,7 +22,10 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
         return true ;
     }) ;
 
-    input("slug", "text").label("Slug:").required().addValidator([&] (const string &val, FormField &f) {
+    slug_field_ = boost::make_shared<InputField>("slug", "text") ;
+    slug_field_->label("Slug") ;
+    slug_field_->required() ;
+    slug_field_->addValidator([&] (const string &val, FormField &f) {
         bool error ;
         if ( id_.empty() ) {
             sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
@@ -37,6 +44,9 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
         }
         return true ;
     }) ;
+
+    addField(title_field_) ;
+    addField(slug_field_) ;
 }
 
 

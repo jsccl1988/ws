@@ -12,6 +12,7 @@ using wspp::server::Session ;
 using wspp::server::Request ;
 using wspp::server::Response ;
 using wspp::util::Variant ;
+using wspp::util::Dictionary ;
 
 // a user model that handles authentication via username and password stored in database and authroization via role/permission models
 
@@ -22,6 +23,7 @@ using wspp::util::Variant ;
  */
 
 class AuthorizationModel ;
+
 class User {
 public:
     User(const Request &req, Response &resp, Session &session, Connection &con, AuthorizationModel &auth):
@@ -45,8 +47,13 @@ public:
     // fetch user from database
     void load(const std::string &username, std::string &id, std::string &password, std::string &role) ;
 
-    std::string role() const ;
+    // test if the user has permission to perform the action
     bool can(const std::string &action) const ;
+
+    AuthorizationModel &auth() const { return auth_ ; }
+
+    static std::string sanitizeUserName(const std::string &username);
+    static std::string sanitizePassword(const std::string &password);
 
 protected:
 
@@ -61,6 +68,7 @@ class AuthorizationModel {
 public:
     AuthorizationModel() {}
 
+    virtual Dictionary getRoles() const = 0 ;
     virtual std::vector<std::string> getPermissions(const std::string &role) const = 0 ;
 
 /*    virtual std::string roleId(const std::string &role) const = 0 ;
@@ -73,14 +81,23 @@ public:
 class DefaultAuthorizationModel: public AuthorizationModel {
 public:
     // In memory access control model
-    // roles is an array of roles of the form [ "role.1": [ "permision.1", "permision.2", permision.3" ], "role.2": ["permission.1", "permission.2"]
+    // roles is an array of roles of the form { "role.1": { "name": "Administrator", "permissions": [ "permision.1", "permision.2", permision.3" ]}, ...}
 
     DefaultAuthorizationModel(Variant role_map) ;
 
+    virtual Dictionary getRoles() const ;
     std::vector<std::string> getPermissions(const std::string &role) const override ;
 
 private:
-    std::map<std::string, std::vector<std::string>> role_map_ ;
+    struct Role {
+        Role(const std::string name, const std::vector<std::string> &permissions):
+            name_(name), permissions_(permissions) {}
+
+        std::string name_ ;
+        std::vector<std::string> permissions_ ;
+    };
+
+    std::map<std::string, Role> role_map_ ;
 };
 
 

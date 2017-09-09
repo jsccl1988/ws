@@ -24,6 +24,7 @@ public:
     PageEditForm(Connection &con, const string &id = string()) ;
 
 private:
+    boost::shared_ptr<wspp::web::InputField> title_field_, slug_field_ ;
     Connection &con_ ;
     string id_ ;
 };

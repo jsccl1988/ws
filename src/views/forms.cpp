@@ -6,66 +6,6 @@
 using namespace std ;
 
 namespace wspp { namespace web {
-
-class InputField: public FormField {
-public:
-    InputField(const string &name, const string &type): FormField(name), type_(type) {}
-
-    void fillData(Variant::Object &) const override;
-private:
-    string type_ ;
-};
-
-class SelectField: public FormField {
-public:
-    SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
-        addValidator([&](const string &val, FormField &v) {
-            Dictionary options = options_->fetch() ;
-            if ( multiple_ ) {
-                boost::char_separator<char> sep(" ");
-                boost::tokenizer<boost::char_separator<char> > tokens(val, sep);
-
-                for( const string &s: tokens ) {
-                    if ( !options.contains(s) ) {
-                        v.addErrorMsg("Supplied value: " + val + " is not in option list") ;
-                        return false ;
-                    }
-                }
-            }
-            else {
-               if ( !options.contains(val) ) {
-                    v.addErrorMsg("Supplied value: " + val + " is not in option list") ;
-                    return false ;
-                }
-            }
-            v.value(val) ;
-            return true ;
-        }) ;
-
-    }
-
-    void fillData(Variant::Object &) const override;
-
-private:
-    bool multiple_ ;
-    boost::shared_ptr<OptionsModel> options_ ;
-};
-
-class CheckBoxField: public FormField {
-public:
-    CheckBoxField(const string &name, bool is_checked = false): FormField(name), is_checked_(is_checked) {
-
-    }
-
-    void fillData(Variant::Object &res) const override {
-        FormField::fillData(res) ;
-        if ( is_checked_ ) res.insert({"checked", "checked"}) ;
-        res.insert({"template", "checkbox"}) ;
-    }
-private:
-    bool is_checked_ = false ;
-};
-
 static bool validate_required_arg(const string &val, FormField &field) {
     if ( val.empty() ) {
         field.addErrorMsg("Required field missing") ;
@@ -123,6 +63,32 @@ void InputField::fillData(Variant::Object &base) const
 }
 
 
+SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
+    addValidator([&](const string &val, FormField &v) {
+        Dictionary options = options_->fetch() ;
+        if ( multiple_ ) {
+            boost::char_separator<char> sep(" ");
+            boost::tokenizer<boost::char_separator<char> > tokens(val, sep);
+
+            for( const string &s: tokens ) {
+                if ( !options.contains(s) ) {
+                    v.addErrorMsg("Supplied value: " + val + " is not in option list") ;
+                    return false ;
+                }
+            }
+        }
+        else {
+            if ( !options.contains(val) ) {
+                v.addErrorMsg("Supplied value: " + val + " is not in option list") ;
+                return false ;
+            }
+        }
+        v.value(val) ;
+        return true ;
+    }) ;
+
+}
+
 void SelectField::fillData(Variant::Object &base) const
 {
     FormField::fillData(base) ;
@@ -135,40 +101,29 @@ void SelectField::fillData(Variant::Object &base) const
 }
 
 
+CheckBoxField::CheckBoxField(const string &name, bool is_checked): FormField(name), is_checked_(is_checked) {
+
+}
+
+void CheckBoxField::fillData(Variant::Object &res) const {
+    FormField::fillData(res) ;
+    if ( is_checked_ ) res.insert({"checked", "checked"}) ;
+    res.insert({"template", "checkbox"}) ;
+}
+
+
 Form::Form(const std::string &prefix, const string &suffix): field_prefix_(prefix), field_suffix_(suffix) {
 
 }
 
-FormField &Form::input(const string &name, const string &type)
+void Form::addField(const FormField::Ptr &field)
 {
-    const auto &it = fields_.insert({name, boost::make_shared<InputField>(name, type)}) ;
-    assert(it.second) ;
-    auto &field = it.first->second ;
-    field->id(field_prefix_ + name + field_suffix_) ;
+    field->id(field_prefix_ + field->name_ + field_suffix_) ;
     field->count_ = fields_.size() ;
-    return *field ;
+    fields_.push_back(field) ;
+    field_map_.insert({field->name_, field}) ;
 }
 
-
-FormField &Form::select(const string &name, boost::shared_ptr<OptionsModel> options, bool multi) {
-    const auto &it = fields_.insert({name, boost::make_shared<SelectField>(name, options, multi)}) ;
-    assert(it.second) ;
-    auto &field = it.first->second ;
-    field->id(field_prefix_ + name + field_suffix_) ;
-    field->count_ = fields_.size() ;
-    return *field ;
-}
-
-FormField &Form::checkbox(const string &name, bool is_checked)
-{
-    const auto &it = fields_.insert({name, boost::make_shared<CheckBoxField>(name, is_checked)}) ;
-    assert(it.second) ;
-    auto &field = it.first->second ;
-    field->id(field_prefix_ + name + field_suffix_) ;
-    field->count_ = fields_.size() ;
-    return *field ;
-
-}
 
 Variant::Object Form::data() const
 {
@@ -181,15 +136,8 @@ Variant::Object Form::data() const
         form_data.insert({"global-errors", errors}) ;
     }
 
-    vector<boost::shared_ptr<FormField>> fieldv ;
-
-    for( const auto &p: fields_ )
-        fieldv.push_back(p.second) ;
-
-    std::sort(fieldv.begin(), fieldv.end(), [&](const boost::shared_ptr<FormField> &f1, const boost::shared_ptr<FormField> &f2) { return f1->count_ < f2->count_ ; }) ;
-
     Variant::Array field_data_list ;
-    for( const auto &p: fieldv ) {
+    for( const auto &p: fields_ ) {
         Variant::Object field_data ;
         p->fillData(field_data) ;
         if ( is_valid_ )
@@ -207,17 +155,17 @@ Variant::Object Form::data() const
 
 string Form::getValue(const string &field_name)
 {
-    const auto &it = fields_.find(field_name) ;
-    assert ( it != fields_.end() ) ;
+    const auto &it = field_map_.find(field_name) ;
+    assert ( it != field_map_.end() ) ;
     return it->second->value_ ;
 }
 
 bool Form::validate(const Dictionary &vals) {
     bool failed = false ;
     for( const auto &p: fields_ ) {
-        if ( vals.contains(p.first) ) {
+        if ( vals.contains(p->name_) ) {
 
-            bool res = p.second->validate(vals.get(p.first)) ;
+            bool res = p->validate(vals.get(p->name_)) ;
             if ( !res ) failed = true ;
         }
     }
@@ -227,8 +175,8 @@ bool Form::validate(const Dictionary &vals) {
 
 void Form::init(const Dictionary &vals) {
     for( const auto &p: vals ) {
-        auto it = fields_.find(p.first) ;
-        if ( it != fields_.end() ) {
+        auto it = field_map_.find(p.first) ;
+        if ( it != field_map_.end() ) {
             it->second->value(p.second) ;
         }
     }

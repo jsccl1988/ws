@@ -1,13 +1,18 @@
 { 
-	"admin" : [ 
-		"users.*",
-		"pages.*"
-	],
-	"author" : [ 
-		"pages.edit_own",
-		"pages.delete_own",
-		"pages.add"
-	]
-	
+	"admin" : {
+		"name": "Administrator",
+		"permissions": [ 
+			"users.*",
+			"pages.*"
+		]
+	},
+	"author" : {
+		"name": "Author", 
+		"permissions": [
+			"pages.edit.own",
+			"pages.delete.own",
+			"pages.new"
+		]
+	}
 }
 

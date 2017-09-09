@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
+#include <boost/make_shared.hpp>
 
 using namespace std ;
 using namespace wspp::util ;
@@ -18,75 +19,54 @@ class LoginForm: public wspp::web::Form {
 public:
     LoginForm(User &auth) ;
 
-    string sanitizeUserName(const string &username);
-    string sanitizePassword(const string &password);
-
     bool validate(const Dictionary &vals) override ;
 private:
     User &auth_ ;
     string username_ ;
+    boost::shared_ptr<InputField> username_field_, password_field_ ;
+    boost::shared_ptr<CheckBoxField>  rememberme_field_ ;
 };
 
 
 
-static string strip_all_tags(const string &str, bool remove_breaks = false) {
-    static boost::regex rx_stags(R"(<(script|style)[^>]*?>.*?<\/\1>)", boost::regex::icase) ;
-    static boost::regex rx_tags(R"(<[^>]*>)") ;
-    static boost::regex rx_lb(R"([\r\n\t ]+)") ;
-
-    // remove spacial tags and their contents
-    string res = boost::regex_replace(str, rx_stags, "") ;
-    // remove all other tags
-    res = boost::regex_replace(res, rx_tags, "") ;
-
-    if ( remove_breaks )
-        res = boost::regex_replace(res, rx_lb, " ") ;
-
-    return boost::trim_copy(res) ;
-}
-
-string LoginForm::sanitizeUserName(const string &username)
-{
-    return strip_all_tags(username) ;
-}
-
-string LoginForm::sanitizePassword(const string &password)
-{
-    return boost::trim_copy(password) ;
-}
-
 LoginForm::LoginForm(User &auth): auth_(auth) {
 
-    input("username", "text").label("User Name:").required()
-            .setNormalizer([&] (const string &val) {
-                return sanitizeUserName(val) ;
-            })
-            .addValidator([&] (const string &val, FormField &f) {
-                if ( val.empty() ) {
-                    f.addErrorMsg("Empty user name") ;
-                    return false ;
-                }
+    username_field_ = boost::make_shared<InputField>("username", "text") ;
+    username_field_->required() ;
+    username_field_->label("Username") ;
+    username_field_->setNormalizer([&] (const string &val) {
+        return User::sanitizeUserName(val) ;
+    }) ;
+    username_field_->addValidator([&] (const string &val, FormField &f) {
+        if ( val.empty() ) {
+            f.addErrorMsg("Empty user name") ;
+            return false ;
+        }
 
-                return true ;
-            }
-    ) ;
+        return true ;
+    }) ;
 
-    input("password", "password").label("Password:").required()
-            .setNormalizer([&](const string &val) {
-                return sanitizePassword(val) ;
-            })
+    password_field_ = boost::make_shared<InputField>("password", "password") ;
+    password_field_->required() ;
+    password_field_->label("Password") ;
+    password_field_->setNormalizer([&] (const string &val) {
+        return User::sanitizePassword(val) ;
+    }) ;
+    password_field_->addValidator([&] (const string &val, FormField &f) {
+        if ( val.empty() ) {
+            f.addErrorMsg("Empty password") ;
+            return false ;
+        }
 
-            .addValidator([&] (const string &val, FormField &f) {
-                if ( val.empty() ) {
-                    f.addErrorMsg("Empty password") ;
-                    return false ;
-                }
+        return true ;
+    }) ;
 
-                return true ;
-            }
-    ) ;
+    rememberme_field_ = boost::make_shared<CheckBoxField>("remember-me") ;
+    rememberme_field_->label("Remember Me:") ;
 
-    checkbox("remember-me").label("Remember Me:") ;
+    addField(username_field_);
+    addField(password_field_);
+    addField(rememberme_field_);
 }
 
 bool LoginForm::validate(const Dictionary &vals) {

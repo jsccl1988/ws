@@ -1,6 +1,7 @@
 ADD_EXECUTABLE(blog
     blog.cpp
     page_controller.cpp
+    users_controller.cpp
     page_view.cpp
 )
 

@@ -31,6 +31,8 @@ public:
 
     static Validator requiredArgValidator ;
 
+    typedef boost::shared_ptr<FormField> Ptr ;
+
 public:
 
     FormField(const string &name): name_(name) {
@@ -38,29 +40,29 @@ public:
     }
 
     // set field to required
-    FormField &required(bool is_required = true) { required_ = is_required ; return *this ;}
+    void required(bool is_required = true) { required_ = is_required ; }
     // set field to disabled
-    FormField &disabled(bool is_disabled = true) { disabled_ = is_disabled ; return *this ;}
+    void disabled(bool is_disabled = true) { disabled_ = is_disabled ; }
     // set field value
-    FormField &value(const string &val) { value_ = val ; return *this ;}
+    void value(const string &val) { value_ = val ; }
     // append classes to class attribute
-    FormField &appendClass(const string &extra) { extra_classes_ = extra ; return *this ; }
+    void appendClass(const string &extra) { extra_classes_ = extra ;  }
     // append extra attributes to element
-    FormField &extraAttributes(const Dictionary &attrs) { extra_attrs_ = attrs ; return *this ;}
+    void extraAttributes(const Dictionary &attrs) { extra_attrs_ = attrs ; }
     // set custom validator
-    FormField &addValidator(Validator val) { validators_.push_back(val) ; return *this ;}
+    void addValidator(Validator val) { validators_.push_back(val) ; }
     // set custom normalizer
-    FormField &setNormalizer(Normalizer val) { normalizer_ = val ; return *this ;}
+    void setNormalizer(Normalizer val) { normalizer_ = val ; }
     // set field id
-    FormField &id(const string &id) { id_ = id ; return *this ;}
+    void id(const string &id) { id_ = id ; }
     // set label
-    FormField &label(const string &label) { label_ = label ; return *this ;}
+    void label(const string &label) { label_ = label ; }
     // set placeholder
-    FormField &placeholder(const string &p) { place_holder_ = p ; return *this ;}
+    void placeholder(const string &p) { place_holder_ = p ; }
     // set initial value
-    FormField &initial(const string &v) { initial_value_ = v ; return *this ;}
+    void initial(const string &v) { initial_value_ = v ; }
     // set help text
-    FormField &help(const string &text) { help_text_ = text ; return *this ;}
+    void help(const string &text) { help_text_ = text ; }
 
     void addErrorMsg(const string &msg) { error_messages_.push_back(msg) ; }
 
@@ -117,10 +119,41 @@ private:
 };
 
 
+class InputField: public FormField {
+public:
+    InputField(const string &name, const string &type): FormField(name), type_(type) {}
+
+    void fillData(Variant::Object &) const override;
+private:
+    string type_ ;
+};
+
+class SelectField: public FormField {
+public:
+    SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi = false);
+
+    void fillData(Variant::Object &) const override;
+
+private:
+    bool multiple_ ;
+    boost::shared_ptr<OptionsModel> options_ ;
+};
+
+class CheckBoxField: public FormField {
+public:
+    CheckBoxField(const string &name, bool is_checked = false);
+
+    void fillData(Variant::Object &res) const override;
+private:
+    bool is_checked_ = false ;
+};
+
 class Form {
 public:
 
     Form(const string &field_prefix = "", const string &field_suffix = "_field") ;
+
+    void addField(const FormField::Ptr &field) ;
 
     // add an input field
     FormField &input(const string &name, const string &type) ;
@@ -145,7 +178,8 @@ public:
 
 protected:
 
-    std::map<string, boost::shared_ptr<FormField>> fields_ ;
+    std::vector<FormField::Ptr> fields_ ;
+    std::map<string, FormField::Ptr> field_map_ ;
     string field_prefix_, field_suffix_ ;
     std::vector<string> errors_ ;
     bool is_valid_ = false ;

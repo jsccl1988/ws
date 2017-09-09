@@ -171,7 +171,7 @@ static string glob_to_regex(const string &pat)
         switch (c)
         {
             case '*':
-                rx += "[^\\\\.]*" ;
+                rx += ".*?" ;
                 break;
             case '$':  //Regex special characters
             case '(':
@@ -197,9 +197,10 @@ static string glob_to_regex(const string &pat)
 }
 
 static bool match_permissions(const string &glob, const string &action) {
-    boost::regex rx(glob_to_regex(glob)) ;
-    return boost::regex_match(action, rx) ;
-
+    string rxs = glob_to_regex(glob) ;
+    boost::regex rx(rxs) ;
+    bool res = boost::regex_match(action, rx) ;
+    return res ;
 }
 
 bool User::can(const string &action) const {
@@ -211,28 +212,71 @@ bool User::can(const string &action) const {
     return false ;
 }
 
+
+
+static string strip_all_tags(const string &str, bool remove_breaks = false) {
+    static boost::regex rx_stags(R"(<(script|style)[^>]*?>.*?<\/\1>)", boost::regex::icase) ;
+    static boost::regex rx_tags(R"(<[^>]*>)") ;
+    static boost::regex rx_lb(R"([\r\n\t ]+)") ;
+
+    // remove spacial tags and their contents
+    string res = boost::regex_replace(str, rx_stags, "") ;
+    // remove all other tags
+    res = boost::regex_replace(res, rx_tags, "") ;
+
+    if ( remove_breaks )
+        res = boost::regex_replace(res, rx_lb, " ") ;
+
+    return boost::trim_copy(res) ;
+}
+
+string User::sanitizeUserName(const string &username)
+{
+    return strip_all_tags(username) ;
+}
+
+string User::sanitizePassword(const string &password)
+{
+    return boost::trim_copy(password) ;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 DefaultAuthorizationModel::DefaultAuthorizationModel(Variant role_map)
 {
     for( const string &key: role_map.keys() ) {
         Variant pv = role_map.at(key) ;
+        Variant name = pv.at("name") ;
+
+        string rname ;
+        if ( name.isNull() ) rname = key ;
+        else rname = name.toString() ;
+
+        Variant permv = pv.at("permissions") ;
         vector<string> permissions ;
-        if ( pv.isArray() ) {
-            for( uint i=0 ; i<pv.length() ; i++ ) {
-                Variant val = pv.at(i) ;
+        if ( permv.isArray() ) {
+            for( uint i=0 ; i<permv.length() ; i++ ) {
+                Variant val = permv.at(i) ;
                 if ( val.isValue() ) permissions.emplace_back(val.toString()) ;
             }
         }
-        role_map_.insert({key, permissions}) ;
+        role_map_.insert({key, Role(rname, permissions)}) ;
     }
 }
 
 std::vector<string> DefaultAuthorizationModel::getPermissions(const std::string &role) const
 {
     auto it = role_map_.find(role) ;
-    if ( it != role_map_.end() ) return it->second ;
+    if ( it != role_map_.end() ) return it->second.permissions_ ;
     else return {} ;
+}
+
+Dictionary DefaultAuthorizationModel::getRoles() const {
+    Dictionary roles ;
+    for( const auto &pr: role_map_) {
+        roles.add(pr.first, pr.second.name_) ;
+    }
+    return roles ;
 }
 
 } // namespace web

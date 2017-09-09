@@ -31,6 +31,9 @@ public:
     // fetch data to pass to the template renderer
     Variant::Object fetch(uint page, uint results_per_page);
 
+    // a hook to modify the display value of a cell
+    virtual Variant transform(const std::string &key, const std::string &value) { return value ; }
+
 protected:
 
     struct Column {

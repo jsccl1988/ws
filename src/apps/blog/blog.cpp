@@ -24,7 +24,7 @@
 #include <wspp/controllers/login.hpp>
 
 #include "page_controller.hpp"
-#include "menu_controller.hpp"
+#include "users_controller.hpp"
 
 using namespace std ;
 using namespace wspp::util ;
@@ -81,6 +81,7 @@ public:
         Dictionary attributes ;
 
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
+        else if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
         else if ( LoginController(user, req, resp, engine_).dispatch() ) return ;
         else if ( req.method_ == "GET" ) {
             resp.encode_file(root_ + req.path_);

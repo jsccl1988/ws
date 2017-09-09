@@ -91,7 +91,7 @@ Variant SQLiteTableView::rows(uint offset, uint count)  {
             Variant::Object col ;
             string cname = c.key_ ;
             if ( res.hasColumn(cname) ) {
-                col.insert({{"value", res.get<string>(cname)}}) ;
+                col.insert({{"value", transform(cname, res.get<string>(cname))}}) ;
                 if ( !c.type_.empty() ) col.insert({{"type", c.type_}}) ;
             }
             columns.emplace_back(col) ;
