@@ -21,8 +21,8 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
     input("slug", "text").label("Slug:").required().addValidator([&] (const string &val, FormField &f) {
         bool error ;
         if ( id_.empty() ) {
-            sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?", val) ;
-            sqlite::QueryResult res = q.exec() ;
+            sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
+            sqlite::QueryResult res = q(val) ;
             error = res.get<int>(0) ;
         }
         else {
@@ -123,16 +123,20 @@ void PageController::create()
 void PageController::edit(const string &id)
 {
 
-    sqlite::Query stmt(con_, "SELECT title, content, permalink FROM pages WHERE id=?", id) ;
-    sqlite::QueryResult res = stmt.exec() ;
+    sqlite::Query stmt(con_, "SELECT title, content, permalink FROM pages WHERE id=?") ;
+    sqlite::QueryResult res = stmt(id) ;
 
     if ( res ) {
+
+        string permalink, title, content ;
+        res.into(title, content, permalink) ;
+
         Variant ctx( Variant::Object{
-                     { "page", page_.data(res.get<string>("permalink"), res.get<string>("title")) },
-                     { "id", res.get<int>("id") },
-                     { "title", res.get<string>("title")},
-                     { "content", res.get<string>("content")},
-                     { "slug", res.get<string>("permalink")}
+                     { "page", page_.data(permalink, title) },
+                     { "id", id },
+                     { "title", title },
+                     { "content", content },
+                     { "slug", permalink }
         }) ;
 
         response_.write(engine_.render("page-edit", ctx)) ;
@@ -156,10 +160,8 @@ void PageController::update()
 
             sqlite::Statement stmt(con_, "UPDATE pages SET title = ?, permalink = ? WHERE id = ?") ;
 
-            stmt.bind(1, form.getValue("title")) ;
-            stmt.bind(2, form.getValue("slug")) ;
-            stmt.bind(3, request_.POST_.get("id")) ;
-            stmt.exec() ;
+            stmt(form.getValue("title"), form.getValue("slug"), id) ;
+
 
             // send a success message
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
@@ -272,6 +274,7 @@ void PageController::show(const std::string &page_id)
     sqlite::QueryResult res = q.exec() ;
 
     if ( res ) {
+
         Variant ctx( Variant::Object{
                      { "page", page_.data(page_id, res.get<string>("title")) },
                      { "content", res.get<string>("content") },

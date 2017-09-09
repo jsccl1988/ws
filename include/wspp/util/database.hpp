@@ -33,8 +33,8 @@ class Connection: boost::noncopyable {
 
 public:
 
-    explicit Connection();
-    explicit Connection(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
+    Connection();
+    Connection(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
     ~Connection();
 
     // open connection to database withe given flags
@@ -99,6 +99,7 @@ public:
      */
     Statement(Connection& con, const std::string & sql) ;
 
+    // helper for creating a connection and binding parameters
     template<typename ...Args>
     Statement(Connection& con, const std::string & sql, Args... args): Statement(con, sql) {
         bindm(args...) ;
@@ -165,6 +166,12 @@ public:
         step() ;
     }
 
+    template<typename ...Args>
+    void operator()(Args... args) {
+        bindm(args...) ;
+        exec() ;
+    }
+
 protected:
 
     void check();
@@ -189,40 +196,8 @@ private:
 
 };
 
-
-class Query: public Statement {
-public:
-    Query(Connection &con, const std::string &sql) ;
-
-    template<typename ...Args>
-    Query(Connection& con, const std::string & sql, Args... args): Query(con, sql) {
-        bindm(args...) ;
-    }
-
-    QueryResult exec() ;
-
-private:
-    friend class QueryResult ;
-
-    int columnIdx(const std::string &name) const ;
-    std::map<std::string, int> field_map_ ;
-};
-
-// Wraps pointer to buffer and its size. Memory management is external
-class Blob {
-public:
-
-    Blob(const char *data, uint32_t sz): size_(sz), data_(data) {}
-
-    const char *data() const { return data_ ; }
-    uint32_t size() const { return size_ ; }
-
-private:
-    const char *data_ = nullptr;
-    uint32_t size_ = 0 ;
-};
-
 class Row ;
+class Query ;
 class QueryResult
 {
 
@@ -252,6 +227,30 @@ public:
     T get(const std::string &name) const {
         int idx = columnIdx(name) ;
         return get<T>(idx) ;
+    }
+
+    template<class T>
+    void read(int idx, T &val) const ;
+
+    template <typename T>
+    void read(T &t) {
+        return bind(t) ;
+    }
+
+    template <typename ... Args>
+    void into(Args &... args) {
+        readi(0, args...) ;
+    }
+
+    template <typename T>
+    void readi(int idx, T &t) {
+        read(idx, t) ;
+    }
+
+    template <typename First, typename ... Args>
+    void readi(int idx, First &f, Args &... args) {
+        readi(idx, f) ;
+        readi(idx+1, args...) ;
     }
 
     Dictionary getAll() const ;
@@ -331,6 +330,47 @@ private:
 
     QueryResult &qres_ ;
 };
+
+
+class Query: public Statement {
+public:
+    Query(Connection &con, const std::string &sql) ;
+
+    template<typename ...Args>
+    Query(Connection& con, const std::string & sql, Args... args): Query(con, sql) {
+        bindm(args...) ;
+    }
+
+    QueryResult exec() ;
+
+    template<typename ...Args>
+    QueryResult operator()(Args... args) {
+        bindm(args...) ;
+        return exec() ;
+    }
+
+private:
+    friend class QueryResult ;
+
+    int columnIdx(const std::string &name) const ;
+    std::map<std::string, int> field_map_ ;
+};
+
+// Wraps pointer to buffer and its size. Memory management is external
+class Blob {
+public:
+
+    Blob(const char *data, uint32_t sz): size_(sz), data_(data) {}
+
+    const char *data() const { return data_ ; }
+    uint32_t size() const { return size_ ; }
+
+private:
+    const char *data_ = nullptr;
+    uint32_t size_ = 0 ;
+};
+
+
 
 class Transaction : boost::noncopyable
 {

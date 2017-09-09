@@ -394,6 +394,100 @@ Blob QueryResult::get(int idx) const
     return Blob((const char *)data, bytes) ;
 }
 
+template<>
+void QueryResult::read(int idx, int &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, unsigned int &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, short int &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, unsigned short &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, long int &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int64(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, unsigned long &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int64(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, bool &v) const
+{
+    cmd_.check() ;
+    v = sqlite3_column_int(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, double &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_double(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, float &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_double(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, long long int &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int64(cmd_.handle(), idx);
+}
+
+template<>
+void QueryResult::read(int idx, unsigned long long &val) const
+{
+    cmd_.check() ;
+    val = sqlite3_column_int64(cmd_.handle(), idx);
+}
+
+
+template<>
+void QueryResult::read(int idx, std::string &val) const
+{
+    const char *res = reinterpret_cast<char const*>(sqlite3_column_text(cmd_.handle(), idx));
+    if ( res == nullptr ) return  ;
+    val.assign(res) ;
+}
+
+template<>
+void QueryResult::read(int idx, Blob &blob) const
+{
+    cmd_.check() ;
+    const void *data = sqlite3_column_blob(cmd_.handle(), idx);
+    int bytes = sqlite3_column_bytes(cmd_.handle(), idx) ;
+    blob = Blob((const char *)data, bytes) ;
+}
 
 Dictionary QueryResult::getAll() const
 {
