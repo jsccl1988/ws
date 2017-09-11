@@ -23,50 +23,38 @@ public:
 private:
     User &auth_ ;
     string username_ ;
-    boost::shared_ptr<InputField> username_field_, password_field_ ;
-    boost::shared_ptr<CheckBoxField>  rememberme_field_ ;
+    InputField *username_field_, *password_field_ ;
+    CheckBoxField *rememberme_field_ ;
 };
 
 
 
 LoginForm::LoginForm(User &auth): auth_(auth) {
 
-    username_field_ = boost::make_shared<InputField>("username", "text") ;
-    username_field_->required() ;
-    username_field_->label("Username") ;
-    username_field_->setNormalizer([&] (const string &val) {
-        return User::sanitizeUserName(val) ;
-    }) ;
-    username_field_->addValidator([&] (const string &val, FormField &f) {
-        if ( val.empty() ) {
-            f.addErrorMsg("Empty user name") ;
-            return false ;
-        }
+    field<InputField>("username", "text").required().label("Username")
+        .setNormalizer([&] (const string &val) {
+            return User::sanitizeUserName(val) ;
+        })
+        .addValidator([&] (const string &val, FormField &f) {
+            f.validateNonEmptyField(val, "User name" ) ;
+        }) ;
 
-        return true ;
-    }) ;
+    field<InputField>("password", "password").required().label("Password")
+        .setNormalizer([&] (const string &val) {
+            return User::sanitizePassword(val) ;
+        })
+        .addValidator([&] (const string &val, FormField &f) {
+            if ( val.empty() ) {
+                f.validateNonEmptyField(val, "User name" ) ;
+                f.addErrorMsg("Empty password") ;
+                return false ;
+            }
 
-    password_field_ = boost::make_shared<InputField>("password", "password") ;
-    password_field_->required() ;
-    password_field_->label("Password") ;
-    password_field_->setNormalizer([&] (const string &val) {
-        return User::sanitizePassword(val) ;
-    }) ;
-    password_field_->addValidator([&] (const string &val, FormField &f) {
-        if ( val.empty() ) {
-            f.addErrorMsg("Empty password") ;
-            return false ;
-        }
+            return true ;
+        }) ;
 
-        return true ;
-    }) ;
+    field<CheckBoxField>("remember-me").label("Remember Me:") ;
 
-    rememberme_field_ = boost::make_shared<CheckBoxField>("remember-me") ;
-    rememberme_field_->label("Remember Me:") ;
-
-    addField(username_field_);
-    addField(password_field_);
-    addField(rememberme_field_);
 }
 
 bool LoginForm::validate(const Dictionary &vals) {

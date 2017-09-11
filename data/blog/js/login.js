@@ -3,7 +3,7 @@ $(function() {
 	    
     	e.preventDefault();
 
-		var msg = $('<div></div>').load('/user/login/', 
+		var msg = $('<div></div>').load('user/login/', 
 				function(response, status, xhr) {
 					var dialog = new BootstrapDialog({ 
 						title: 'Sign In',
@@ -18,7 +18,7 @@ $(function() {
 						$.ajax({
 							type: "POST",
 							dataType: "json",
-							url: '/user/login/',
+							url: 'user/login/',
 							data: form.serialize(), // serializes the form's elements.
 							success: function(data)
 							{

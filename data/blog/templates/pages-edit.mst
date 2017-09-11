@@ -14,10 +14,10 @@
   			$(document).ready(function() {
   			
   				$('#pages-list-view').tableview({ 
-  					listUrl:"/pages/list/",  
-  					addUrl: "/pages/add/",
-  					updateUrl: "/pages/update/"
-  				
+  					listUrl:"pages/list/",  
+  					addUrl: "pages/add/",
+  					updateUrl: "pages/update/",
+  					deleteUrl: "pages/delete/"
   				}) ;
 			});
 		

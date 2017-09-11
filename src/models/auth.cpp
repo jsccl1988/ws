@@ -240,6 +240,20 @@ string User::sanitizePassword(const string &password)
     return boost::trim_copy(password) ;
 }
 
+void User::create(const string &username, const string &password, const string &role)
+{
+    string secure_pass = encodeBase64(passwordHash(password)) ;
+    sqlite::Statement(con_, "INSERT INTO users ( name, password ) VALUES ( ?, ? )", username, secure_pass).exec() ;
+    sqlite::Statement(con_, "INSERT INTO user_roles ( user_id, role_id ) VALUES ( ?, ? )", con_.last_insert_rowid(), role).exec() ;
+}
+
+void User::update(const string &id, const string &password, const string &role)
+{
+    string secure_pass = encodeBase64(passwordHash(password)) ;
+    sqlite::Statement(con_, "UPDATE users SET password=? WHERE id=?", secure_pass, id).exec() ;
+    sqlite::Statement(con_, "UPDATE user_roles SET role_id=? WHERE user_id=?", role, id).exec() ;
+}
+
 //////////////////////////////////////////////////////////////////////////////
 
 DefaultAuthorizationModel::DefaultAuthorizationModel(Variant role_map)

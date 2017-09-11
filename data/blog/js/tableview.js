@@ -90,7 +90,7 @@
 				function onDeleteRecord() {
 					var id = $(this).closest('tr').data('id') ;
 					 $.ajax({
-	        			url: '/page/delete/',
+	        			url: options['deleteUrl'],
 			    	    type: 'POST',
 			    	    dataType: 'json',
 	        			data: { 'id': id },

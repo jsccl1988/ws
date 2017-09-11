@@ -21,19 +21,6 @@ using std::string ;
 using wspp::web::TemplateRenderer ;
 using wspp::web::User ;
 
-class UsersEditForm: public wspp::web::Form {
-public:
-    UsersEditForm(User &user,  const string &id = string()) ;
-
-    bool validate(const Dictionary &vals) override ;
-
-private:
-    User &user_ ;
-    boost::shared_ptr<wspp::web::InputField> username_field_, password_field_, cpassword_field_ ;
-    boost::shared_ptr<wspp::web::SelectField>  role_field_ ;
-    string id_ ;
-};
-
 
 class UsersController {
 public:
@@ -45,10 +32,8 @@ public:
 
     bool dispatch() ;
 
-    void show(const string &user_id) ;
-    void list(uint pager) ;
     void create() ;
-    void publish() ;
+
     void edit() ;
     void edit(const string &user_id) ;
     void remove() ;

@@ -55,6 +55,9 @@ public:
     static std::string sanitizeUserName(const std::string &username);
     static std::string sanitizePassword(const std::string &password);
 
+    void create(const std::string &username, const std::string &password, const std::string &role) ;
+    void update(const std::string &id, const std::string &password, const std::string &role) ;
+
 protected:
 
     Connection &con_ ;

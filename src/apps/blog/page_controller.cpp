@@ -11,42 +11,35 @@ using namespace wspp::web ;
 
 PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
 
-    title_field_ = boost::make_shared<InputField>("title", "text") ;
-    title_field_->label("Title") ;
-    title_field_->required() ;
-    title_field_->addValidator([&] (const string &val, FormField &f) {
-        if ( val.empty() ) {
-            f.addErrorMsg("The field is required") ;
-            return false ;
-        }
-        return true ;
+    field<InputField>("title", "text").label("Title").required()
+        .addValidator([&] (const string &val, FormField &f) {
+            if ( val.empty() ) {
+                f.addErrorMsg("The field is required") ;
+                return false ;
+            }
+            return true ;
     }) ;
 
-    slug_field_ = boost::make_shared<InputField>("slug", "text") ;
-    slug_field_->label("Slug") ;
-    slug_field_->required() ;
-    slug_field_->addValidator([&] (const string &val, FormField &f) {
-        bool error ;
-        if ( id_.empty() ) {
-            sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
-            sqlite::QueryResult res = q(val) ;
-            error = res.get<int>(0) ;
-        }
-        else {
-            sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
-            sqlite::QueryResult res = q.exec() ;
-            error = res.get<int>(0) ;
-        }
+    field<InputField>("slug", "text").label("Slug").required()
+        .addValidator([&] (const string &val, FormField &f) {
+            bool error ;
+            if ( id_.empty() ) {
+                sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
+                sqlite::QueryResult res = q(val) ;
+                error = res.get<int>(0) ;
+            }
+            else {
+                sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
+                sqlite::QueryResult res = q.exec() ;
+                error = res.get<int>(0) ;
+            }
 
-        if ( error ) {
-            f.addErrorMsg("A page with this slug already exists") ;
-            return false ;
-        }
-        return true ;
-    }) ;
-
-    addField(title_field_) ;
-    addField(slug_field_) ;
+            if ( error ) {
+                f.addErrorMsg("A page with this slug already exists") ;
+                return false ;
+            }
+            return true ;
+        }) ;
 }
 
 

@@ -1,8 +1,8 @@
 { "items" : [ 
-	{ "href" : "/", "label": "Home" },
-	{ "href" : "/maps", "label": "Maps" },
-	{ "href" : "/segments", "label": "Segments" },
-	{ "href" : "/about", "label": "Contact" }
+	{ "href" : "", "label": "Home" },
+	{ "href" : "maps", "label": "Maps" },
+	{ "href" : "segments", "label": "Segments" },
+	{ "href" : "about", "label": "Contact" }
 	]
 }	
 

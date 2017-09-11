@@ -1,22 +1,38 @@
 #include <wspp/views/forms.hpp>
+#include <wspp/util/crypto.hpp>
 
 #include <boost/make_shared.hpp>
 #include <boost/algorithm/string.hpp>
 
 using namespace std ;
+using namespace wspp::server ;
+using namespace wspp::util ;
 
 namespace wspp { namespace web {
-static bool validate_required_arg(const string &val, FormField &field) {
-    if ( val.empty() ) {
-        field.addErrorMsg("Required field missing") ;
-        return false ;
-    }
 
-    field.value(val) ;
-    return true ;
+void FormField::validateNonEmptyField(const string &value, const string &field_print_name)
+{
+    if ( value.empty() ) {
+        stringstream msg ;
+        msg << field_print_name << " cannot be empty" ;
+        throw FormFieldValidationError(msg.str()) ;
+    }
 }
 
-FormField::Validator FormField::requiredArgValidator = validate_required_arg ;
+void FormField::validateLength(const string &value, uint min_chars, uint max_chars, const string &field_print_name) {
+    size_t len = value.length() ;
+    stringstream msg ;
+    if ( len < min_chars ) {
+        msg << field_print_name << " should have at least " << min_chars << " character" ;
+        if ( min_chars > 1 ) msg << 's' ;
+        throw FormFieldValidationError(msg.str()) ;
+    }
+    if ( len > max_chars ) {
+        msg << field_print_name << " should have less than " << max_chars << " character" ;
+        if ( max_chars > 1 ) msg << 's' ;
+        throw FormFieldValidationError(msg.str()) ;
+    }
+}
 
 void FormField::fillData(Variant::Object &res) const {
 
@@ -46,12 +62,19 @@ bool FormField::validate(const string &value)
     // call validators
 
     for( auto &v: validators_ ) {
-        if ( ! v(n_value, *this) ) return false ;
+        try {
+            v(n_value, *this) ;
+        }
+        catch ( FormFieldValidationError &e ) {
+            addErrorMsg(e.what());
+            return false ;
+        }
     }
 
     // store value
 
     value_ = n_value ;
+    is_valid_ = true ;
     return true ;
 }
 
@@ -64,7 +87,7 @@ void InputField::fillData(Variant::Object &base) const
 
 
 SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
-    addValidator([&](const string &val, FormField &v) {
+    addValidator([&](const string &val, FormField &) {
         Dictionary options = options_->fetch() ;
         if ( multiple_ ) {
             boost::char_separator<char> sep(" ");
@@ -72,19 +95,15 @@ SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> opt
 
             for( const string &s: tokens ) {
                 if ( !options.contains(s) ) {
-                    v.addErrorMsg("Supplied value: " + val + " is not in option list") ;
-                    return false ;
+                    throw FormFieldValidationError("Supplied value: " + val + " is not in option list") ;
                 }
             }
         }
         else {
             if ( !options.contains(val) ) {
-                v.addErrorMsg("Supplied value: " + val + " is not in option list") ;
-                return false ;
+                throw FormFieldValidationError("Supplied value: " + val + " is not in option list") ;
             }
         }
-        v.value(val) ;
-        return true ;
     }) ;
 
 }
@@ -110,6 +129,27 @@ void CheckBoxField::fillData(Variant::Object &res) const {
     if ( is_checked_ ) res.insert({"checked", "checked"}) ;
     res.insert({"template", "checkbox"}) ;
 }
+/*
+CSRFField::CSRFField(const string &name,  Session &session): InputField(name, "hidden"), con_(con), session_(session)
+{
+    string selector = encodeBase64(randomBytes(12)) ;
+    string token = randomBytes(24) ;
+    time_t expires = std::time(nullptr) + 3600*1; // Expire in 1 hour
+
+    sqlite::Statement stmt(con_, "INSERT INTO auth_tokens ( user_id, selector, token, expires ) VALUES ( ?, ?, ?, ? );", user_id, selector, binToHex(hashSHA256(token)), expires) ;
+    stmt.exec() ;
+
+        response_.setCookie("auth_token", selector + ":" + encodeBase64(token),  expires, "/");
+    }
+
+    // update user info
+    sqlite::Statement stmt(con_, "UPDATE user_info SET last_sign_in = ? WHERE user_id = ?", std::time(nullptr), user_id) ;
+    stmt.exec() ;
+
+}
+
+}
+*/
 
 
 Form::Form(const std::string &prefix, const string &suffix): field_prefix_(prefix), field_suffix_(suffix) {
