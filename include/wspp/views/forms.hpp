@@ -1,45 +1,37 @@
 #ifndef __WSPP_UTIL_FORMS_HPP__
 #define __WSPP_UTIL_FORMS_HPP__
 
+#include <wspp/views/validators.hpp>
+
 #include <string>
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/variant.hpp>
 #include <wspp/util/database.hpp>
 #include <wspp/server/session.hpp>
 
-#include <boost/shared_ptr.hpp>
-#include <boost/function.hpp>
-#include <boost/make_shared.hpp>
+#include <memory>
+#include <functional>
 
 using std::string ;
-using wspp::util::sqlite::Connection ;
+
 
 namespace wspp { namespace web {
 
 // Form helper class. The aim of the class is:
 // 1) declare form in a view agnostic way
-// 2) validate input data for those fields e.g passed in a POST request
+// 2) validate input data for those fields e.g passed in a POST request via validators
 // 3) pack data needed to render the form into an object that can be passed to the template engine
 
 using wspp::util::Variant ;
 using wspp::util::Dictionary ;
 
-class FormFieldValidationError: public std::runtime_error {
+class FormField: public boost::noncopyable {
 public:
-    FormFieldValidationError(const std::string &msg): std::runtime_error(msg) {}
-};
-
-class FormField {
-public:
-    // the validator checks the validity of the input string.
-    // if invalid then it should throw a FormFieldValidationError exception
-
-    typedef boost::function<void (const string &, FormField &)> Validator ;
 
     // The normalizer preprocesses an input value before passing it to validators
-    typedef boost::function<string (const string &)> Normalizer ;
+    typedef std::function<string (const string &)> Normalizer ;
 
-    typedef boost::shared_ptr<FormField> Ptr ;
+    typedef std::shared_ptr<FormField> Ptr ;
 
 public:
 
@@ -57,14 +49,30 @@ public:
     FormField &appendClass(const string &extra) { extra_classes_ = extra ;  return *this ; }
     // append extra attributes to element
     FormField &extraAttributes(const Dictionary &attrs) { extra_attrs_ = attrs ; return *this ; }
-    // set custom validator
-    FormField &addValidator(Validator val) { validators_.push_back(val) ; return *this ; }
+
+    // the validator checks the validity of the input string.
+    // if invalid then it should throw a FormFieldValidationError exception
+
+    // add validator
+    FormField &addValidator(FormFieldValidator *val) { validators_.emplace_back(val) ; return *this ; }
+    // add custom validator as lambda
+    FormField &addValidator(ValidatorCallback val) { addValidator<CallbackValidator>(val) ;  return *this ; }
+    // validator helper
+    template <class T, typename ... Args>
+    FormField &addValidator(Args&&...args) {
+        validators_.emplace_back(std::unique_ptr<T>(new T(std::forward<Args>(args)...))); return *this ;
+    }
+
     // set custom normalizer
     FormField &setNormalizer(Normalizer val) { normalizer_ = val ; return *this ; }
     // set field id
     FormField &id(const string &id) { id_ = id ; return *this ; }
     // set label
     FormField &label(const string &label) { label_ = label ; return *this ; }
+
+    // set alias
+    FormField &alias(const string &alias) { alias_ = alias ; return *this ; }
+
     // set placeholder
     FormField &placeholder(const string &p) { place_holder_ = p ; return *this ; }
     // set initial value
@@ -76,12 +84,10 @@ public:
     void addErrorMsg(const string &msg) { error_messages_.push_back(msg) ; }
     std::string getValue() const { return value_ ; }
 
-public:
+    // returns a name of the field to be used in validation errors
+    // if not alias has been defined then the label uncapitilized is used and if this is not defined then the name is used.
+    std::string getAlias() const ;
 
-    // stock validators
-
-    void validateNonEmptyField(const string &value, const std::string &field_print_Name = "Field") ;
-    void validateLength(const string &value, uint min_chars, uint max_chars, const string &field_print_Name = "Field") ;
 
 protected:
     virtual void fillData(Variant::Object &) const ;
@@ -91,12 +97,12 @@ protected:
 private:
     friend class Form ;
 
-    string label_, name_, value_, id_, place_holder_, initial_value_, help_text_ ;
+    string label_, name_, alias_, value_, id_, place_holder_, initial_value_, help_text_ ;
     bool required_ = false, disabled_ = false ;
     string extra_classes_ ;
     Dictionary extra_attrs_ ;
     std::vector<string> error_messages_ ;
-    std::vector<Validator> validators_ ;
+    std::vector<std::unique_ptr<FormFieldValidator>> validators_ ;
     Normalizer normalizer_ ;
     uint count_ = 0 ;
     bool is_valid_ = false ;
@@ -166,17 +172,6 @@ private:
     bool is_checked_ = false ;
 };
 
-class CSRFField: public InputField {
-public:
-    CSRFField(const std::string &name, Connection &con, wspp::server::Session &session);
-
-    void fillData(Variant::Object &) const override;
-
-private:
-
-    wspp::server::Session &session_ ;
-    Connection &con_ ;
-};
 
 class Form {
 public:
@@ -185,7 +180,7 @@ public:
 
     template<typename T, typename ... Args >
     T &field(Args... args) {
-        auto f = boost::make_shared<T>(args...) ;
+        auto f = std::make_shared<T>(args...) ;
         addField(f) ;
         return *f ;
     }

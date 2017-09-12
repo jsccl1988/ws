@@ -10,7 +10,7 @@ FIND_PACKAGE(cryptopp REQUIRED)
 
 # Boost
 FIND_PACKAGE(Boost 1.49 REQUIRED COMPONENTS 
-        regex filesystem system coroutine context program_options thread )
+        regex filesystem system coroutine context program_options thread locale )
 
 INCLUDE_DIRECTORIES(
         include

@@ -12,16 +12,11 @@ using namespace wspp::web ;
 PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
 
     field<InputField>("title", "text").label("Title").required()
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( val.empty() ) {
-                f.addErrorMsg("The field is required") ;
-                return false ;
-            }
-            return true ;
-    }) ;
+        .addValidator<NonEmptyValidator>() ;
 
     field<InputField>("slug", "text").label("Slug").required()
-        .addValidator([&] (const string &val, FormField &f) {
+        .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
+        .addValidator([&] (const string &val, const FormField &f) {
             bool error ;
             if ( id_.empty() ) {
                 sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
@@ -35,10 +30,8 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
             }
 
             if ( error ) {
-                f.addErrorMsg("A page with this slug already exists") ;
-                return false ;
+                throw FormFieldValidationError("A page with this slug already exists") ;
             }
-            return true ;
         }) ;
 }
 

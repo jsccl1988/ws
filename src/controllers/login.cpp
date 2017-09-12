@@ -22,9 +22,7 @@ public:
     bool validate(const Dictionary &vals) override ;
 private:
     User &auth_ ;
-    string username_ ;
-    InputField *username_field_, *password_field_ ;
-    CheckBoxField *rememberme_field_ ;
+
 };
 
 
@@ -35,30 +33,25 @@ LoginForm::LoginForm(User &auth): auth_(auth) {
         .setNormalizer([&] (const string &val) {
             return User::sanitizeUserName(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            f.validateNonEmptyField(val, "User name" ) ;
-        }) ;
+        .addValidator<NonEmptyValidator>();
 
     field<InputField>("password", "password").required().label("Password")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( val.empty() ) {
-                f.validateNonEmptyField(val, "User name" ) ;
-                f.addErrorMsg("Empty password") ;
-                return false ;
-            }
+        .addValidator<NonEmptyValidator>() ;
 
-            return true ;
-        }) ;
+    field<InputField>("csrf_token", "hidden").initial(auth_.token()) ;
 
     field<CheckBoxField>("remember-me").label("Remember Me:") ;
-
 }
 
 bool LoginForm::validate(const Dictionary &vals) {
     if ( !Form::validate(vals) ) return false ;
+
+    if ( !hashCompare(getValue("csrf_token"), auth_.token()) )
+        throw std::runtime_error("Security exception" ) ;
+
 
     string username = getValue("username") ;
     string password = getValue("password") ;

@@ -26,6 +26,8 @@ bool passwordVerify(const std::string &password, const std::string &hash) ;
 // hashes input string using SHA256 alogorithm, returning binary string
 std::string hashSHA256(const std::string &src) ;
 
+bool hashCompare(const std::string &s1, const std::string &s2) ;
+
 } }
 
 

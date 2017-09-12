@@ -32,45 +32,27 @@ UserCreateForm::UserCreateForm(User &auth): user_(auth) {
         .setNormalizer([&] (const string &val) {
             return User::sanitizeUserName(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( val.empty() ) {
-                f.addErrorMsg("Empty user name") ;
-                return false ;
-            } else if ( user_.userNameExists(val) ) {
-                f.addErrorMsg("Username already exists") ;
-                return false ;
-            }
-
-            return true ;
+        .addValidator<NonEmptyValidator>()
+        .addValidator([&] (const string &val, const FormField &f) {
+            if ( user_.userNameExists(val) )
+                throw FormFieldValidationError("username already exists") ;
         }) ;
 
     InputField &password_field =  field<InputField>("password", "password") ;
     password_field.required().label("Password")
-        .setNormalizer([&] (const string &val) {
+        .setNormalizer([] (const string &val) {
             return User::sanitizePassword(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( val.empty() ) {
-                f.addErrorMsg("Empty password") ;
-                return false ;
-            }
-
-            return true ;
-        }) ;
+        .addValidator<NonEmptyValidator>() ;
 
     field<InputField>("cpassword", "password").required().label("Confirm Password")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( password_field.valid() && password_field.getValue() != val  ) {
-                f.addErrorMsg("Passwords don't match") ;
-                return false ;
-            }
-
-            return true ;
-        }) ;
-
+        .addValidator([&] (const string &val, const FormField &f)  {
+            if ( password_field.valid() && password_field.getValue() != val  )
+                throw FormFieldValidationError("Passwords don't match") ;
+        });
 
 
     field<SelectField>("role", boost::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
@@ -84,26 +66,15 @@ UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(i
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( val.empty() ) {
-                f.addErrorMsg("Empty password") ;
-                return false ;
-            }
-
-            return true ;
-        }) ;
+        .addValidator<NonEmptyValidator>() ;
 
     field<InputField>("password", "password").required().label("Confirm Password")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
-        .addValidator([&] (const string &val, FormField &f) {
-            if ( password_field.valid() && password_field.getValue() != val  ) {
-                f.addErrorMsg("Passwords don't match") ;
-                return false ;
-            }
-
-            return true ;
+        .addValidator([&] (const string &val, const FormField &f) {
+            if ( password_field.valid() && password_field.getValue() != val  )
+                throw FormFieldValidationError("Passwords don't match") ;
         }) ;
 
     field<SelectField>("role", boost::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
@@ -224,11 +195,6 @@ void UsersController::update()
             response_.stock_reply(Response::not_found) ;
             return ;
         }
-
-        string password = form.getValue("password") ;
-        string role = form.getValue("role") ;
-
-        user_.update(id, password, role) ;
 
         Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 

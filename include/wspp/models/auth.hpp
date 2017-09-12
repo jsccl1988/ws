@@ -27,7 +27,8 @@ class AuthorizationModel ;
 class User {
 public:
     User(const Request &req, Response &resp, Session &session, Connection &con, AuthorizationModel &auth):
-        con_(con), session_(session), request_(req), response_(resp), auth_(auth) {}
+        con_(con), session_(session), request_(req), response_(resp), auth_(auth) {
+    }
 
     void persist(const std::string &username, const std::string &id, const std::string &role, bool remember_me = false) ;
     void forget() ;
@@ -37,6 +38,7 @@ public:
     std::string userName() const ;
     std::string userId() const ;
     std::string userRole() const ;
+    std::string token() const ;
 
     // check database for username
     bool userNameExists(const std::string &username) ;

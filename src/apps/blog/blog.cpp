@@ -26,6 +26,7 @@
 #include "page_controller.hpp"
 #include "users_controller.hpp"
 
+#include <boost/locale.hpp>
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
@@ -99,36 +100,28 @@ public:
 
 };
 
+#define __(S) boost::locale::translate(S)
 
 int main(int argc, char *argv[]) {
 
-    string json = R"%(
-                  {
-                      "count" : "\u20AC",
-                      "name" :  "aka" : "T.E.S.T.", "id" : 1239.87 },
-                      "attribute" : [
-                          "random",
-                          "short",
-                          "bold",
-                          12,
-                          { "height" : 7, "width" : 64 }
-                          ],
-                      "test": { "1" :
-                          { "2" :
-                              { "3" :  { "coord" : [ 1,2] }
-                              }
-                          }
-                      }
-                  }
+    // example of seting up translation with boost::locale
+    //
+    // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...
+    // sed --in-place messages.pot --expression='s/CHARSET/UTF-8/'
+    // msginit --input=messages.pot --no-translator --locale=es_ES.UTF-8 --output es_ES/LC_MESSAGES/messages.po
+    // -- translate the file: es_ES/LC_MESSAGES/messages.po
+    // msgfmt --output-file=es_ES/LC_MESSAGES/messages.mo es_ES/LC_MESSAGES/messages.po
 
+    boost::locale::generator gen;
+    gen.add_messages_domain("messages");
+    gen.add_messages_path(".");
 
+    using namespace boost::locale ;
+    auto loc = gen.generate("es_ES.UTF-8") ;
+    locale::global(loc) ;
 
-                  )%";
+    std::cout << __("hello").str() << endl ;
 
-    cout << json << endl ;
-   // Variant v = Variant::fromJSONString(json) ;
-
-   // cout << v.toJSON() << endl ;
 
     MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
     server.run() ;

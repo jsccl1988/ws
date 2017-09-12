@@ -19,6 +19,7 @@ SET ( WEB_SOURCES
     ${SRC_ROOT}/views/forms.cpp
     ${SRC_ROOT}/views/table.cpp
     ${SRC_ROOT}/views/menu.cpp
+    ${SRC_ROOT}/views/validators.cpp
 
     ${SRC_ROOT}/controllers/login.cpp
 
@@ -28,6 +29,7 @@ SET ( WEB_SOURCES
     ${INCLUDE_ROOT}/views/forms.hpp
     ${INCLUDE_ROOT}/views/table.hpp
     ${INCLUDE_ROOT}/views/menu.hpp
+    ${INCLUDE_ROOT}/views/validators.hpp
 
     ${INCLUDE_ROOT}/controllers/login.hpp
 

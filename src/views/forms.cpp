@@ -10,28 +10,15 @@ using namespace wspp::util ;
 
 namespace wspp { namespace web {
 
-void FormField::validateNonEmptyField(const string &value, const string &field_print_name)
-{
-    if ( value.empty() ) {
-        stringstream msg ;
-        msg << field_print_name << " cannot be empty" ;
-        throw FormFieldValidationError(msg.str()) ;
-    }
-}
 
-void FormField::validateLength(const string &value, uint min_chars, uint max_chars, const string &field_print_name) {
-    size_t len = value.length() ;
-    stringstream msg ;
-    if ( len < min_chars ) {
-        msg << field_print_name << " should have at least " << min_chars << " character" ;
-        if ( min_chars > 1 ) msg << 's' ;
-        throw FormFieldValidationError(msg.str()) ;
+string FormField::getAlias() const
+{
+    if ( !alias_.empty() ) return alias_ ;
+    else if ( !label_.empty() ) {
+        return boost::to_lower_copy(label_) ;
     }
-    if ( len > max_chars ) {
-        msg << field_print_name << " should have less than " << max_chars << " character" ;
-        if ( max_chars > 1 ) msg << 's' ;
-        throw FormFieldValidationError(msg.str()) ;
-    }
+    else
+        return boost::to_lower_copy(name_) ;
 }
 
 void FormField::fillData(Variant::Object &res) const {
@@ -63,7 +50,7 @@ bool FormField::validate(const string &value)
 
     for( auto &v: validators_ ) {
         try {
-            v(n_value, *this) ;
+            v->validate(n_value, *this) ;
         }
         catch ( FormFieldValidationError &e ) {
             addErrorMsg(e.what());
@@ -87,7 +74,7 @@ void InputField::fillData(Variant::Object &base) const
 
 
 SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
-    addValidator([&](const string &val, FormField &) {
+    addValidator([&](const string &val, const FormField &) {
         Dictionary options = options_->fetch() ;
         if ( multiple_ ) {
             boost::char_separator<char> sep(" ");

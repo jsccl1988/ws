@@ -144,6 +144,18 @@ string hashSHA256(const string &src)
     return digest;
 }
 
+bool hashCompare(const string &s1, const string &s2)
+{
+    // compare key with one stored in hash (avoiding timing issues)
+
+    size_t len = std::min(s1.length(), s2.length()) ;
+    uint ncount = 0 ;
+    for( uint i=0 ; i<len ; i++ )
+        if ( s1[i] != s2[i] ) ncount ++ ;
+
+    return ncount == 0 ;
+}
+
 
 
 } // namespace util

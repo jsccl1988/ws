@@ -90,6 +90,17 @@ string User::userRole() const {
     return session_.data().get("user_role") ;
 }
 
+string User::token() const
+{
+    string session_token = session_.data().get("token") ;
+    if ( session_token.empty() ) {
+        string token = binToHex(randomBytes(32)) ;
+        session_.data().add("token", token) ;
+        return token ;
+    }
+    else return session_token ;
+}
+
 
 
 bool User::check() const
