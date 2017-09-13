@@ -33,6 +33,7 @@ private:
 };
 
 // Mustache template engine implementation
+class ContextStack ;
 
 class TemplateRenderer {
 public:
@@ -48,11 +49,19 @@ public:
     // The implementation also supports an extension of mustache namely extensions and blocks similar to
     // https://github.com/mustache/spec/issues/38
     // Also the substitution pattern {{.}} is used to render the current array element in an array section (in this case the data object should point to an array of literals)
-    // Lambdas are not supported.
+    // Lambdas are not supported but helpers can be registered. If a section tag corresponds to a registered helper then the section text is passed to the helper callback
+    // function along with the current context stack. The helper should then call renderString, modify it as needed and return it to the caller.
 
     std::string render(const std::string &key, const Variant &context) ;
 
+    std::string renderString(const std::string &content, ContextStack &context) ;
+
+    typedef std::function<std::string(const std::string &src, ContextStack &stack)> Helper ;
+    void registerHelper(const std::string &name,  Helper helper) ;
+
 private:
+
+    std::map<std::string, Helper> helpers_ ;
 
     boost::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;

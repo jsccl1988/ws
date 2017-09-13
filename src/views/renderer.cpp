@@ -43,7 +43,7 @@ string FileSystemTemplateLoader::load(const string &key) {
     return string() ;
 }
 
-namespace mustache {
+
 
 struct Tag {
 
@@ -81,7 +81,7 @@ struct Node {
 
     typedef boost::shared_ptr<Node> Ptr ;
 
-    enum Type { RawText, Section, Comment, Substitution, Partial, Extension, Block } ;
+    enum Type { RawText, Section, Comment, Substitution, Partial, Extension, Block, Helper } ;
 
     virtual Type type() const = 0;
     virtual void eval(ContextStack &ctx, string &res) const = 0 ;
@@ -247,7 +247,7 @@ private:
 class Parser {
 public:
 
-    Parser(const boost::shared_ptr<TemplateLoader> &loader, bool caching): idx_(0), loader_(loader), caching_(caching) {
+    Parser(const boost::shared_ptr<TemplateLoader> &loader, const map<string, TemplateRenderer::Helper> &helpers, bool caching): idx_(0), loader_(loader), helpers_(helpers), caching_(caching) {
     }
 
     SectionNode::Ptr parse(const string &key) {
@@ -278,7 +278,7 @@ private:
     bool expect(const string &, char c) ;
     string eatTag(const string &) ;
     void parseTag(const string &src, Tag &tag) ;
-    bool nextTag(const string &src, string &raw, Tag &tag) ;
+    bool nextTag(const string &src, string &raw, Tag &tag, int &cursor) ;
     bool parseComplexTag(const string &tag, string &name, Dictionary &args) ;
     bool parseSimpleTag(const string &tag, string &name) ;
 
@@ -290,6 +290,7 @@ private:
     uint idx_ ;
     boost::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;
+    const map<string, TemplateRenderer::Helper> &helpers_ ;
 };
 
 bool Parser::parseComplexTag(const string &tag, string &name, Dictionary &args) {
@@ -394,26 +395,27 @@ void Parser::parseTag(const string &src, Tag &tag) {
                 return ;
             }
             else if ( idx_ < nc ) {
-              //  if ( !isspace(src[idx_]) )
-                    tag.name_.push_back(src[idx_]) ;
+                //  if ( !isspace(src[idx_]) )
+                tag.name_.push_back(src[idx_]) ;
                 ++idx_ ;
             }
         }
         else if ( idx_ < nc ) {
-      //      if ( !isspace(src[idx_]) )
-                tag.name_.push_back(src[idx_]) ;
+            //      if ( !isspace(src[idx_]) )
+            tag.name_.push_back(src[idx_]) ;
             ++idx_ ;
         }
     }
 }
 
-bool Parser::nextTag(const string &src, string &raw, Tag &tag) {
+bool Parser::nextTag(const string &src, string &raw, Tag &tag, int &cursor) {
     uint nc = src.length() ;
 
     while ( idx_ < nc ) {
         if ( expect(src, '{') ) {
             if ( expect(src, '{') ) {
 
+                cursor = idx_ - 2 ;
                 parseTag(src, tag) ;
 
                 if ( tag.type_ == Tag::Comment ) continue ;
@@ -447,13 +449,13 @@ struct PartialNode: public Node {
 
         if ( key.empty() ) key = key_ ;
 
-        Parser parser(context_.loader_, context_.caching_) ;
+        Parser parser(context_.loader_, context_.helpers_, context_.caching_) ;
         auto ast = parser.parse(key) ;
         if ( ast ) {
             ctx.push(Variant::fromDictionary(args_)) ;
             ast->eval(ctx, res) ;
             ctx.pop() ;
-         }
+        }
     }
 
     Type type() const override { return Partial ; }
@@ -461,6 +463,33 @@ struct PartialNode: public Node {
     string key_ ;
     Dictionary args_ ;
     const Parser &context_ ;
+};
+
+struct HelperNode: public Node {
+
+    typedef boost::shared_ptr<HelperNode> Ptr ;
+
+    // inherit parent parameters
+    HelperNode(const string &name, TemplateRenderer::Helper helper): key_(name), helper_(helper) {}
+
+    void eval(ContextStack &ctx, string &res) const override {
+
+        string part = helper_(content_, ctx) ;
+        res.append(part) ;
+
+    }
+
+    void setContent(const std::string &content) {
+        content_ = content ;
+    }
+
+    Type type() const override { return Helper ; }
+
+    string key_, content_ ;
+    TemplateRenderer::Helper helper_ ;
+
+
+    //    const Parser &context_ ;
 };
 
 struct ExtensionNode: public ContainerNode {
@@ -475,7 +504,7 @@ struct ExtensionNode: public ContainerNode {
 
         // load base node
 
-        Parser parser(context_.loader_, context_.caching_) ;
+        Parser parser(context_.loader_, context_.helpers_, context_.caching_) ;
         auto ast = parser.parse(name_) ;
         if ( ast ) {
             // replace parent blocks with child blocks
@@ -514,66 +543,88 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 
     stack.push_back(root) ;
 
+    int s_cursor = 0, e_cursor ;
+    HelperNode::Ptr helper_node ;
+
     while (!stack.empty()) {
         ContainerNode::Ptr parent = stack.back() ;
 
         string raw ;
         Tag tag ;
-        bool res = nextTag(src, raw, tag)  ;
+        bool res = nextTag(src, raw, tag, e_cursor)  ;
 
         string name ;
         Dictionary args ;
 
-        if ( !raw.empty() ) {
-            parent->children_.push_back(boost::make_shared<RawTextNode>(raw)) ;
-        }
+        if ( helper_node ) { // just skip until we found a valid closing tag
+            if ( tag.type_ == Tag::SectionEnd ) {
+                if ( parseSimpleTag(tag.name_, name)) {
+                    if ( name == helper_node->key_ ) {
+                        helper_node->content_ = src.substr(s_cursor, e_cursor-s_cursor) ;
+                        helper_node = nullptr ;
+                    }
+                }
+            }
+        } else {
+            if ( !raw.empty() ) {
+                parent->children_.push_back(boost::make_shared<RawTextNode>(raw)) ;
+            }
 
-        if ( tag.type_ == Tag::SectionBegin  ) {
-            if ( parseSimpleTag(tag.name_, name)) {
-                SectionNode::Ptr new_section(new SectionNode(name)) ;
-                parent->children_.push_back(new_section) ;
-                stack.push_back(new_section) ;
+            if ( tag.type_ == Tag::SectionBegin  ) {
+                if ( parseSimpleTag(tag.name_, name)) {
+                    auto it = helpers_.find(name) ;
+                    if ( it != helpers_.end()) { // if it is a registered helper
+                        helper_node.reset(new HelperNode(name, it->second)) ;
+                        parent->children_.push_back(helper_node) ;
+                        s_cursor = idx_ ;
+                    }
+                    else {
+                        SectionNode::Ptr new_section(new SectionNode(name)) ;
+                        parent->children_.push_back(new_section) ;
+                        stack.push_back(new_section) ;
+                    }
+                }
             }
-        }
-        else if ( tag.type_ == Tag::InvertedSectionBegin  ) {
-            if ( parseSimpleTag(tag.name_, name)) {
-                SectionNode::Ptr new_section(new SectionNode(name, true)) ;
-                parent->children_.push_back(new_section) ;
-                stack.push_back(new_section) ;
+            else if ( tag.type_ == Tag::InvertedSectionBegin  ) {
+                if ( parseSimpleTag(tag.name_, name)) {
+                    SectionNode::Ptr new_section(new SectionNode(name, true)) ;
+                    parent->children_.push_back(new_section) ;
+                    stack.push_back(new_section) ;
+                }
             }
-        }
-        else if ( tag.type_ == Tag::SectionEnd ) {
-            if ( parseSimpleTag(tag.name_, name)) {
-                if ( name != parent->name_ ) return nullptr ;
-                else stack.pop_back() ;
+            else if ( tag.type_ == Tag::SectionEnd ) {
+                if ( parseSimpleTag(tag.name_, name)) {
+                    if ( name != parent->name_ ) return nullptr ;
+                    else stack.pop_back() ;
+                }
             }
-        }
-        else if ( tag.type_ == Tag::RawSubstitutionAmpersand || tag.type_ == Tag::RawSubstitutionCurlyBracket ) {
-            if ( parseSimpleTag(tag.name_, name))
-                parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, false)) ;
-        }
-        else if ( tag.type_ == Tag::EscapedSubstitution ) {
-            if ( parseSimpleTag(tag.name_, name))
-                parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, true)) ;
-        }
-        else if ( tag.type_ == Tag::Partial ) {
-            if ( parseComplexTag(tag.name_, name, args) )
-                parent->children_.push_back(boost::make_shared<PartialNode>(name, args, *this)) ;
-        }
-        else if ( tag.type_ == Tag::Extension ) {
-            if ( parseComplexTag(tag.name_, name, args) ) {
-                ExtensionNode::Ptr new_section(new ExtensionNode(name, args, *this)) ;
-                parent->children_.push_back(new_section) ;
-                stack.push_back(new_section) ;
+            else if ( tag.type_ == Tag::RawSubstitutionAmpersand || tag.type_ == Tag::RawSubstitutionCurlyBracket ) {
+                if ( parseSimpleTag(tag.name_, name))
+                    parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, false)) ;
             }
-        }
-        else if ( tag.type_ == Tag::Block ) {
-             if ( parseSimpleTag(tag.name_, name)) {
-                BlockNode::Ptr new_block(new BlockNode(name)) ;
-                parent->children_.push_back(new_block) ;
-                parent->blocks_.insert({name, new_block}) ;
-                stack.push_back(new_block) ;
-             }
+            else if ( tag.type_ == Tag::EscapedSubstitution ) {
+                if ( parseSimpleTag(tag.name_, name))
+                    parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, true)) ;
+            }
+            else if ( tag.type_ == Tag::Partial ) {
+                if ( parseComplexTag(tag.name_, name, args) )
+                    parent->children_.push_back(boost::make_shared<PartialNode>(name, args, *this)) ;
+            }
+            else if ( tag.type_ == Tag::Extension ) {
+                if ( parseComplexTag(tag.name_, name, args) ) {
+                    ExtensionNode::Ptr new_section(new ExtensionNode(name, args, *this)) ;
+                    parent->children_.push_back(new_section) ;
+                    stack.push_back(new_section) ;
+                }
+            }
+            else if ( tag.type_ == Tag::Block ) {
+                if ( parseSimpleTag(tag.name_, name)) {
+                    BlockNode::Ptr new_block(new BlockNode(name)) ;
+                    parent->children_.push_back(new_block) ;
+                    parent->blocks_.insert({name, new_block}) ;
+                    stack.push_back(new_block) ;
+                }
+            }
         }
 
         if ( !res ) stack.pop_back() ;
@@ -583,12 +634,10 @@ SectionNode::Ptr Parser::parseString(const string &src) {
     return root ;
 }
 
-}
 
 string TemplateRenderer::render(const string &src, const Variant &ctx) {
-    using namespace mustache ;
 
-    Parser parser(loader_,  caching_) ;
+    Parser parser(loader_,  helpers_, caching_) ;
 
     string res ;
     SectionNode::Ptr ast = parser.parse(src) ;
@@ -604,6 +653,25 @@ string TemplateRenderer::render(const string &src, const Variant &ctx) {
 
 }
 
+string TemplateRenderer::renderString(const string &src, ContextStack &ctx) {
+
+    Parser parser(loader_,  helpers_, caching_) ;
+
+    string res ;
+    SectionNode::Ptr ast = parser.parseString(src) ;
+
+    if ( ast ) {
+        ast->eval(ctx, res) ;
+    }
+
+    return res ;
+}
+
+void TemplateRenderer::registerHelper(const string &name, TemplateRenderer::Helper helper)
+{
+    helpers_.insert({name, helper}) ;
+}
+
 
 } // namespace web
-} // namespace wspp
+               } // namespace wspp

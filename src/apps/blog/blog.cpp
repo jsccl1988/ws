@@ -52,7 +52,9 @@ public:
         logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
-
+        engine_.registerHelper("i18n", [&](const std::string &src, ContextStack &ctx) -> string {
+            return engine_.renderString(boost::locale::translate(src), ctx) ;
+        }) ;
     }
 
     void log(const Request &req, Response &resp) {
@@ -78,8 +80,6 @@ public:
         PageView page(user, Variant::fromJSONFile(root_ + "templates/menu.json")) ; // global page data
 
         // request router
-
-        Dictionary attributes ;
 
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
         else if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
