@@ -226,27 +226,27 @@ bool UsersController::dispatch()
 
     bool logged_in = user_.check() ;
 
-    if ( request_.matches("GET", "/users/edit/", attributes) ) { // load users list editor
+    if ( request_.matches("GET", "/users/edit/") ) { // load users list editor
         if ( logged_in && user_.can("users.edit")) edit() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET", "/users/list/", attributes) ) { // fetch table data
+    if ( request_.matches("GET", "/users/list/") ) { // fetch table data
         if ( logged_in && user_.can("users.list")) fetch() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/users/add/", attributes) ) {
+    if ( request_.matches("GET|POST", "/users/add/") ) {
         if ( logged_in && user_.can("users.add")) create() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/users/update/", attributes) ) {
+    if ( request_.matches("GET|POST", "/users/update/") ) {
         if ( logged_in && user_.can("users.modify")) update() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/users/delete") ) {
+    else if ( request_.matches("POST", "/users/delete/") ) {
         if ( logged_in && user_.can("users.delete") ) remove() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;

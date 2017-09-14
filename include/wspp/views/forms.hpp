@@ -135,11 +135,11 @@ private:
 // wrapper for a lambda
 class CallbackOptionsModel: public OptionsModel {
 public:
-    CallbackOptionsModel(boost::function<Dictionary ()> cb): cb_(cb) {}
+    CallbackOptionsModel(std::function<Dictionary ()> cb): cb_(cb) {}
 
     Dictionary fetch() override { return cb_() ; }
 private:
-    boost::function<Dictionary ()> cb_ ;
+    std::function<Dictionary ()> cb_ ;
 };
 
 

@@ -221,42 +221,42 @@ bool PageController::dispatch()
 
     bool logged_in = user_.check() ;
 
-    if ( request_.matches("GET", "/pages/edit/", attributes) ) { // load page list editor
+    if ( request_.matches("GET", "/pages/edit/") ) { // load page list editor
         if ( logged_in && user_.can("pages.edit")) edit() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET", "/pages/list/", attributes) ) { // fetch table data
+    if ( request_.matches("GET", "/pages/list/") ) { // fetch table data
         if ( logged_in ) fetch() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/pages/add/", attributes) ) {
+    if ( request_.matches("GET|POST", "/pages/add/") ) {
         if ( logged_in ) create() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/pages/update/", attributes) ) {
+    if ( request_.matches("GET|POST", "/pages/update/") ) {
         if ( logged_in ) update() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("GET", "/page/edit/{id:a}", attributes) ) {
+    else if ( request_.matches("GET", "/page/edit/{id}/", attributes) ) {
         if ( logged_in ) edit(attributes.get("id")) ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/page/publish") ) {
+    else if ( request_.matches("POST", "/page/publish/") ) {
         if ( logged_in ) publish() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/page/delete") ) {
+    else if ( request_.matches("POST", "/page/delete/") ) {
         if ( logged_in ) remove() ;
         else  response_.stock_reply(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("GET", "/page/{id:a}", attributes) ) {
+    else if ( request_.matches("GET", "/page/{id}/", attributes) ) {
         show(attributes.get("id")) ;
         return true ;
     }

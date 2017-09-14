@@ -5,29 +5,18 @@
 #include <vector>
 
 #include <wspp/util/dictionary.hpp>
-#include <boost/regex.hpp>
-#include <boost/thread.hpp>
+#include <wspp/server/route.hpp>
 
 namespace wspp { namespace server {
 
 using util::Dictionary ;
 
-class UriPatternMatcher ;
-
 /// A request received from a client.
 class Request
 {
 public:
-
-    // matches the request method with one of the specified methods (list of methods delimeted by | character)
-    // matches the request uri to the pattern
-    // pattern is the uri pattern in the form /<pat1>/<pat2>/<pat3> ... /<patn>/
-    // where each sub-pattern has the format  <prefix>{<param>[:<verifier>]}[?]<suffix>
-    // e.g. /user/{id:n}/{action:show|hide}/
-    // If the match is succesfull the method returns true and recovers the named parameters values (e.g. id, action).
-    // The verifier can be one of 'w' (word), 'a' (alphanumeric), 'n' (numeric), '*' (any except /) and '**' (any) or otherwise it is assumed to be
-    // a verbatim regular expression (e.g. 'show|hide')
-
+    bool matches(const std::string &method, const Route &pattern, Dictionary &attributes) const ;
+    bool matches(const std::string &method, const Route &pattern) const;
     bool matches(const std::string &method, const std::string &pattern, Dictionary &attributes) const ;
     bool matches(const std::string &method, const std::string &pattern) const;
 

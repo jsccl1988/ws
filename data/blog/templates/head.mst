@@ -4,6 +4,4 @@
 <base href="https://vision.iti.gr/test/">
 <title>E6 trail: {{ page.title }}</title>
 <link rel="shortcut icon" href="data/logo.png" />
-<link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
-<link rel="stylesheet" href="css/bootstrap-theme.min.css">
 <link rel="stylesheet" href="css/default.css">

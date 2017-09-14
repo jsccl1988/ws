@@ -27,6 +27,9 @@
 #include "users_controller.hpp"
 
 #include <boost/locale.hpp>
+
+#include <wspp/server/route.hpp>
+
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
@@ -103,6 +106,13 @@ public:
 #define __(S) boost::locale::translate(S)
 
 int main(int argc, char *argv[]) {
+
+    Route r("/user/{id:.+}/") ;
+
+    Dictionary data ;
+    bool res = r.matches("/user/123/tt/lal", data) ;
+
+    cout << r.url({{"id", "123"}, {"test", "1234"}}) << endl ;
 
     // example of seting up translation with boost::locale
     //
