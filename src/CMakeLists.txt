@@ -50,6 +50,10 @@ SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/fs_session_handler.hpp
     ${INCLUDE_ROOT}/server/session.hpp
     ${INCLUDE_ROOT}/server/route.hpp
+    ${INCLUDE_ROOT}/server/filter.hpp
+    ${INCLUDE_ROOT}/server/exceptions.hpp
+    ${INCLUDE_ROOT}/server/filters/request_logger.hpp
+    ${INCLUDE_ROOT}/server/filters/static_file_handler.hpp
 
     ${SRC_ROOT}/server/connection_manager.cpp
     ${SRC_ROOT}/server/io_service_pool.cpp
@@ -63,6 +67,11 @@ SET ( SERVER_SOURCES
     ${SRC_ROOT}/server/fs_session_handler.cpp
     ${SRC_ROOT}/server/session.cpp
     ${SRC_ROOT}/server/route.cpp
+    ${SRC_ROOT}/server/filter_chain.cpp
+    ${SRC_ROOT}/server/exceptions.cpp
+
+    ${SRC_ROOT}/server/filters/request_logger.cpp
+    ${SRC_ROOT}/server/filters/static_file_handler.cpp
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})

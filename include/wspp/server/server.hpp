@@ -17,7 +17,7 @@
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include <wspp/util/logger.hpp>
+#include <wspp/server/filter_chain.hpp>
 #include <wspp/server/detail/connection.hpp>
 #include <wspp/server/detail/io_service_pool.hpp>
 #include <wspp/server/detail/connection_manager.hpp>
@@ -27,14 +27,21 @@ namespace wspp { namespace server {
 
 /// The top-level class of the HTTP server.
 ///
-class Server: public RequestHandler
-{
+class Server {
+
 public:
     /// Construct the server to listen on the specified TCP address and port, and
     /// serve up files from the given directory.
     explicit Server(const std::string& address, const std::string& port,
                     std::size_t io_service_pool_size = 4);
 
+    // intercept filter/middleware to the service chain
+
+    void addFilter(Filter *filter);
+
+    // set request handler for this service
+
+    void setHandler(RequestHandler *handler);
 
     /// Run the server's io_service loop.
     void run();
@@ -67,6 +74,9 @@ private:
 
      /// The next socket to be accepted.
     boost::asio::ip::tcp::socket socket_;
+
+    std::unique_ptr<RequestHandler> handler_ ;
+    FilterChain filters_ ;
 };
 
 } // namespace server

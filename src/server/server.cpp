@@ -1,4 +1,5 @@
 #include <wspp/server/server.hpp>
+#include <wspp/server/detail/connection.hpp>
 #include <boost/make_shared.hpp>
 
 namespace wspp { namespace server {
@@ -33,6 +34,15 @@ Server::Server(const std::string& address, const std::string& port,
 
 }
 
+void Server::addFilter(Filter *filter) {
+    filters_.add(filter) ;
+}
+
+void Server::setHandler(RequestHandler *handler) {
+    handler_.reset(handler) ;
+    filters_.setEndPoint(handler) ;
+}
+
 void Server::run()
 {
     start_accept();
@@ -55,7 +65,7 @@ void Server::start_accept()
              {
 
                connection_manager_.start(boost::make_shared<Connection>(
-                   std::move(socket_), connection_manager_, *this));
+                   std::move(socket_), connection_manager_, filters_));
              }
 
         //if (!e) new_connection_->start();

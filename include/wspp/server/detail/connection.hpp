@@ -22,6 +22,8 @@
 #include <wspp/util/logger.hpp>
 
 #include <wspp/server/request_handler.hpp>
+#include <wspp/server/filter_chain.hpp>
+#include <wspp/server/exceptions.hpp>
 #include <wspp/server/detail/request_parser.hpp>
 #include <wspp/server/detail/connection_manager.hpp>
 
@@ -29,6 +31,7 @@ namespace wspp { namespace server {
 
 class ConnectionManager ;
 class Server ;
+
 
 using util::Logger ;
 
@@ -42,7 +45,7 @@ class Connection:
 public:
     explicit Connection(boost::asio::ip::tcp::socket socket,
                         ConnectionManager& manager,
-                        RequestHandler &handler) : socket_(std::move(socket)),
+                        FilterChain &handler) : socket_(std::move(socket)),
         connection_manager_(manager), handler_(handler) {}
 
 private:
@@ -78,11 +81,25 @@ private:
 
                          try {
                              handler_.handle(request_, response_) ;
-                         }
-                         catch ( ... ) {
 
-                            response_.stock_reply(Response::internal_server_error);
+                             if ( response_.status_ != Response::ok )
+                                 response_.stock_reply(response_.status_);
                          }
+                         catch ( HttpResponseException &e  ) {
+
+                            response_.status_ = e.code_ ;
+                            if ( e.reason_.empty() )
+                                response_.stock_reply(e.code_);
+                            else {
+                                response_.content_.assign(e.reason_);
+                                response_.setContentType("text/html");
+                                response_.setContentLength() ;
+                            }
+
+                         }
+                        catch ( ... ) {
+                            response_.stock_reply(Response::internal_server_error) ;
+                        }
                     }
 
                     write(response_to_buffers(response_, request_.method_ == "HEAD")) ;
@@ -129,7 +146,7 @@ private:
 
 
      /// The handler of incoming HttpRequest.
-     RequestHandler &handler_;
+     FilterChain &handler_;
 
      /// Buffer for incoming data.
      boost::array<char, 8192> buffer_;

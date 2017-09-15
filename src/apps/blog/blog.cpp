@@ -29,6 +29,9 @@
 #include <boost/locale.hpp>
 
 #include <wspp/server/route.hpp>
+#include <wspp/server/filters/request_logger.hpp>
+#include <wspp/server/filters/static_file_handler.hpp>
+
 
 using namespace std ;
 using namespace wspp::util ;
@@ -44,15 +47,12 @@ public:
     }
 };
 
-
-
-class MyServer: public Server {
-
+class BlogService: public RequestHandler {
 public:
-    MyServer(const std::string &port,
-             const std::string &root_dir,
-             const std::string &logger_dir):
-        logger_(logger_dir, true), root_(root_dir), Server("127.0.0.1", port),
+
+    BlogService(const std::string &root_dir, SessionHandler &session_handler):
+        session_handler_(session_handler),
+        root_(root_dir),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
         engine_.registerHelper("i18n", [&](const std::string &src, ContextStack &ctx) -> string {
@@ -60,22 +60,10 @@ public:
         }) ;
     }
 
-    void log(const Request &req, Response &resp) {
-
-        LOG_X_STREAM(logger_, Info, "Response to " <<
-                     req.SERVER_.get("REMOTE_ADDR", "127.0.0.1")
-                       << ": \"" << req.method_ << " " << req.path_
-                       << ((req.query_.empty()) ? "" : "?" + req.query_) << " "
-                       << req.protocol_ << "\" "
-                       << resp.status_ << " " << resp.headers_.value<int>("Content-Length", 0)
-                     ) ;
-
-    }
-
     void handle(const Request &req, Response &resp) override {
 
         sqlite::Connection con(root_ + "/db.sqlite") ; // establish connection with database
-        Session session(sm_, req, resp) ; // start a new session
+        Session session(session_handler_, req, resp) ; // start a new session
 
         DefaultAuthorizationModel auth(Variant::fromJSONFile(root_ + "templates/acm.json")) ;
         User user(req, resp, session, con, auth) ; // setup authentication
@@ -87,32 +75,21 @@ public:
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
         else if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
         else if ( LoginController(user, req, resp, engine_).dispatch() ) return ;
-        else if ( req.method_ == "GET" ) {
-            resp.encode_file(root_ + req.path_);
-        }
-        else resp.stock_reply(Response::not_found) ;
-
-        log(req, resp) ;
     }
 
 
-    FileSystemSessionHandler sm_ ;
-    DefaultLogger logger_ ;
+private:
+
+    SessionHandler &session_handler_ ;
     string root_ ;
     TemplateRenderer engine_ ;
-
 };
+
+
 
 #define __(S) boost::locale::translate(S)
 
 int main(int argc, char *argv[]) {
-
-    Route r("/user/{id:.+}/") ;
-
-    Dictionary data ;
-    bool res = r.matches("/user/123/tt/lal", data) ;
-
-    cout << r.url({{"id", "123"}, {"test", "1234"}}) << endl ;
 
     // example of seting up translation with boost::locale
     //
@@ -132,7 +109,17 @@ int main(int argc, char *argv[]) {
 
     std::cout << __("hello").str() << endl ;
 
+    Server server("127.0.0.1", "5000") ;
 
-    MyServer server( "5000", "/home/malasiot/source/ws/data/blog/", "/tmp/logger") ;
+    FileSystemSessionHandler sh ;
+    DefaultLogger logger("/tmp/logger", true) ;
+
+    const string root = "/home/malasiot/source/ws/data/blog/" ;
+    BlogService *service = new BlogService(root, sh) ;
+
+    server.setHandler(service) ;
+    server.addFilter(new StaticFileHandler(root)) ;
+    server.addFilter(new RequestLoggerFilter(logger)) ;
+
     server.run() ;
 }

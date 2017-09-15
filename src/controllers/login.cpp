@@ -4,6 +4,7 @@
 #include <wspp/util/variant.hpp>
 
 #include <wspp/views/forms.hpp>
+#include <wspp/server/exceptions.hpp>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
@@ -11,7 +12,7 @@
 
 using namespace std ;
 using namespace wspp::util ;
-
+using namespace wspp::server ;
 
 namespace wspp { namespace web {
 
@@ -24,8 +25,6 @@ private:
     User &auth_ ;
 
 };
-
-
 
 LoginForm::LoginForm(User &auth): auth_(auth) {
 

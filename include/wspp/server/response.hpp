@@ -16,7 +16,7 @@ using util::Dictionary ;
 struct Response
 {
     /// The status of the reply.
-    enum status_type
+    enum Status
     {
         ok = 200,
         created = 201,
@@ -34,7 +34,7 @@ struct Response
         not_implemented = 501,
         bad_gateway = 502,
         service_unavailable = 503
-    } status_ = ok;
+    } status_ = not_found ;
 
     /// The headers to be included in the reply.
     Dictionary headers_;
@@ -43,7 +43,7 @@ struct Response
     std::string content_;
 
     /// Get a stock reply.
-    void stock_reply(status_type status);
+    void stock_reply(Status status);
 
     // this will fill in the reply for sending over a file payload
 
@@ -84,7 +84,7 @@ struct Response
     // set header for content-length because on the current content length
     void setContentLength() ;
 
-    void setStatus(status_type st) { status_ = st ; }
+    void setStatus(Status st) { status_ = st ; }
 };
 
 

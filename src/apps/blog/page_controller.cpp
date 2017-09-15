@@ -4,10 +4,12 @@
 #include <boost/make_shared.hpp>
 
 #include <wspp/views/table.hpp>
+#include <wspp/server/exceptions.hpp>
 
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
+using namespace wspp::server ;
 
 PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
 
@@ -139,7 +141,7 @@ void PageController::edit(const string &id)
 
     }
     else
-        response_.stock_reply(Response::not_found) ;
+        throw HttpResponseException(Response::not_found) ;
 }
 
 void PageController::update()
@@ -177,8 +179,7 @@ void PageController::update()
         PageEditForm form(con_, id) ;
 
         if ( id.empty() ) {
-            response_.stock_reply(Response::not_found) ;
-            return ;
+            throw HttpResponseException(Response::not_found) ;
         }
 
         sqlite::Query q(con_, "SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
@@ -204,7 +205,7 @@ void PageController::remove()
     string id = params.get("id") ;
 
     if ( id.empty() )
-        response_.stock_reply(Response::not_found) ;
+        throw HttpResponseException(Response::not_found) ;
     else {
         sqlite::Statement stmt(con_, "DELETE FROM pages where id=?", id) ;
         stmt.exec() ;
@@ -223,37 +224,37 @@ bool PageController::dispatch()
 
     if ( request_.matches("GET", "/pages/edit/") ) { // load page list editor
         if ( logged_in && user_.can("pages.edit")) edit() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET", "/pages/list/") ) { // fetch table data
         if ( logged_in ) fetch() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET|POST", "/pages/add/") ) {
         if ( logged_in ) create() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET|POST", "/pages/update/") ) {
         if ( logged_in ) update() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("GET", "/page/edit/{id}/", attributes) ) {
         if ( logged_in ) edit(attributes.get("id")) ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("POST", "/page/publish/") ) {
         if ( logged_in ) publish() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("POST", "/page/delete/") ) {
         if ( logged_in ) remove() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("GET", "/page/{id}/", attributes) ) {
@@ -280,7 +281,7 @@ void PageController::show(const std::string &page_id)
         response_.write(engine_.render("page", ctx)) ;
     }
     else
-        response_.stock_reply(Response::not_found);
+        throw HttpResponseException(Response::not_found) ;
 
 }
 

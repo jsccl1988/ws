@@ -64,7 +64,7 @@ const std::string bad_gateway =
 const std::string service_unavailable =
         "HTTP/1.0 503 Service Unavailable\r\n";
 
-boost::asio::const_buffer to_buffer(Response::status_type status)
+boost::asio::const_buffer to_buffer(Response::Status status)
 {
     switch (status)
     {
@@ -218,7 +218,7 @@ const char service_unavailable[] =
         "<body><h1>503 Service Unavailable</h1></body>"
         "</html>";
 
-std::string to_string(Response::status_type status)
+std::string to_string(Response::Status status)
 {
     switch (status)
     {
@@ -261,7 +261,7 @@ std::string to_string(Response::status_type status)
 
 } // namespace stock_replies
 
-void Response::stock_reply(Response::status_type status)
+void Response::stock_reply(Response::Status status)
 {
     status_ = status;
     content_.assign(stock_replies::to_string(status));
@@ -392,6 +392,7 @@ void Response::write(const string &content, const string &mime)
     content_.assign(content) ;
     setContentType(mime) ;
     setContentLength() ;
+    setStatus(ok) ;
 }
 
 void Response::setContentType(const string &mime) {

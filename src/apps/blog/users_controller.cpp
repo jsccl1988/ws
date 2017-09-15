@@ -4,10 +4,12 @@
 #include <boost/make_shared.hpp>
 
 #include <wspp/views/table.hpp>
+#include <wspp/server/exceptions.hpp>
 
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
+using namespace wspp::server ;
 
 class UserModifyForm: public wspp::web::Form {
 public:
@@ -192,8 +194,7 @@ void UsersController::update()
         UserModifyForm form(user_, id) ;
 
         if ( id.empty() ) {
-            response_.stock_reply(Response::not_found) ;
-            return ;
+            throw HttpResponseException(Response::not_found) ;
         }
 
         Variant ctx( Variant::Object{{"form", form.data()}} ) ;
@@ -209,7 +210,7 @@ void UsersController::remove()
     string id = params.get("id") ;
 
     if ( id.empty() )
-        response_.stock_reply(Response::not_found) ;
+        throw HttpResponseException(Response::not_found) ;
     else {
         sqlite::Statement(con_, "DELETE FROM users where id=?", id).exec() ;
         sqlite::Statement(con_, "DELETE FROM user_roles where user_id=?", id).exec() ;
@@ -228,27 +229,26 @@ bool UsersController::dispatch()
 
     if ( request_.matches("GET", "/users/edit/") ) { // load users list editor
         if ( logged_in && user_.can("users.edit")) edit() ;
-        else  response_.stock_reply(Response::unauthorized) ;
-        return true ;
+        else throw HttpResponseException(Response::unauthorized) ;
     }
     if ( request_.matches("GET", "/users/list/") ) { // fetch table data
         if ( logged_in && user_.can("users.list")) fetch() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET|POST", "/users/add/") ) {
         if ( logged_in && user_.can("users.add")) create() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     if ( request_.matches("GET|POST", "/users/update/") ) {
         if ( logged_in && user_.can("users.modify")) update() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     else if ( request_.matches("POST", "/users/delete/") ) {
         if ( logged_in && user_.can("users.delete") ) remove() ;
-        else  response_.stock_reply(Response::unauthorized) ;
+        else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
     else
