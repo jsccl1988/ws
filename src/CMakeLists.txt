@@ -6,12 +6,14 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/crypto.cpp
     ${SRC_ROOT}/util/zfstream.cpp
     ${SRC_ROOT}/util/json.cpp
+    ${SRC_ROOT}/util/filesystem.cpp
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
     ${INCLUDE_ROOT}/util/database.hpp
     ${INCLUDE_ROOT}/util/crypto.hpp
     ${INCLUDE_ROOT}/util/zfstream.hpp
+    ${INCLUDE_ROOT}/util/filesystem.hpp
 )
 
 SET ( WEB_SOURCES

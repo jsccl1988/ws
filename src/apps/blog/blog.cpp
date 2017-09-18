@@ -73,8 +73,8 @@ public:
         // request router
 
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
-        else if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
-        else if ( LoginController(user, req, resp, engine_).dispatch() ) return ;
+        if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
+        if ( LoginController(user, req, resp, engine_).dispatch() ) return ;
     }
 
 

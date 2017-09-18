@@ -10,6 +10,8 @@
 
 #include <wspp/server/response.hpp>
 #include <wspp/util/zstream.hpp>
+#include <wspp/util/filesystem.hpp>
+#include <wspp/server/exceptions.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/filesystem.hpp>
@@ -334,13 +336,6 @@ static string get_file_mime(const string &mime,  const boost::filesystem::path &
 
     return "application/octet-stream" ;
 }
-/*
-mod_gzip_item_include file .(html?|txt|css|js|php|pl)$
-mod_gzip_item_include handler ^cgi-script$
-mod_gzip_item_include mime ^text/.*
-mod_gzip_item_include mime ^application/x-javascript.*
-mod_gzip_item_exclude mime ^image/.*
-*/
 
 static boost::regex gzip_include_extension_rx(".(html?|txt|css|js)") ;
 static boost::regex gzip_include_mime_rx("(text/.*)|(application/x-javascript.*)") ;
@@ -354,14 +349,13 @@ bool file_benefits_from_compression(const string &extension, const string &mime)
 void Response::encode_file(const std::string &file_path, const std::string &encoding, const std::string &mime )
 {
     if ( !fs::exists(file_path) ) {
-        stock_reply(Response::not_found) ;
+        throw HttpResponseException(Response::not_found) ;
         return ;
     }
 
     time_t mod_time = boost::filesystem::last_write_time(file_path);
 
-    ifstream istr(file_path.c_str(), ios::binary) ;
-    string bytes = string(std::istreambuf_iterator<char>(istr), std::istreambuf_iterator<char>());
+    string bytes = readFileToString(file_path) ;
 
     string omime = mime.empty() ? get_file_mime(mime, file_path) : mime ;
 

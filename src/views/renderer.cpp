@@ -1,4 +1,5 @@
 #include <wspp/views/renderer.hpp>
+#include <wspp/util/filesystem.hpp>
 
 #include <sstream>
 #include <fstream>
@@ -32,12 +33,8 @@ string FileSystemTemplateLoader::load(const string &key) {
 
         if ( !exists(p) ) continue ;
 
-        std::ifstream strm(p.string()) ;
+        return readFileToString(p.string()) ;
 
-        if ( strm ) {
-            string contents((istreambuf_iterator<char>(strm)), istreambuf_iterator<char>());
-            return contents ;
-        }
     }
 
     return string() ;
