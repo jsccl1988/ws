@@ -51,7 +51,6 @@ bool LoginForm::validate(const Dictionary &vals) {
     if ( !hashCompare(getValue("csrf_token"), auth_.token()) )
         throw std::runtime_error("Security exception" ) ;
 
-
     string username = getValue("username") ;
     string password = getValue("password") ;
 
@@ -98,11 +97,16 @@ void LoginController::login()
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
         }
         else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
+            //Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
-            cout << ctx.toJSON() << endl ;
+      //      cout << ctx.toJSON() << endl ;
+//            response_.writeJSONVariant(Variant::Object{{"success", false},
+//                                                       {"content", engine_.render("login-dialog", ctx)}});
+
+
             response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("login-dialog", ctx)}});
+                                                                   {"errors", form.errors()}});
+
         }
     }
     else {

@@ -193,9 +193,15 @@ public:
     // init values with user supplied (no validation)
     void init(const Dictionary &vals) ;
 
+    // get form view to pass to template
     Variant::Object data() const ;
 
+    // get errors object
+    Variant::Object errors() const ;
+
     string getValue(const string &field_name) ;
+
+
 
 protected:
 

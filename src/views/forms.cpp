@@ -180,6 +180,20 @@ Variant::Object Form::data() const
     return form_data ;
 }
 
+Variant::Object Form::errors() const
+{
+    Variant::Object e ;
+
+    e.insert({"global-errors", Variant::fromVector(errors_)}) ;
+    Variant::Object fe ;
+    for( const auto &f: fields_ ) {
+        fe.insert({f->name_, Variant::fromVector(f->error_messages_)}) ;
+    }
+    e.insert({"field-errors", fe}) ;
+
+    return e ;
+}
+
 string Form::getValue(const string &field_name)
 {
     const auto &it = field_map_.find(field_name) ;

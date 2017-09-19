@@ -16,6 +16,11 @@
 			</div>
 		</div>
     </div>
+   
 {{/contents}}
+{{$extra-footers}}
+<script type="text/javascript">
 
+</script>
+{{/extra-footers}}
 {{/layout}}
