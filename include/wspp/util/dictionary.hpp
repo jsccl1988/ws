@@ -21,6 +21,7 @@ class Dictionary: public SSMap
 
 	// add a key/val pair 
     void add(const std::string &key, const std::string &val) ;
+    void replace(const std::string &key, const std::string &val) ;
 	// remove entry with given key if exists
     void remove(const std::string &key) ;
     void removeSome(const std::regex &rx) ;

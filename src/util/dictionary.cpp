@@ -13,6 +13,13 @@ void Dictionary::add(const string &key, const string &val)
     insert(std::pair<string, string>(key, val)) ;
 }
 
+void Dictionary::replace(const string &key, const string &val)
+{
+    auto it = find(key) ;
+    if ( it != end() ) it->second = val ;
+    else insert({key, val}) ;
+}
+
 void Dictionary::remove(const string &key)
 {
     iterator it = find(key) ;

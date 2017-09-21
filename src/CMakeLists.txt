@@ -36,7 +36,7 @@ SET ( WEB_SOURCES
     ${INCLUDE_ROOT}/controllers/login.hpp
 
     ${INCLUDE_ROOT}/models/auth.hpp
-    )
+)
 
 SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/detail/connection.hpp
@@ -56,6 +56,7 @@ SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/exceptions.hpp
     ${INCLUDE_ROOT}/server/filters/request_logger.hpp
     ${INCLUDE_ROOT}/server/filters/static_file_handler.hpp
+    ${INCLUDE_ROOT}/server/filters/gzip_filter.hpp
 
     ${SRC_ROOT}/server/connection_manager.cpp
     ${SRC_ROOT}/server/io_service_pool.cpp
@@ -74,6 +75,7 @@ SET ( SERVER_SOURCES
 
     ${SRC_ROOT}/server/filters/request_logger.cpp
     ${SRC_ROOT}/server/filters/static_file_handler.cpp
+    ${SRC_ROOT}/server/filters/gzip_filter.cpp
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})

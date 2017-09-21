@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cstring>
 #include <utility>
+#include <fstream>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
@@ -24,6 +25,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/iostreams/stream.hpp>
+
 
 using namespace std ;
 using namespace wspp::server ;
@@ -392,96 +394,66 @@ fs::path get_temporary_path(const std::string &dir, const std::string &prefix, c
 }
 
 
-static bool parse_mime_data(Request &session, istream &strm, const char *fld, const char *file_name,
-                          const char *content_type,
-                          const char *trans_encoding,
-                          const char *bnd)
+static bool parse_mime_data(Request &session, istream &strm, const string &fld, const string &file_name,
+                          const string &content_type,
+                          const string trans_encoding,
+                          const string &bnd)
 {
     std::string data ;
+    char b[4] = {0} ;
 
-    while ( 1 )
+    while ( strm )
     {
-        char b0 = strm.get() ;
+        char c = strm.get();
+        b[0] = b[1] ; b[1] = b[2] ; b[2] = b[3] ; b[3] = c ;
 
-        if ( b0 == '\r' )
-        {
-            char b1 = strm.get() ;
+        if ( b[0] == '\r' && b[1] == '\n' && b[2] == '-' && b[3] == '-') {
+            data.resize(data.size() - 3) ;
+            int bndlen = bnd.length();
+            string buf ;
+            buf.resize(bndlen) ;
 
-            if ( b1 == '\n' )
-            {
-                char b2 = strm.get() ;
+            strm.read(&buf[0], bndlen) ;
 
-                if ( b2 == '-' )
-                {
-                    char b3 = strm.get() ;
-
-                    if ( b3 == '-' )
-                    {
-                        int bndlen = strlen(bnd) ;
-                        char *buf = new char [bndlen] ;
-                        strm.read(buf, bndlen) ;
-
-                        if ( strncmp(buf, bnd, bndlen ) == 0 ) {
-                            strm.get() ; strm.get() ;
-
-                            delete [] buf ;
-                            break ;
-                        }
-                        delete [] buf ;
-                    }
-                    else
-                    {
-                        data += b0 ;
-                        data += b1 ;
-                        data += b2 ;
-                        data += b3 ;
-                    }
-                }
-                else {
-                    data += b0 ;
-                    data += b1 ;
-                    data += b2 ;
-                }
-            }
-            else
-            {
-                data += b0 ;
-                data += b1 ;
+            if ( buf == bnd ) {
+                strm.get() ; strm.get() ;
+                break ;
             }
         }
-        else data += b0 ;
+        else data.push_back(c) ;
     }
 
-    if ( file_name == 0 ) session.POST_[fld] = data ;
+    if ( file_name.empty() ) session.POST_[fld] = data ;
     else
     {
-        Request::UploadedFile fileInfo ;
+        Request::UploadedFile file_info ;
 
-        fileInfo.mime_ = content_type ;
-        fileInfo.orig_name_ = file_name ;
+        file_info.mime_ = content_type ;
+        file_info.name_ = file_name ;
 
         boost::filesystem::path server_path = get_temporary_path(string(), "up", "tmp") ;
 
-        FILE *file = fopen(server_path.string().c_str(), "wb") ;
-        fwrite(data.data(), data.size(), 1, file) ;
-        fclose(file) ;
+        {
+            ofstream strm(server_path.string(), ios::binary) ;
+            strm.write(&data[0], data.size()) ;
+        }
 
-        fileInfo.server_path_ = server_path.string() ;
-        session.FILE_[fld] = fileInfo ;
+
+        file_info.path_ = server_path.string() ;
+        file_info.size_ = data.size() ;
+        session.FILE_.insert({fld, file_info}) ;
     }
 
     return true ;
 }
 
 
-static bool parse_multipart_data(Request &session, istream &strm, const char *bnd)
+static bool parse_multipart_data(Request &session, istream &strm, const string &bnd)
 {
     std::string s = get_next_line(strm) ;
     if ( s.empty() ) return false ;
 
-    // Parse boundary header
-    const char *p = s.c_str() ;
-    if ( *p++ != '-' || *p++ != '-' || strncmp(p, bnd, s.length() ) != 0 ) return  false ;
+    if ( s.compare(2, bnd.length(), bnd ) != 0 ) return false ;
 
     while ( 1 )
     {
@@ -493,45 +465,27 @@ static bool parse_multipart_data(Request &session, istream &strm, const char *bn
             s = get_next_line(strm) ;
             if ( s.empty() ) break ;
 
-            const char *p = s.c_str() ;
-            const char *q = strchr(p, ':') ;
+            size_t pos = s.find(':') ;
 
-            if ( q )
-            {
+            if ( pos != string::npos ) {
                 std::string key, val ;
-                key.assign(p, (int)(q - p)) ;
+                key.assign(s, 0, pos) ;
                 boost::trim(key) ;
-                val.assign(q+1) ;
+                val.assign(s, pos+1, s.length() - pos) ;
                 boost::trim(val) ;
 
-                if ( strncmp(key.c_str(), "Content-Disposition", 20) == 0 )
-                {
-                    if ( strncmp(val.c_str(), "form-data", 9) == 0 )
+                boost::smatch subm ;
+                if ( key == "Content-Disposition" ) {
+                    if ( boost::regex_match(val, subm, boost::regex(R"#(form-data;\s*name="(.*?)(?=")"(?:\s*;\s*filename="(.*?)(?=")")?)#") ) )
                     {
-                        const char *a = strchr((const char *)val.c_str() + 9, ';') ;
-                        while ( a && *a )
-                        {
-                            ++a ;
-                            std::string key_, val_ ;
-
-                            while ( *a && *a != '=' ) key_ += *a++ ;
-                            if ( *a == 0 ) return false ; ++a ;
-                            while ( *a && *a != ';' ) val_ += *a++ ;
-                            boost::trim(key_);
-                            boost::trim_if(val_, boost::is_any_of(" \"")) ;
-
-                            if ( key_ == "name" ) form_field = val_ ;
-                            else if ( key_ == "filename" ) file_name = val_ ;
-
-
-                        }
+                        form_field = subm[1] ;
+                        file_name = subm[2] ;
                     }
                 }
-                else if ( strncmp(key.c_str(), "Content-Type", 11) == 0 )
+                else if ( key.compare(0, 12, "Content-Type") == 0 )
                     content_type = val ;
-                else if ( strncmp(key.c_str(), "Content-Transfer-Encoding", 25) == 0 )
+                else if ( key.compare(0, 25, "Content-Transfer-Encoding") == 0 )
                     trans_encoding = val ;
-
             }
         }
 
@@ -539,9 +493,7 @@ static bool parse_multipart_data(Request &session, istream &strm, const char *bn
 
         // Parse content
 
-        if ( ! parse_mime_data(session, strm, form_field.c_str(),
-                             ((file_name.empty()) ? (const char *)NULL : file_name.c_str()),
-                             content_type.c_str(), trans_encoding.c_str(), bnd) ) return false ;
+        if ( ! parse_mime_data(session, strm, form_field, file_name, content_type, trans_encoding, bnd) ) return false ;
 
 
     }
@@ -552,12 +504,14 @@ static bool parse_multipart_data(Request &session, istream &strm, const char *bn
 
 static bool parse_form_data(Request &session, istream &strm)
 {
-    size_t content_length = stoi(session.SERVER_.get("Content-Length", "0")) ;
+    size_t content_length = session.SERVER_.value<int>("Content-Length", 0) ;
 
     std::string content_type = session.SERVER_.get("Content-Type") ;
 
     if ( content_type.empty() && content_length > 0 )
         return false ;
+
+    boost::smatch subm ;
 
     if ( boost::starts_with(content_type, "application/x-www-form-urlencoded") )
     {
@@ -583,25 +537,12 @@ static bool parse_form_data(Request &session, istream &strm)
             session.POST_[url_decode(key.c_str())] = url_decode(val.c_str()) ;
         }
     }
-    else if ( boost::starts_with(content_type, "multipart/form-data") )
-    {
-        std::string boundary ;
+    else if ( boost::regex_match(content_type, subm, boost::regex("multipart/form-data;\\s*boundary=(.*)")  )) {
+        std::string boundary = subm[1] ;
+        parse_multipart_data(session, strm, boundary) ;
 
-        const char *p = strstr((const char *)content_type.c_str() + 19, "boundary") ;
-        if ( !p ) return false ;
-        ++p ;
-        p = strchr(p, '=') ;
-        if ( !p ) return false ;
-        ++p ;
-        while ( *p == ' ' || *p == '"' ) ++p ;
-        while ( *p != 0 && *p != '"' && *p != '\r' && *p != ';' && *p != ' ')
-            boundary += *p++ ;
-
-        return parse_multipart_data(session, strm, boundary.c_str()) ;
     }
-    else if ( content_length )
-    {
-
+    else if ( content_length )  {
         session.content_.resize(content_length) ;
         strm.read(&session.content_[0], content_length) ;
         session.content_type_ = content_type ;
