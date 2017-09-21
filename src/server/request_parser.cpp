@@ -426,22 +426,32 @@ static bool parse_mime_data(Request &session, istream &strm, const string &fld, 
     if ( file_name.empty() ) session.POST_[fld] = data ;
     else
     {
-        Request::UploadedFile file_info ;
+        static const size_t file_upload_max_size = 20 * 1024 * 1024 ;
+        static const size_t file_upload_persist_file_size = 1 * 1024 * 1024 ;
 
-        file_info.mime_ = content_type ;
-        file_info.name_ = file_name ;
+        size_t dsize = data.size() ;
 
-        boost::filesystem::path server_path = get_temporary_path(string(), "up", "tmp") ;
+        if ( dsize <= file_upload_max_size ) {
+            Request::UploadedFile file_info ;
 
-        {
-            ofstream strm(server_path.string(), ios::binary) ;
-            strm.write(&data[0], data.size()) ;
+            file_info.mime_ = content_type ;
+            file_info.name_ = file_name ;
+
+
+            if ( dsize > file_upload_persist_file_size ) {
+                boost::filesystem::path server_path = get_temporary_path(string(), "up", "tmp") ;
+
+                ofstream strm(server_path.string(), ios::binary) ;
+                strm.write(&data[0], data.size()) ;
+
+                file_info.path_ = server_path.string() ;
+            } else {
+                file_info.data_ = data ;
+            }
+
+            file_info.size_ = data.size() ;
+            session.FILE_.insert({fld, file_info}) ;
         }
-
-
-        file_info.path_ = server_path.string() ;
-        file_info.size_ = data.size() ;
-        session.FILE_.insert({fld, file_info}) ;
     }
 
     return true ;
@@ -528,8 +538,8 @@ static bool parse_form_data(Request &session, istream &strm)
         {
             std::string str = (*it) ;
 
-            int pos = str.find('=') ;
-            if ( pos < 0 ) return false ;
+            size_t pos = str.find('=') ;
+            if ( pos == string::npos ) return false ;
 
             std::string key, val ;
             key = str.substr(0, pos) ;
