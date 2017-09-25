@@ -151,6 +151,11 @@ public:
     }
 
     template <typename T>
+    Statement &bindm() {
+        return *this ;
+    }
+
+    template <typename T>
     Statement &bindm(T t) {
         return bind(t) ;
     }
@@ -346,6 +351,10 @@ public:
     template<typename ...Args>
     QueryResult operator()(Args... args) {
         bindm(args...) ;
+        return exec() ;
+    }
+
+    QueryResult operator()() {
         return exec() ;
     }
 

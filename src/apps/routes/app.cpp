@@ -25,8 +25,10 @@
 
 #include "page_controller.hpp"
 #include "users_controller.hpp"
+#include "route_controller.hpp"
 
 #include <boost/locale.hpp>
+#include <boost/filesystem.hpp>
 
 #include <wspp/server/route.hpp>
 #include <wspp/server/filters/request_logger.hpp>
@@ -37,6 +39,7 @@ using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
+namespace fs = boost::filesystem ;
 
 class DefaultLogger: public Logger
 {
@@ -72,9 +75,19 @@ public:
 
         // request router
 
+        if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( LoginController(user, req, resp, engine_).dispatch() ) return ;
+
+        fs::path p(root_ + req.path_)  ;
+        if ( fs::exists(p) && fs::is_regular_file(p) ) {
+            resp.encode_file(p.string());
+            return ;
+        }
+
+        throw HttpResponseException(Response::not_found) ;
+
     }
 
 
@@ -114,11 +127,11 @@ int main(int argc, char *argv[]) {
     FileSystemSessionHandler sh ;
     DefaultLogger logger("/tmp/logger", true) ;
 
-    const string root = "/home/malasiot/source/ws/data/blog/" ;
+    const string root = "/home/malasiot/source/ws/data/routes/" ;
     BlogService *service = new BlogService(root, sh) ;
 
     server.setHandler(service) ;
-    server.addFilter(new StaticFileHandler(root)) ;
+
     server.addFilter(new RequestLoggerFilter(logger)) ;
 
     server.run() ;
