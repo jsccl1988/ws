@@ -1,6 +1,7 @@
 // json decoder
 
 #include <wspp/util/variant.hpp>
+#include <wspp/util/filesystem.hpp>
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
@@ -374,9 +375,5 @@ Variant Variant::fromJSONString(const std::string &src, bool throw_exception) {
 }
 
 Variant Variant::fromJSONFile(const std::string &fpath, bool throw_exception) {
-
-    std::ifstream t(fpath);
-    std::string str((std::istreambuf_iterator<char>(t)),
-                     std::istreambuf_iterator<char>());
-    return fromJSONString(str, throw_exception) ;
+    return fromJSONString(readFileToString(fpath), throw_exception) ;
 }

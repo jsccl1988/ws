@@ -337,14 +337,7 @@ static string get_file_mime(const string &mime,  const boost::filesystem::path &
     return "application/octet-stream" ;
 }
 
-static boost::regex gzip_include_extension_rx(".(html?|txt|css|js)") ;
-static boost::regex gzip_include_mime_rx("(text/.*)|(application/x-javascript.*)") ;
 
-bool file_benefits_from_compression(const string &extension, const string &mime) {
-    if ( boost::regex_match(extension, gzip_include_extension_rx) ) return true ;
-    if ( boost::regex_match(mime,  gzip_include_mime_rx) ) return true ;
-    return false ;
-}
 
 void Response::encode_file(const std::string &file_path, const std::string &encoding, const std::string &mime )
 {
@@ -359,15 +352,7 @@ void Response::encode_file(const std::string &file_path, const std::string &enco
 
     string omime = mime.empty() ? get_file_mime(mime, file_path) : mime ;
 
-    if ( encoding == "gzip" || file_benefits_from_compression(fs::path(file_path).extension().string(), mime) ) {
-        ostringstream compressed ;
-        ozstream zstrm(compressed) ;
-        zstrm.write(bytes.c_str(), bytes.size()) ;
-        zstrm.flush() ;
-        encode_file_data(compressed.str(), "gzip", omime, mod_time) ;
-    }
-    else
-        encode_file_data(bytes, encoding, omime, mod_time) ;
+    encode_file_data(bytes, encoding, omime, mod_time) ;
 
 }
 
@@ -390,11 +375,11 @@ void Response::write(const string &content, const string &mime)
 }
 
 void Response::setContentType(const string &mime) {
-    headers_.add("Content-Type", mime) ;
+    headers_.replace("Content-Type", mime) ;
 }
 
 void Response::setContentLength() {
-    headers_.add("Content-Length", to_string(content_.length())) ;
+    headers_.replace("Content-Length", to_string(content_.size())) ;
 }
 
 void Response::append(const string &content)

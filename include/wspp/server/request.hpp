@@ -29,9 +29,11 @@ public:
     Dictionary COOKIE_ ; // Cookies
 
     struct UploadedFile {
-        std::string orig_name_ ;	// The original filename
-        std::string server_path_ ; // The path of a local temporary copy of the uploaded file
-        std::string mime_ ;		// MIME information of the uploaded file
+        std::string name_ ;	// The original filename
+        std::string path_ ; // The path of a local temporary copy of the uploaded file
+        std::string mime_ ;	// MIME information of the uploaded file
+        size_t size_ ;
+        std::string data_ ; // This member variable contains the file contents for small files
     } ;
 
     std::map<std::string, UploadedFile> FILE_ ;	// Uploaded files

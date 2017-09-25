@@ -33,6 +33,7 @@
 #include <wspp/server/route.hpp>
 #include <wspp/server/filters/request_logger.hpp>
 #include <wspp/server/filters/static_file_handler.hpp>
+#include <wspp/server/filters/gzip_filter.hpp>
 
 
 using namespace std ;
@@ -74,6 +75,7 @@ public:
         PageView page(user, Variant::fromJSONFile(root_ + "templates/menu.json")) ; // global page data
 
         // request router
+
 
         if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
@@ -133,6 +135,7 @@ int main(int argc, char *argv[]) {
     server.setHandler(service) ;
 
     server.addFilter(new RequestLoggerFilter(logger)) ;
+    server.addFilter(new GZipFilter()) ;
 
     server.run() ;
 }
