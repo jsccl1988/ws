@@ -52,6 +52,7 @@ SET ( SERVER_SOURCES
     ${INCLUDE_ROOT}/server/fs_session_handler.hpp
     ${INCLUDE_ROOT}/server/session.hpp
     ${INCLUDE_ROOT}/server/route.hpp
+    ${INCLUDE_ROOT}/server/router.hpp
     ${INCLUDE_ROOT}/server/filter.hpp
     ${INCLUDE_ROOT}/server/exceptions.hpp
     ${INCLUDE_ROOT}/server/filters/request_logger.hpp
@@ -72,6 +73,7 @@ SET ( SERVER_SOURCES
     ${SRC_ROOT}/server/route.cpp
     ${SRC_ROOT}/server/filter_chain.cpp
     ${SRC_ROOT}/server/exceptions.cpp
+    ${SRC_ROOT}/server/router.cpp
 
     ${SRC_ROOT}/server/filters/request_logger.cpp
     ${SRC_ROOT}/server/filters/static_file_handler.cpp
