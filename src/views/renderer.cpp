@@ -51,28 +51,7 @@ struct Tag {
     Type type_ ;
 };
 
-struct ContextStack {
 
-    Variant top() const { return stack_.back() ; }
-
-    void push(Variant ctx) {
-        stack_.push_back(ctx) ;
-    }
-
-    void pop() { stack_.pop_back() ; }
-
-    Variant find(const string &item) {
-        for ( auto it = stack_.rbegin() ; it != stack_.rend() ; ++it ) {
-            Variant v = it->at(item) ;
-            if ( !v.isNull() ) return v ;
-        }
-
-        return Variant() ;
-    }
-
-
-    std::deque<Variant> stack_ ;
-};
 
 struct Node {
 
@@ -269,6 +248,36 @@ public:
 
     SectionNode::Ptr parseString(const string &src) ;
 
+    struct Arg {
+        Arg(const string &key, const string &val, bool is_literal): key_(key), val_(val), is_literal_(is_literal) {}
+
+        string key_ ;
+        string val_ ;
+        bool is_literal_ ;
+    };
+
+    static Variant::Object getDictionaryArgs(const vector<Arg> &args, ContextStack &stack) {
+        Variant::Object res ;
+
+        for( auto &a: args ) {
+            if ( a.key_.empty() ) continue ;
+            string value = ( a.is_literal_ ) ? stack.find(a.val_).toString() : a.val_ ;
+            res.insert({a.key_, value}) ;
+        }
+        return res ;
+    }
+
+    static Variant::Array getParams(const vector<Arg> &args, ContextStack &ctx) {
+        Variant::Array res ;
+
+        for( auto &a: args ) {
+            if ( !a.key_.empty() ) continue ;
+            if ( a.is_literal_ ) res.emplace_back(a.val_) ;
+            else res.emplace_back(ctx.find(a.val_)) ;
+        }
+        return res ;
+    }
+
 private:
 
 
@@ -276,7 +285,7 @@ private:
     string eatTag(const string &) ;
     void parseTag(const string &src, Tag &tag) ;
     bool nextTag(const string &src, string &raw, Tag &tag, int &cursor) ;
-    bool parseComplexTag(const string &tag, string &name, Dictionary &args) ;
+    bool parseComplexTag(const string &tag, string &name, vector<Arg> &args) ;
     bool parseSimpleTag(const string &tag, string &name) ;
 
 
@@ -290,8 +299,8 @@ private:
     const map<string, TemplateRenderer::Helper> &helpers_ ;
 };
 
-bool Parser::parseComplexTag(const string &tag, string &name, Dictionary &args) {
-    static boost::regex rx_args(R"%((\w+)\s*=\s*"([^"]*)")%") ;
+bool Parser::parseComplexTag(const string &tag, string &name, vector<Arg> &args) {
+    static boost::regex rx_args(R"%((\w+)\s*=\s*"([^"]*)|(\w+)|"([^"]*)")%") ;
     static boost::regex rx_name(R"(^\s*([^\s]+)\s*)") ;
 
     boost::smatch tmatch ;
@@ -302,9 +311,18 @@ bool Parser::parseComplexTag(const string &tag, string &name, Dictionary &args) 
     boost::sregex_iterator it(start, tag.end(), rx_args), end ;
 
     while ( it != end ) {
+
         string key = (*it)[1] ;
         string val = (*it)[2] ;
-        args.add(key, val) ;
+        string param = (*it)[3] ;
+        string literal = (*it)[4] ;
+        if ( !key.empty() )
+            args.emplace_back(key, val, true) ;
+        else if ( !param.empty() )
+            args.emplace_back(string(), param, false) ;
+        else if ( !literal.empty() )
+            args.emplace_back(string(), literal, true) ;
+
         ++ it ;
     }
 
@@ -432,7 +450,7 @@ struct PartialNode: public Node {
     typedef boost::shared_ptr<PartialNode> Ptr ;
 
     // inherit parent parameters
-    PartialNode(const string &name, const Dictionary &args, const Parser &context):
+    PartialNode(const string &name, const vector<Parser::Arg> &args, const Parser &context):
         key_(name), args_(args), context_(context) {
     }
 
@@ -449,7 +467,7 @@ struct PartialNode: public Node {
         Parser parser(context_.loader_, context_.helpers_, context_.caching_) ;
         auto ast = parser.parse(key) ;
         if ( ast ) {
-            ctx.push(Variant::fromDictionary(args_)) ;
+            ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
             ast->eval(ctx, res) ;
             ctx.pop() ;
         }
@@ -458,20 +476,24 @@ struct PartialNode: public Node {
     Type type() const override { return Partial ; }
 
     string key_ ;
-    Dictionary args_ ;
+    vector<Parser::Arg> args_ ;
     const Parser &context_ ;
 };
 
 struct HelperNode: public Node {
 
+
     typedef boost::shared_ptr<HelperNode> Ptr ;
 
     // inherit parent parameters
-    HelperNode(const string &name, TemplateRenderer::Helper helper): key_(name), helper_(helper) {}
+    HelperNode(const string &name, const vector<Parser::Arg> &args, TemplateRenderer::Helper helper): key_(name), args_(args), helper_(helper) {}
 
     void eval(ContextStack &ctx, string &res) const override {
 
-        string part = helper_(content_, ctx) ;
+        ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
+        Variant::Array params = Parser::getParams(args_, ctx) ;
+        string part = helper_(content_, ctx, params) ;
+        ctx.pop() ;
         res.append(part) ;
 
     }
@@ -484,9 +506,8 @@ struct HelperNode: public Node {
 
     string key_, content_ ;
     TemplateRenderer::Helper helper_ ;
+    vector<Parser::Arg> args_ ;
 
-
-    //    const Parser &context_ ;
 };
 
 struct ExtensionNode: public ContainerNode {
@@ -494,7 +515,7 @@ struct ExtensionNode: public ContainerNode {
     typedef boost::shared_ptr<ExtensionNode> Ptr ;
 
     // inherit parent parameters
-    ExtensionNode(const string &name, const Dictionary &args, const Parser &context): context_(context), ContainerNode(name) {
+    ExtensionNode(const string &name, const vector<Parser::Arg> &args, const Parser &context): context_(context), ContainerNode(name) {
     }
 
     void eval(ContextStack &ctx, string &res) const override {
@@ -506,7 +527,7 @@ struct ExtensionNode: public ContainerNode {
         if ( ast ) {
             // replace parent blocks with child blocks
 
-            ctx.push(Variant::fromDictionary(args_)) ;
+            ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
             for( auto &c: ast->children_ ) {
                 if ( c->type() == Node::Block ) {
                     BlockNode::Ptr block = boost::dynamic_pointer_cast<BlockNode>(c) ;
@@ -528,7 +549,7 @@ struct ExtensionNode: public ContainerNode {
 
     Type type() const override { return Extension ; }
     const Parser &context_ ;
-    Dictionary args_ ;
+    vector<Parser::Arg> args_ ;
 
 };
 
@@ -551,7 +572,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
         bool res = nextTag(src, raw, tag, e_cursor)  ;
 
         string name ;
-        Dictionary args ;
+        vector<Arg> args ;
 
         if ( helper_node ) { // just skip until we found a valid closing tag
             if ( tag.type_ == Tag::SectionEnd ) {
@@ -568,10 +589,10 @@ SectionNode::Ptr Parser::parseString(const string &src) {
             }
 
             if ( tag.type_ == Tag::SectionBegin  ) {
-                if ( parseSimpleTag(tag.name_, name)) {
+                if ( parseComplexTag(tag.name_, name, args)) {
                     auto it = helpers_.find(name) ;
                     if ( it != helpers_.end()) { // if it is a registered helper
-                        helper_node.reset(new HelperNode(name, it->second)) ;
+                        helper_node.reset(new HelperNode(name, args, it->second)) ;
                         parent->children_.push_back(helper_node) ;
                         s_cursor = idx_ ;
                     }

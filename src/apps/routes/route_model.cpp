@@ -27,7 +27,7 @@ Variant RouteModel::fetchMountain(const string &mountain)
 
 Variant RouteModel::fetchAll()
 {
-    Variant::Object results ;
+    Variant::Array results ;
 
     sqlite::Query stmt(con_, "SELECT id, title, mountain FROM routes ORDER BY mountain") ;
 
@@ -41,13 +41,15 @@ Variant RouteModel::fetchAll()
         res.into(id, title, mountain) ;
         if ( cmountain.empty() ) cmountain = mountain ;
         if ( mountain != cmountain ) {
-            auto it = mountains_.find(mountain) ;
+            auto it = mountains_.find(cmountain) ;
             assert(it != mountains_.end()) ;
-            results.insert({mountain, Variant::Object{{"name", it->second.name_}, {"routes", entry}}}) ;
+            results.emplace_back(Variant::Object{{"name", it->second.name_}, {"routes", entry}}) ;
             cmountain = mountain ;
-        } else {
-            entry.emplace_back(Variant::Object{{"id", id},  {"title", title}}) ;
+            entry.clear() ;
         }
+
+        entry.emplace_back(Variant::Object{{"id", id},  {"title", title}}) ;
+
         res.next() ;
     }
     return results ;

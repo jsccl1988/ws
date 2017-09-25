@@ -32,8 +32,30 @@ private:
     std::string suffix_ ;
 };
 
+struct ContextStack {
+
+    Variant top() const { return stack_.back() ; }
+
+    void push(Variant ctx) {
+        stack_.push_back(ctx) ;
+    }
+
+    void pop() { stack_.pop_back() ; }
+
+    Variant find(const std::string &item) {
+        for ( auto it = stack_.rbegin() ; it != stack_.rend() ; ++it ) {
+            Variant v = it->at(item) ;
+            if ( !v.isNull() ) return v ;
+        }
+
+        return Variant() ;
+    }
+
+
+    std::deque<Variant> stack_ ;
+};
 // Mustache template engine implementation
-class ContextStack ;
+
 
 class TemplateRenderer {
 public:
@@ -56,7 +78,7 @@ public:
 
     std::string renderString(const std::string &content, ContextStack &context) ;
 
-    typedef std::function<std::string(const std::string &src, ContextStack &stack)> Helper ;
+    typedef std::function<std::string(const std::string &src, ContextStack &stack, Variant::Array params)> Helper ;
     void registerHelper(const std::string &name,  Helper helper) ;
 
 private:

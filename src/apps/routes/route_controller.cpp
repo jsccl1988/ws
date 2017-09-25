@@ -222,6 +222,7 @@ bool RouteController::dispatch()
 
     if ( request_.matches("GET", "/{mountain:[\\w]+}?", attributes)  ) {
         list(attributes.get("mountain")) ;
+        return true ;
     }
     if ( request_.matches("GET", "/pages/list/") ) { // fetch table data
         if ( logged_in ) fetch() ;
@@ -283,8 +284,7 @@ void RouteController::show(const std::string &page_id)
 
 void RouteController::list(const string &mountain)
 {
-
-    if ( mountain.empty() ) {
+    if ( !mountain.empty() ) {
 
         Variant routes = routes_.fetchMountain(mountain) ;
 
@@ -298,10 +298,9 @@ void RouteController::list(const string &mountain)
 
         Variant ctx( Variant::Object{
                      { "page", page_.data("routes", "Όλες οι διαδρομές") },
-                     { "routes", routes },
+                     { "mountains", routes },
                       } )  ;
-        response_.write(engine_.render("routes-mountain", ctx)) ;
-
+        response_.write(engine_.render("routes-all", ctx)) ;
     }
 
 

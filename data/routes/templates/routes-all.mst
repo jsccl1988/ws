@@ -1,0 +1,32 @@
+{{<layout }}
+
+{{$contents}}
+    <div class="row">
+        <div class="col-md-12">
+			<div class="table-responsive" id="routes">
+				{{#mountains}}
+					<table class="table">
+  						<col width="50%">
+						<col width="50%">
+						<thead>
+							<tr><th colspan="2">{{name}}</th></tr>
+						</thead>
+						<tbody>
+						{{#make_two_columns routes}}
+							<td data-ref="{{id}}"><a href="view/{{id}}">{{title}}</a>
+						{{/make_two_columns}}	
+						</tbody>
+  					</table>
+				{{/mountains}}
+				</div> 
+            </div>
+        </div>
+    </div>
+   
+{{/contents}}
+{{$extra-footers}}
+<script type="text/javascript">
+
+</script>
+{{/extra-footers}}
+{{/layout}}

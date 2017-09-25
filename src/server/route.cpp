@@ -230,7 +230,7 @@ static string get_clean_path(const std::string &path)
 }
 
 bool Route::matches(const string &path, Dictionary &data) const {
-    return impl_->match(get_clean_path(path), data) ;
+    return impl_->match(path, data) ;
 
 }
 

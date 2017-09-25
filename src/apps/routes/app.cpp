@@ -51,6 +51,34 @@ public:
     }
 };
 
+/*
+ * 	$routes = $entry['routes'] ;
+                                $len = count($routes);
+                                $list1 = floor($len/2) ;
+                                $k = 0 ;
+                                for ( $i = 0 ; $i < $list1 ; $i++ ) {
+                                    $route = $routes[$k++] ;
+                                    $id = $route['id'] ;
+                                    $href = "view/$id/" ;
+                            ?>
+                                <tr><td data-ref="<?=$id?>"><a href="<?=$href?>"><?=$route['title']?></a></td>
+                                <?php
+                                    $route = $routes[$k++] ;
+                                    $id = $route['id'] ;
+                                    $href = "view/$id/" ;
+                                ?>
+                                <td data-ref="<?=$id?>"><a href="<?=$href?>"><?=$route['title']?></a></td></tr>
+                                <?php
+                                }
+                                    if ($k < $len ) {
+                                        $route = $routes[$k] ;
+                                        $id = $route['id'] ;
+                                        $href = "view/$id/" ;
+                                ?>
+                                <tr><td data-ref="<?=$id?>" colspan="2"><a href="<?=$href?>"><?=$route['title']?></a></td></tr>
+                                <?php
+                                */
+
 class BlogService: public RequestHandler {
 public:
 
@@ -59,8 +87,40 @@ public:
         root_(root_dir),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
-        engine_.registerHelper("i18n", [&](const std::string &src, ContextStack &ctx) -> string {
+        engine_.registerHelper("i18n", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
             return engine_.renderString(boost::locale::translate(src), ctx) ;
+        }) ;
+
+        engine_.registerHelper("make_two_columns", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
+            Variant v = params.at(0) ; // parameters is the array to iterate
+
+            size_t len = v.length() ;
+            size_t len1 = floor(len/2.0) ;
+            size_t k = 0 ;
+
+            string res ;
+            for(size_t i = 0 ; i < len1 ; i++ ) {
+                Variant p1 = v.at(k++) ;
+                res += "<tr>" ;
+                ctx.push(p1) ;
+                res += engine_.renderString(src, ctx) ;
+                ctx.pop() ;
+                Variant p2 = v.at(k++) ;
+                ctx.push(p2) ;
+                res += engine_.renderString(src, ctx) ;
+                ctx.pop() ;
+                res += "</tr>" ;
+            }
+            if ( k < len ) {
+                Variant p = v.at(k) ;
+                res += "<tr>" ;
+                ctx.push(p) ;
+                res += engine_.renderString(src, ctx) ;
+                ctx.pop() ;
+                res += "<td></td></tr>" ;
+            }
+            return res ;
+
         }) ;
     }
 
@@ -82,6 +142,7 @@ public:
         if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( LoginController(user, req, resp, engine_).dispatch() ) return ;
 
+        // not matched : try static file
         fs::path p(root_ + req.path_)  ;
         if ( fs::exists(p) && fs::is_regular_file(p) ) {
             resp.encode_file(p.string());
