@@ -1,3 +1,6 @@
+FIND_PACKAGE(SPATIALITE REQUIRED)
+
+INCLUDE_DIRECTORIES(${SPATIALITE_INCLUDE_DIR})
 ADD_EXECUTABLE(routes_app
    app.cpp
     route_model.cpp
@@ -8,7 +11,7 @@ ADD_EXECUTABLE(routes_app
     page_view.cpp
 )
 
-TARGET_LINK_LIBRARIES(routes_app ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} wspp_http_server wspp_web wspp_util)
+TARGET_LINK_LIBRARIES(routes_app ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} ${SPATIALITE_LIBRARY} wspp_http_server wspp_web wspp_util)
 
 
 

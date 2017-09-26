@@ -199,6 +199,61 @@ void RouteController::update()
 
 }
 
+void RouteController::track(const string &id) {
+    Variant data = routes_.fetchTrackGeoJSON(id) ;
+    response_.writeJSONVariant(data) ;
+}
+
+static string url_encode(const string &value) {
+    ostringstream escaped;
+    escaped.fill('0');
+    escaped << hex;
+
+    for ( char c : value ) {
+        if ( isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~') {
+            escaped << c;
+            continue;
+        }
+
+        // Any other characters are percent-encoded
+        escaped << uppercase;
+        escaped << '%' << setw(2) << int((unsigned char) c);
+        escaped << nouppercase;
+    }
+
+    return escaped.str();
+}
+
+void RouteController::download(const string &format, const string &route_id) {
+    vector<Track> tracks ;
+    vector<Waypoint> wpts ;
+    routes_.fetchTracks(route_id, tracks, wpts) ;
+
+    string mime, data ;
+    if ( format == "gpx" ) {
+        mime = "application/gpx+xml" ;
+        data = RouteModel::exportGpx(tracks, wpts) ;
+    } else {
+        mime = "application/vnd.google-earth.kml+xml" ;
+        data = RouteModel::exportKml(tracks, wpts) ;
+    }
+
+    string title = routes_.fetchTitle(route_id) ;
+
+    // Output headers.
+
+    string file_name = title + '.' + format ;
+
+    response_.headers_.replace("Cache-Control", "private");
+    if ( request_.SERVER_.get("HTTP_USER_AGENT").find("MSIE") != string::npos ) {
+        response_.headers_.replace("Content-Disposition", "attachment; filename=" + url_encode ( file_name )) ;
+    }  else {
+        response_.headers_.replace("Content-Disposition", "attachment; filename*=UTF-8''" + url_encode ( file_name )) ;
+    }
+
+    response_.encode_file_data(data, string(), mime, 0);
+}
+
 void RouteController::remove()
 {
    const Dictionary &params = request_.POST_ ;
@@ -254,31 +309,39 @@ bool RouteController::dispatch()
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("GET", "/page/{id}/", attributes) ) {
-        show(attributes.get("id")) ;
+    else if ( request_.matches("GET", "/download/track/{format:gpx|kml}/{id}", attributes) ) {
+        download(attributes.get("format"), attributes.get("id")) ;
+        return true ;
+    }
+    else if ( request_.matches("GET", "/track/{id}/", attributes) ) {
+        track(attributes.get("id")) ;
+        return true ;
+    }
+    else if ( request_.matches("GET", "/view/{id}/", attributes) ) {
+        view(attributes.get("id")) ;
         return true ;
     }
     else
         return false ;
 }
 
-void RouteController::show(const std::string &page_id)
-{
-    sqlite::Query q(con_, "SELECT id, title, content FROM pages WHERE permalink=?", page_id) ;
-    sqlite::QueryResult res = q.exec() ;
+void RouteController::view(const std::string &route_id) {
 
-    if ( res ) {
+    Variant route = routes_.fetch(route_id) ;
 
+    if ( route.isNull() )
+        throw HttpResponseException(Response::not_found) ;
+    else {
+        Variant attachments = routes_.fetchAttachments(route_id) ;
         Variant ctx( Variant::Object{
-                     { "page", page_.data(page_id, res.get<string>("title")) },
-                     { "content", res.get<string>("content") },
-                     { "id", res.get<int>("id") }
+             { "page", page_.data("view", route.at("title").toString()) },
+             { "route", route },
+             { "attachments", attachments },
+             { "id", route_id }
         }) ;
 
-        response_.write(engine_.render("page", ctx)) ;
+        response_.write(engine_.render("route-view", ctx)) ;
     }
-    else
-        throw HttpResponseException(Response::not_found) ;
 
 }
 
@@ -288,18 +351,20 @@ void RouteController::list(const string &mountain)
 
         Variant routes = routes_.fetchMountain(mountain) ;
 
+        string mname = routes_.getMountainName(mountain) ;
         Variant ctx( Variant::Object{
-                     { "page", page_.data("routes", mountain) },
+                     { "page", page_.data("routes", mname) },
+                     { "name", mname },
                      { "routes", routes },
-                      } )  ;
+                 } )  ;
         response_.write(engine_.render("routes-mountain", ctx)) ;
     } else {
-        Variant routes = routes_.fetchAll() ;
+        Variant routes = routes_.fetchAllByMountain() ;
 
         Variant ctx( Variant::Object{
                      { "page", page_.data("routes", "Όλες οι διαδρομές") },
                      { "mountains", routes },
-                      } )  ;
+                 } )  ;
         response_.write(engine_.render("routes-all", ctx)) ;
     }
 

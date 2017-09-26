@@ -7,6 +7,7 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/zfstream.cpp
     ${SRC_ROOT}/util/json.cpp
     ${SRC_ROOT}/util/filesystem.cpp
+    ${SRC_ROOT}/util/xml_writer.cpp
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
@@ -14,6 +15,7 @@ SET( UTIL_SOURCES
     ${INCLUDE_ROOT}/util/crypto.hpp
     ${INCLUDE_ROOT}/util/zfstream.hpp
     ${INCLUDE_ROOT}/util/filesystem.hpp
+    ${INCLUDE_ROOT}/util/xml_writer.hpp
 )
 
 SET ( WEB_SOURCES

@@ -241,7 +241,7 @@ static string normalize_path( const string &src ) {
 
     if ( dst_segments.empty() ) return "/" ;
     string res = "/" + boost::join(dst_segments, "/") ;
-    if ( src_segments.back().empty() ) res += "/" ;
+    //if ( src.back() == '/' ) res += "/" ;
     return res ;
 }
 

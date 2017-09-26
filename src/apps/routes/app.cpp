@@ -35,12 +35,38 @@
 #include <wspp/server/filters/static_file_handler.hpp>
 #include <wspp/server/filters/gzip_filter.hpp>
 
+#include <spatialite.h>
 
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 namespace fs = boost::filesystem ;
+
+class SpatialLiteSingleton
+{
+public:
+
+    static SpatialLiteSingleton& instance() {
+        return instance_ ;
+    }
+    static SpatialLiteSingleton instance_;
+private:
+
+    SpatialLiteSingleton () {
+        spatialite_init(false);
+    }
+
+    ~SpatialLiteSingleton () {
+        spatialite_cleanup();
+    }
+
+    SpatialLiteSingleton( SpatialLiteSingleton const & ) = delete;
+
+    void operator = ( SpatialLiteSingleton const & ) = delete ;
+};
+
+SpatialLiteSingleton SpatialLiteSingleton::instance_ ;
 
 class DefaultLogger: public Logger
 {
@@ -51,38 +77,10 @@ public:
     }
 };
 
-/*
- * 	$routes = $entry['routes'] ;
-                                $len = count($routes);
-                                $list1 = floor($len/2) ;
-                                $k = 0 ;
-                                for ( $i = 0 ; $i < $list1 ; $i++ ) {
-                                    $route = $routes[$k++] ;
-                                    $id = $route['id'] ;
-                                    $href = "view/$id/" ;
-                            ?>
-                                <tr><td data-ref="<?=$id?>"><a href="<?=$href?>"><?=$route['title']?></a></td>
-                                <?php
-                                    $route = $routes[$k++] ;
-                                    $id = $route['id'] ;
-                                    $href = "view/$id/" ;
-                                ?>
-                                <td data-ref="<?=$id?>"><a href="<?=$href?>"><?=$route['title']?></a></td></tr>
-                                <?php
-                                }
-                                    if ($k < $len ) {
-                                        $route = $routes[$k] ;
-                                        $id = $route['id'] ;
-                                        $href = "view/$id/" ;
-                                ?>
-                                <tr><td data-ref="<?=$id?>" colspan="2"><a href="<?=$href?>"><?=$route['title']?></a></td></tr>
-                                <?php
-                                */
-
-class BlogService: public RequestHandler {
+class RoutesApp: public RequestHandler {
 public:
 
-    BlogService(const std::string &root_dir, SessionHandler &session_handler):
+    RoutesApp(const std::string &root_dir, SessionHandler &session_handler):
         session_handler_(session_handler),
         root_(root_dir),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
@@ -191,7 +189,7 @@ int main(int argc, char *argv[]) {
     DefaultLogger logger("/tmp/logger", true) ;
 
     const string root = "/home/malasiot/source/ws/data/routes/" ;
-    BlogService *service = new BlogService(root, sh) ;
+    RoutesApp *service = new RoutesApp(root, sh) ;
 
     server.setHandler(service) ;
 

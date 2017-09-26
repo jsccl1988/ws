@@ -42,7 +42,7 @@ public:
 
     bool dispatch() ;
 
-    void show(const string &page_id) ;
+    void view(const string &route_id) ;
     void list(const std::string &mountain) ;
     void create() ;
     void publish() ;
@@ -51,8 +51,8 @@ public:
     void remove() ;
     void fetch();
     void update();
-protected:
-
+    void track(const string &route_id) ;
+    void download(const string &format, const string &route_id) ;
 
 private:
     Connection &con_ ;
