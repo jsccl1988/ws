@@ -437,8 +437,9 @@ static bool parse_mime_data(Request &session, istream &strm, const string &fld, 
 
             file_info.mime_ = content_type ;
             file_info.name_ = file_name ;
+            file_info.data_ = data ;
 
-
+/*
             if ( dsize > file_upload_persist_file_size ) {
                 boost::filesystem::path server_path = get_temporary_path(string(), "up", "tmp") ;
 
@@ -447,8 +448,9 @@ static bool parse_mime_data(Request &session, istream &strm, const string &fld, 
 
                 file_info.path_ = server_path.string() ;
             } else {
-                file_info.data_ = data ;
-            }
+            */
+
+            /*}*/
 
             file_info.size_ = data.size() ;
             session.FILE_.insert({fld, file_info}) ;

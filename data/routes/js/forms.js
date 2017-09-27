@@ -9,6 +9,7 @@
 			var that = $(this);
 			var form = that.find('form') ;
 			
+			
 			function clearErrors() {
 				$('#global-errors', form).remove() ;
 				
@@ -21,11 +22,15 @@
 			}
 			
 			form.submit(function(e) {
+				 var formData = new FormData(this);
 				$.ajax({
 					type: "POST",
 					dataType: "json",
 					url: params.url,
-					data: form.serialize(), // serializes the form's elements.
+					processData: false,
+				    contentType: false,
+//					data: form.serialize(), // serializes the form's elements.
+					data: formData,
 					success: function(data)	{
 						if ( data.success ) 
 							params.onSuccess() ;
@@ -73,6 +78,8 @@
 	};
 	
 	$.fn.formModal = function(params) { 
+		var defaults = { onSuccess: function () {} } ;
+		var params = $.extend( {}, defaults, params );
 		this.each(function() {
 			var that = $(this);
 			
@@ -82,10 +89,12 @@
 		    
 		    	var msg = $('<div></div>').load(params.url, 
 				function(response, status, xhr) {
+					msg.find(':file').filestyle({btnClass: "btn-primary"}) ;
 					var dialog = new BootstrapDialog({ 
 						title: params.title,
 						message: msg
 					});
+					
 							
 					dialog.realize() ;
 					dialog.open() ;
@@ -94,9 +103,10 @@
 						url: params.url,
 						onSuccess: function() {
 							dialog.close() ;
-							location.reload(false) ;						
+							params.onSuccess() ;
 						}
 					}) ; 
+					
 				}) ;
 			}) ;	
 		});

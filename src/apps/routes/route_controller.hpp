@@ -20,14 +20,17 @@ using wspp::server::Session ;
 using std::string ;
 using wspp::web::TemplateRenderer ;
 
-class RouteEditForm: public wspp::web::Form {
+class RouteCreateForm: public wspp::web::Form {
 public:
-    RouteEditForm(Connection &con, const string &id = string()) ;
+    RouteCreateForm(const Request &req, const RouteModel &routes) ;
+
+    const RouteGeometry &geom() const { return geom_ ; }
 
 private:
-    wspp::web::InputField *title_field_, *slug_field_ ;
-    Connection &con_ ;
-    string id_ ;
+
+    RouteGeometry geom_ ;
+    const Request &request_ ;
+    const RouteModel &routes_ ;
 };
 
 // CREATE TABLE routes ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, mountain TEXT )
@@ -43,7 +46,8 @@ public:
     bool dispatch() ;
 
     void view(const string &route_id) ;
-    void list(const std::string &mountain) ;
+    void browse(const std::string &mountain) ;
+    void list() ;
     void create() ;
     void publish() ;
     void edit() ;
@@ -51,6 +55,7 @@ public:
     void remove() ;
     void fetch();
     void update();
+    void uploadTrack() ;
     void track(const string &route_id) ;
     void download(const string &format, const string &route_id) ;
 

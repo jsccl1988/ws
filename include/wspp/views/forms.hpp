@@ -8,12 +8,13 @@
 #include <wspp/util/variant.hpp>
 #include <wspp/util/database.hpp>
 #include <wspp/server/session.hpp>
+#include <wspp/server/request.hpp>
 
 #include <memory>
 #include <functional>
 
 using std::string ;
-
+using wspp::server::Request ;
 
 namespace wspp { namespace web {
 
@@ -152,6 +153,14 @@ private:
     string type_ ;
 };
 
+class FileUploadField: public FormField {
+public:
+    FileUploadField(const string &name): FormField(name) {}
+
+    void fillData(Variant::Object &) const override;
+
+};
+
 class SelectField: public FormField {
 public:
     SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi = false);
@@ -188,7 +197,7 @@ public:
     // call to validate the user data against the form
     // the field values are stored in case of succesfull field validation
     // override to add additional validation e.g. requiring more than one fields (do not forget to call base class)
-    virtual bool validate(const Dictionary &vals) ;
+    virtual bool validate(const Request &vals) ;
 
     // init values with user supplied (no validation)
     void init(const Dictionary &vals) ;

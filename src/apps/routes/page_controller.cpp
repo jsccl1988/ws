@@ -90,7 +90,7 @@ void PageController::create()
 
     if ( request_.method_ == "POST" ) {
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
             // write data to database
 
@@ -152,7 +152,7 @@ void PageController::update()
 
         PageEditForm form(con_, id) ;
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
             // write data to database
 

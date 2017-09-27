@@ -4,6 +4,8 @@
 #include <wspp/util/database.hpp>
 #include <wspp/util/variant.hpp>
 
+#include "route_geometry.hpp"
+
 using wspp::util::sqlite::Connection ;
 using wspp::util::Variant ;
 using wspp::util::Dictionary ;
@@ -16,24 +18,6 @@ struct Mountain {
     double lat_, lon_ ;
 };
 
-struct TrackPoint {
-    double lat_, lon_, ele_ ;
-};
-
-struct TrackSegment {
-    std::string name_ ;
-    std::vector<TrackPoint> pts_ ;
-};
-
-struct Track {
-    std::string name_ ;
-    std::vector<TrackSegment> segments_ ;
-} ;
-
-struct Waypoint {
-    double lat_, lon_, ele_ ;
-    std::string name_, desc_ ;
-};
 
 class RouteModel {
  public:
@@ -46,12 +30,15 @@ class RouteModel {
     Variant fetchAttachments(const std::string &id) const;
     std::string getMountainName(const std::string &mountain_id) const;
     std::string getAttachmentTitle(const std::string &att_id) const;
+    Dictionary getMountainsDict() const ;
 
-    Variant fetchTrackGeoJSON(const std::string &route_id) const ;
-    void fetchTracks(const std::string &route_id, std::vector<Track> &tracks, std::vector<Waypoint> &wpts) ;
+    bool importRoute(const std::string &title, const std::string &role_id, const RouteGeometry &geom) ;
 
-    static std::string exportGpx(const std::vector<Track> &tracks, const std::vector<Waypoint> &wpts) ;
-    static std::string exportKml(const std::vector<Track> &tracks, const std::vector<Waypoint> &wpts) ;
+    void fetchGeometry(const std::string &route_id, RouteGeometry &geom) ;
+
+    static Variant exportGeoJSON(const RouteGeometry &geom) ;
+    static std::string exportGpx(const RouteGeometry &geom) ;
+    static std::string exportKml(const RouteGeometry &geom) ;
 
     std::string fetchTitle(const std::string &id) const ;
 

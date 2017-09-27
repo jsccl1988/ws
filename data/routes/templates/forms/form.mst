@@ -1,5 +1,6 @@
 {{> error_message.mst}} 
-{{# fields }} 
-	{{> input_field }}
+{{#fields }} 
+{{{widget}}}
+	{{> widget }}
 {{/fields}}
 

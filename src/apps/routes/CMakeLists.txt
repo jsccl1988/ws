@@ -5,6 +5,8 @@ ADD_EXECUTABLE(routes_app
    app.cpp
     route_model.cpp
     route_model.hpp
+    gpx_parser.cpp
+    gpx_parser.hpp
     page_controller.cpp
     users_controller.cpp
     route_controller.cpp

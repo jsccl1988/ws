@@ -1,0 +1,25 @@
+{{<layout }}
+
+{{$contents}}
+		<div id="routes-list-view">
+		</div>
+{{/contents}}
+
+{{$extra_footers}}
+		<script src="js/tableview.js"></script>
+        <script type="text/javascript">
+  			$(document).ready(function() {
+  			
+  				$('#routes-list-view').tableview({ 
+  					listUrl:"routes/list/",  
+  					addUrl: "routes/add/",
+  					updateUrl: "routes/update/",
+  					deleteUrl: "routes/delete/"
+  				}) ;
+			});
+		
+		</script>
+
+{{/extra_footers}}
+
+{{/layout}}

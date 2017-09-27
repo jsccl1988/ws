@@ -163,7 +163,7 @@ boost::regex  UriPatternMatcher::makeRegexFromPattern(const string &pat, const R
     for(  ; it != route.elements_.rend() ; ++it, ++pit ) {
         const RouteElement &e = *it ;
 
-        if ( e.optional_ ) rx = "(?:/" + *pit + rx + ")?" ;
+        if ( e.optional_ ) rx = "/" + *pit + "?" + rx  ;
         else rx = "/" + *pit + rx ;
     }
 

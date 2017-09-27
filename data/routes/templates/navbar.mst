@@ -32,6 +32,8 @@
 	                         <li><a  href="#" id="logout">Logout</a></li>
                              <li role="separator" class="divider"></li>
                              <li><a href="pages/edit/">Edit Pages</a></li>
+                             <li><a href="users/edit/">Edit Users</a></li>
+                             <li><a href="routes/edit/">Edit Routes</a></li>
                         </ul>
                 </ul>
                         </li>

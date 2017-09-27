@@ -132,7 +132,7 @@ void UsersController::create()
 
     if ( request_.method_ == "POST" ) {
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
             // write data to database
 
@@ -169,7 +169,7 @@ void UsersController::update()
 
         UserModifyForm form(user_, id) ;
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
             string password = form.getValue("password") ;
             string role = form.getValue("role") ;

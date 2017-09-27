@@ -72,6 +72,11 @@ void InputField::fillData(Variant::Object &base) const
     base.insert({"widget", "input-field"}) ;
 }
 
+void FileUploadField::fillData(Variant::Object &base) const {
+    FormField::fillData(base) ;
+    base.insert({"type", "file"}) ;
+    base.insert({"widget", "file-upload-field"}) ;
+}
 
 SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
     addValidator([&](const string &val, const FormField &) {
@@ -201,15 +206,31 @@ string Form::getValue(const string &field_name)
     return it->second->value_ ;
 }
 
-bool Form::validate(const Dictionary &vals) {
+bool Form::validate(const Request &req) {
     bool failed = false ;
-    for( const auto &p: fields_ ) {
-        if ( vals.contains(p->name_) ) {
 
-            bool res = p->validate(vals.get(p->name_)) ;
+    // validate POST params
+
+    for( const auto &p: fields_ ) {
+        if ( req.POST_.contains(p->name_) ) {
+
+            bool res = p->validate(req.POST_.get(p->name_)) ;
             if ( !res ) failed = true ;
         }
     }
+
+    // validate file params
+    // in this case the validator only receives the name of the field in the FILE dictionary
+    // and is responsible for fetchinf the data from there
+
+    for( const auto &p: fields_ ) {
+        auto it = req.FILE_.find(p->name_) ;
+        if ( it != req.FILE_.end() ) {
+            bool res = p->validate(p->name_) ;
+            if ( !res ) failed = true ;
+        }
+    }
+
     is_valid_ = !failed ;
     return is_valid_ ;
 }

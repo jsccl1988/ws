@@ -45,7 +45,105 @@ string RouteModel::getAttachmentTitle(const string &att_id) const {
     return it->second ;
 }
 
-static Variant::Array box_from_extent(const sqlite::Blob &blob) {
+Dictionary RouteModel::getMountainsDict() const {
+    Dictionary res ;
+    for( const auto &p: mountains_ ) {
+        res.add(p.first, p.second.name_) ;
+    }
+    return res ;
+}
+
+bool RouteModel::importRoute(const string &title, const string &mountain_id, const RouteGeometry &geom)
+{
+    uint64_t route_id ;
+
+    {
+        sqlite::Statement stmt(con_, "INSERT INTO routes ( title, mountain ) VALUES (?, ?)", title, mountain_id) ;
+        stmt.exec() ;
+        route_id = con_.last_insert_rowid() ;
+    }
+
+    sqlite::Transaction trans(con_) ;
+
+    sqlite::Statement stmt(con_, "INSERT INTO tracks ( geom, route ) VALUES (ST_GeomFromText(?,4326), ?)") ;
+
+    for( const Track &track: geom.tracks_ ) {
+        ostringstream geomstr ;
+
+        geomstr << "MULTILINESTRING(" ;
+
+        for ( uint k=0 ; k < track.segments_.size() ; k++ ) {
+
+            if ( k > 0 ) geomstr << ',' ;
+            const TrackSegment &seg = track.segments_[k] ;
+            geomstr << '(' ;
+            for( uint i=0 ; i<seg.pts_.size() ; i++ ) {
+                const TrackPoint &pt = seg.pts_[i] ;
+                if ( i > 0 ) geomstr << ',' ;
+                geomstr << pt.lon_ << ' ' << pt.lat_ ;
+            }
+            geomstr << ')' ;
+        }
+
+        geomstr << ')' ;
+
+        string geom = geomstr.str() ;
+        stmt(geom, route_id) ;
+        stmt.clear() ;
+    }
+
+    trans.commit() ;
+}
+
+Variant RouteModel::exportGeoJSON(const RouteGeometry &g) {
+
+    Variant::Array track_features, wpt_features ;
+
+    for( const Track &tr: g.tracks_ ) {
+
+        Variant::Array track_coords ;
+
+        for( const TrackSegment &seg: tr.segments_ ) {
+
+            Variant::Array ls ;
+
+            for( const TrackPoint &pt: seg.pts_ ) {
+                ls.emplace_back(Variant::Array{pt.lon_, pt.lat_}) ;
+            }
+
+            track_coords.emplace_back(ls) ;
+        }
+
+        track_features.emplace_back(Variant::Object{{"type", "Feature"},
+                                                     {"geometry", Variant::Object{{"type", "MultiLineString"}, {"coordinates", track_coords}}
+                                                     }}) ;
+    }
+
+    for( const Waypoint &wpt: g.wpts_ ) {
+
+        Variant::Array wpt_coords{ wpt.lon_, wpt.lat_ } ;
+
+        wpt_features.emplace_back(Variant::Object{{"type", "Feature"},
+                                              {"name", wpt.name_ },
+                                              {"desc", wpt.desc_ },
+                                              {"geometry", Variant::Object{{"type", "Point"}, {"coordinates", wpt_coords}}}
+                                  }) ;
+    }
+
+
+    Variant::Object tracks{{"type", "FeatureCollection"},
+                           {"features", track_features}} ;
+
+    Variant::Object wpts{{"type", "FeatureCollection"},
+                           {"features", wpt_features}} ;
+
+    Variant::Array box{g.box_.min_lon_, g.box_.min_lat_, g.box_.max_lon_, g.box_.max_lat_} ;
+
+    return Variant::Object{{"box", box}, {"tracks", tracks }, {"wpts", wpts} } ;
+}
+
+
+static GeomBox box_from_extent(const sqlite::Blob &blob) {
 
     double min_lat, min_lon, max_lat, max_lon ;
 
@@ -68,61 +166,9 @@ static Variant::Array box_from_extent(const sqlite::Blob &blob) {
         max_lon = std::max<float>(max_lon, lon) ;
     }
 
-    return Variant::Array({min_lon, min_lat, max_lon, max_lat}) ;
+    return {min_lon, min_lat, max_lon, max_lat} ;
 }
 
-Variant RouteModel::fetchTrackGeoJSON(const string &route_id) const {
-
-
-    Variant::Array track_features, wpt_features, box ;
-
-    {
-        sqlite::Query stmt(con_, "SELECT id, AsGeoJSON(geom) as geom FROM tracks WHERE route=?") ;
-        sqlite::QueryResult res = stmt(route_id) ;
-
-        while ( res ) {
-            track_features.emplace_back(Variant::Object{{"type", "Feature"},
-                                                  {"id", res.get<int>("id")},
-                                                  {"geometry", Variant::fromJSONString(res.get<string>("geom"))}}) ;
-            res.next() ;
-        }
-    }
-
-    {
-        sqlite::Query stmt(con_, "SELECT id, name, desc, AsGeoJSON(geom) as geom FROM wpts WHERE route=?") ;
-        sqlite::QueryResult res = stmt(route_id) ;
-
-        while ( res ) {
-            wpt_features.emplace_back(Variant::Object{{"type", "Feature"},
-                                                  {"id", res.get<int>("id")},
-                                                  {"name", res.get<string>("name") },
-                                                  {"desc", res.get<string>("desc") },
-                                                  {"geometry", Variant::fromJSONString(res.get<string>("geom"))}}) ;
-            res.next() ;
-        }
-    }
-
-
-
-    Variant::Object tracks{{"type", "FeatureCollection"},
-                           {"features", track_features}} ;
-
-    Variant::Object wpts{{"type", "FeatureCollection"},
-                           {"features", wpt_features}} ;
-
-
-    {
-
-        sqlite::Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?") ;
-        sqlite::QueryResult res = stmt(route_id) ;
-        sqlite::Blob blob = res.get<sqlite::Blob>(0) ;
-
-        if ( blob.data() != nullptr )
-            box = box_from_extent(blob) ;
-    }
-
-    return Variant::Object{{"box", box}, {"tracks", tracks }, {"wpts", wpts} } ;
-}
 
 static void parse_linestring(gaiaLinestringPtr line, TrackSegment &seg) {
     size_t n_points = line->Points ;
@@ -140,8 +186,10 @@ static void parse_multi_linestring(gaiaGeomCollPtr geom, Track &track) {
 
     gaiaLinestringPtr line = geom->FirstLinestring ;
 
+    uint count = 1 ;
     while ( line ) {
         TrackSegment segment ;
+        segment.name_ = "segment-" + to_string(count++) ;
         parse_linestring(line, segment) ;
         track.segments_.emplace_back(segment) ;
         line = line->Next ;
@@ -158,8 +206,9 @@ static void parse_point(gaiaGeomCollPtr geom, Waypoint &wpt) {
     }
 }
 
-void RouteModel::fetchTracks(const string &route_id, std::vector<Track> &tracks, std::vector<Waypoint> &wpts)
+void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
 {
+    string name = g.name_ = fetchTitle(route_id) ;
     {
         sqlite::Query stmt(con_, "SELECT id, geom FROM tracks WHERE route=?") ;
         sqlite::QueryResult res = stmt(route_id) ;
@@ -172,8 +221,15 @@ void RouteModel::fetchTracks(const string &route_id, std::vector<Track> &tracks,
             parse_multi_linestring(geom, tr) ;
             gaiaFreeGeomColl(geom);
 
-            tracks.emplace_back(tr) ;
+            g.tracks_.emplace_back(tr) ;
             res.next() ;
+        }
+
+        if ( g.tracks_.size() == 1 ) g.tracks_[0].name_ = name ;
+        else  {
+            uint k = 1 ;
+            for( Track &tr: g.tracks_ )
+                tr.name_ = name + "_" + to_string(k++) ;
         }
     }
 
@@ -192,8 +248,19 @@ void RouteModel::fetchTracks(const string &route_id, std::vector<Track> &tracks,
             pt.desc_ = res.get<string>("desc") ;
             gaiaFreeGeomColl(geom);
 
-            wpts.emplace_back(pt) ;
+            g.wpts_.emplace_back(pt) ;
             res.next() ;
+        }
+    }
+
+    {
+
+        sqlite::Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?") ;
+        sqlite::QueryResult res = stmt(route_id) ;
+        sqlite::Blob blob = res.get<sqlite::Blob>(0) ;
+
+        if ( blob.data() != nullptr ) {
+            g.box_ = box_from_extent(blob) ;
         }
     }
 
@@ -207,7 +274,7 @@ static string xml_date() {
     return time_buf ;
 }
 
-string RouteModel::exportGpx(const std::vector<Track> &tracks, const std::vector<Waypoint> &wpts) {
+string RouteModel::exportGpx(const RouteGeometry &g) {
     ostringstream strm ;
 
     XmlWriter writer(strm) ;
@@ -218,21 +285,20 @@ string RouteModel::exportGpx(const std::vector<Track> &tracks, const std::vector
           .attr("creator", "http://vision.iti.gr/routes/")
           .attr("xmlns", "http://www.topografix.com/GPX/1/0")
           .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-          .attr("xsi:schemaLocation", "http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd") ;
+          .attr("xsi:schemaLocation", "http://www.topografix.com/GPX/1/0/gpx.xsd") ;
 
     writer.startElement("time") ;
     writer.text(xml_date()) ;
     writer.endElement() ;
-    /*
-    writer.startElement('bounds') ;
-            writer.writeAttribute('minlat', $data['box'][1]) ;
-            writer.writeAttribute('minlon', $data['box'][0]) ;
-            writer.writeAttribute('maxlat', $data['box'][3]) ;
-            writer.writeAttribute('maxlon', $data['box'][2]) ;
-            writer.endElement() ;
-      */
 
-    for ( const Waypoint &wpt: wpts ) {
+    writer.startElement("bounds")
+          .attr("minlat", to_string(g.box_.min_lat_))
+          .attr("minlon", to_string(g.box_.min_lon_))
+          .attr("maxlat", to_string(g.box_.max_lat_))
+          .attr("maxlon", to_string(g.box_.max_lon_))
+          .endElement() ;
+
+    for ( const Waypoint &wpt: g.wpts_ ) {
         writer.startElement("wpt")
               .attr("lat", to_string(wpt.lat_) )
               .attr("lon", to_string(wpt.lon_) )  ;
@@ -252,7 +318,7 @@ string RouteModel::exportGpx(const std::vector<Track> &tracks, const std::vector
         writer.endElement() ; //wpt
     }
 
-    for( const Track &trk: tracks ) {
+    for( const Track &trk: g.tracks_ ) {
         writer.startElement("trk") ;
 
         if ( !trk.name_.empty() )
@@ -280,9 +346,169 @@ string RouteModel::exportGpx(const std::vector<Track> &tracks, const std::vector
     return strm.str() ;
 }
 
-string RouteModel::exportKml(const std::vector<Track> &tracks, const std::vector<Waypoint> &wpts)
-{
+string RouteModel::exportKml(const RouteGeometry &g) {
 
+    ostringstream strm ;
+    XmlWriter writer(strm) ;
+
+    writer.startDocument();
+    writer.startElement("kml") ;
+
+    writer.attr("xmlns", "http://www.opengis.net/kml/2.2")
+          .attr("xmlns:gx", "http://www.google.com/kml/ext/2.2")
+          .attr("xmlns:kml", "http://www.opengis.net/kml/2.2")
+          .attr("xmlns:atom", "http://www.w3.org/2005/Atom") ;
+
+    writer.startElement("Document") ;
+
+    writer.startElement("name") ;
+    writer.text(g.name_);
+    writer.endElement() ;
+
+    // style for waypoints
+
+    writer.startElement("Style").attr("id", "waypoint") ;
+        writer.startElement("IconStyle") ;
+            writer.startElement("Icon") ;
+                writer.startElement("href") ;
+                    writer.text("http://maps.google.com/mapfiles/kml/paddle/red-stars.png") ;
+                writer.endElement() ;
+            writer.endElement() ;
+        writer.endElement() ;
+    writer.endElement() ;
+
+    // styles for tracks
+
+    writer.startElement("Style").attr("id", "track") ;
+        writer.startElement("LineStyle") ;
+            writer.startElement("color") ;
+                writer.text("ffff0000") ;
+            writer.endElement() ;
+            writer.startElement("width") ;
+                writer.text("2") ;
+            writer.endElement() ;
+        writer.endElement() ;
+    writer.endElement() ;
+
+    // waypoints
+
+    writer.startElement("Folder") ;
+
+        writer.startElement("name") ;
+            writer.text("Waypoints") ;
+        writer.endElement() ;
+
+        writer.startElement("Region") ;
+            writer.startElement("LatLonAltBox") ;
+                writer.startElement("east") ;
+                    writer.text(to_string(g.box_.max_lon_)) ;
+                writer.endElement() ;
+                writer.startElement("west") ;
+                    writer.text(to_string(g.box_.min_lon_)) ;
+                writer.endElement() ;
+                writer.startElement("north") ;
+                    writer.text(to_string(g.box_.max_lat_)) ;
+                writer.endElement() ;
+                writer.startElement("south") ;
+                    writer.text(to_string(g.box_.min_lat_)) ;
+                writer.endElement() ;
+            writer.endElement() ;
+
+            writer.startElement("Lod") ;
+                writer.startElement("minLodPixels") ;
+                    writer.text("256") ;
+                writer.endElement() ;
+            writer.endElement() ;
+        writer.endElement() ;
+
+
+        for ( const Waypoint &pt: g.wpts_ ) {
+            ostringstream coordinates ;
+            coordinates << pt.lon_ << ',' << pt.lat_ ;
+            if ( pt.ele_ > 0 ) coordinates << ',' << pt.ele_ ;
+
+            writer.startElement("Placemark") ;
+                writer.startElement("name") ;
+                    writer.text(boost::trim_copy(pt.name_)) ;
+                writer.endElement() ;
+
+                if ( !pt.desc_.empty() ) {
+                    writer.startElement("description") ;
+                        writer.text(boost::trim_copy(pt.desc_)) ;
+                    writer.endElement() ;
+                }
+
+                writer.startElement("styleUrl") ;
+                    writer.text("#waypoint") ;
+                writer.endElement() ;
+
+                writer.startElement("Point") ;
+                    writer.startElement("coordinates") ;
+                        writer.text(coordinates.str()) ;
+                    writer.endElement() ;
+                writer.endElement() ;
+            writer.endElement() ;
+        }
+
+    writer.endElement() ; // waypoints folder
+
+    // Tracks
+
+    writer.startElement("Folder") ;
+
+        writer.startElement("name") ;
+            writer.text("Tracks") ;
+        writer.endElement() ;
+
+        uint count = 1 ;
+
+
+        for( const Track &trk: g.tracks_ ) {
+
+            writer.startElement("Folder") ;
+
+            writer.startElement("name") ;
+                writer.text(boost::trim_copy(trk.name_)) ;
+            writer.endElement() ;
+
+            for( const TrackSegment &seg: trk.segments_ ) {
+
+                writer.startElement("Placemark") ;
+
+                    writer.startElement("name") ;
+                        writer.text(boost::trim_copy(seg.name_)) ;
+                    writer.endElement() ;
+
+                    writer.startElement("styleUrl") ;
+                        writer.text("#track") ;
+                    writer.endElement() ;
+
+                    writer.startElement("LineString") ;
+                        writer.startElement("coordinates") ;
+
+                        ostringstream coordinates ;
+
+                        for( const TrackPoint &pt: seg.pts_ ) {
+                            coordinates << pt.lon_ << ',' << pt.lat_ << ' ' ;
+                        }
+
+                        writer.text(coordinates.str()) ;
+                        writer.endElement() ;
+                    writer.endElement() ;
+                writer.endElement() ;
+            }
+
+            writer.endElement() ; // trkseg
+        }
+
+    writer.endElement() ; // tracks folder
+
+    writer.endElement() ; // Document
+    writer.endElement() ; // kml
+
+    writer.endDocument();
+
+    return strm.str() ;
 }
 
 string RouteModel::fetchTitle(const string &id) const {

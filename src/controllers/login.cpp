@@ -20,7 +20,7 @@ class LoginForm: public wspp::web::Form {
 public:
     LoginForm(User &auth) ;
 
-    bool validate(const Dictionary &vals) override ;
+    bool validate(const Request &vals) override ;
 private:
     User &auth_ ;
 
@@ -45,7 +45,7 @@ LoginForm::LoginForm(User &auth): auth_(auth) {
     field<CheckBoxField>("remember-me").label("Remember Me:") ;
 }
 
-bool LoginForm::validate(const Dictionary &vals) {
+bool LoginForm::validate(const Request &vals) {
     if ( !Form::validate(vals) ) return false ;
 
     if ( !hashCompare(getValue("csrf_token"), auth_.token()) )
@@ -84,7 +84,7 @@ void LoginController::login()
 
     if ( request_.method_ == "POST" ) {
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
             string username = form.getValue("username") ;
             bool remember_me = form.getValue("remember-me") == "on" ;

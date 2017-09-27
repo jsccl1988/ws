@@ -261,7 +261,7 @@ public:
 
         for( auto &a: args ) {
             if ( a.key_.empty() ) continue ;
-            string value = ( a.is_literal_ ) ? stack.find(a.val_).toString() : a.val_ ;
+            string value = ( !a.is_literal_ ) ? stack.find(a.val_).toString() : a.val_ ;
             res.insert({a.key_, value}) ;
         }
         return res ;

@@ -1,6 +1,6 @@
 $(function() {
 
-	$("#login").formModal({url: 'user/login', title: 'Sign In'}) ;
+	$("#login").formModal({url: 'user/login', title: 'Sign In', onSuccess: function() { location.reload(false); }}) ;
 
 
     $("#logout").click(function(e) {
@@ -9,7 +9,7 @@ $(function() {
 		    url: "user/logout/",
 		    type: "POST",
 			success: function(data)	{
-       		   	location.reload(false) ;
+       		   	document.location.href="";
             }
         }) ;
 	}) ;

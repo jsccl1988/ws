@@ -10,82 +10,13 @@
     	var item = this ;
     	
     	function onNewRecord() 	{
-
-			var msg = $('<div></div>').load(options['addUrl'], 
-				function(response, status, xhr) {
-					var dialog = new BootstrapDialog({ 
-						title: 'New Record',
-						message: msg
-					});
-							
-					dialog.realize() ;
-					dialog.open() ;
-        
-					var form = msg.find('form') ;
-					form.submit(function(e) {
-						$.ajax({
-							type: "POST",
-							dataType: "json",
-							url: options['addUrl'],
-							data: form.serialize(), // serializes the form's elements.
-							success: function(data)
-							{
-								if ( data.success ) {
-									dialog.close() ;
-									reload() ;
-								}
-								else {
-									form.html(data.content) ;
-								}
-							} 
-						});
-								
-						e.preventDefault() ;
-					}) ;
-				}) ;
+			item.formModal({url: options.addUrl, title: 'New Record'}) ;
 		} ;
-		
-		
 				
-				function onEditRecord() 	{
-
-					var id = $(this).closest('tr').data('id') ;
-					var msg = $('<div></div>').load(options['updateUrl'], $.param({id: id}),
-						function(response, status, xhr) {
-							var dialog = new BootstrapDialog({ 
-								title: 'Edit Record',
-								message: msg
-							});
-							
-							dialog.realize() ;
-							dialog.open() ;
-        
-							var form = msg.find('form') ;
-							form.submit(function(e) {
-								var fdata = $(form).serializeArray();
-								fdata.push({"id": id});
-
-								$.ajax({
-									type: "POST",
-									dataType: "json",
-									url: options['updateUrl'],
-									data: $(form).serialize() + '&' + $.param({id: id}),
-									success: function(data)
-									{
-										if ( data.success ) {
-											dialog.close() ;
-											reload() ;
-										}
-										else {
-											form.html(data.content) ;
-										}
-									} 
-								});
-								
-								e.preventDefault() ;
-							}) ;
-						}) ;
-				} ;
+		function onEditRecord() 	{
+			var id = $(this).closest('tr').data('id') ;
+			item.formModal({url: options.updateUrl, title: 'Edit Record', data: {id: id}}) ;
+		} ;
 				
 				function onDeleteRecord() {
 					var id = $(this).closest('tr').data('id') ;

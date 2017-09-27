@@ -6,46 +6,47 @@
 #include <wspp/views/table.hpp>
 #include <wspp/server/exceptions.hpp>
 
+#include "gpx_parser.hpp"
+
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
-RouteEditForm::RouteEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
+RouteCreateForm::RouteCreateForm(const Request &req, const RouteModel &routes): request_(req), routes_(routes) {
 
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("slug", "text").label("Slug").required()
-        .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
-        .addValidator([&] (const string &val, const FormField &f) {
-            bool error ;
-            if ( id_.empty() ) {
-                sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
-                sqlite::QueryResult res = q(val) ;
-                error = res.get<int>(0) ;
-            }
-            else {
-                sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
-                sqlite::QueryResult res = q.exec() ;
-                error = res.get<int>(0) ;
-            }
+    field<SelectField>("mountain", boost::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
+    .required().label("Mountain") ;
 
-            if ( error ) {
-                throw FormFieldValidationError("A page with this slug already exists") ;
-            }
+    field<FileUploadField>("gpx-file").label("GPX file").required()
+        .addValidator([&] (const string &val, const FormField &f) {
+
+            auto it = request_.FILE_.find("gpx-file") ;
+            if ( it == request_.FILE_.end() )
+                throw FormFieldValidationError("No file received") ;
+
+            const Request::UploadedFile &up = it->second ;
+
+            istringstream strm(up.data_) ;
+
+            GpxParser parser(strm, geom_) ;
+            if ( !parser.parse() )
+                throw FormFieldValidationError("Not valid GPX file") ;
         }) ;
 }
 
 
 class RouteTableView: public SQLiteTableView {
 public:
-    RouteTableView(Connection &con): SQLiteTableView(con, "pages_list_view")  {
+    RouteTableView(Connection &con): SQLiteTableView(con, "routes_list_view")  {
 
-        con_.exec("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
+        con_.exec("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
 
         addColumn("Title", "title") ;
-        addColumn("Slug", "slug") ;
+        addColumn("Mountain", "mountain") ;
     }
 };
 
@@ -64,10 +65,10 @@ void RouteController::fetch()
 void RouteController::edit()
 {
     Variant ctx( Variant::Object{
-                 { "page", page_.data("edit_pages", "Edit pages") }
+        { "page", page_.data("edit_routes", "Edit routes") }
     }) ;
 
-    response_.write(engine_.render("pages-edit", ctx)) ;
+    response_.write(engine_.render("routes-edit", ctx)) ;
 }
 
 void RouteController::publish()
@@ -84,21 +85,16 @@ void RouteController::publish()
 
 }
 
+
 void RouteController::create()
 {
-    RouteEditForm form(con_) ;
+    RouteCreateForm form(request_, routes_) ;
 
     if ( request_.method_ == "POST" ) {
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
-            // write data to database
-
-            sqlite::Statement stmt(con_, "INSERT INTO pages ( title, permalink ) VALUES ( ?, ? )") ;
-
-            stmt.bind(1, form.getValue("title")) ;
-            stmt.bind(2, form.getValue("slug")) ;
-            stmt.exec() ;
+            routes_.importRoute(form.getValue("title"), form.getValue("mountain"), form.geom()) ;
 
             // send a success message
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
@@ -107,13 +103,13 @@ void RouteController::create()
             Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
             response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("page-edit-dialog-new", ctx)}});
+                                                       {"content", engine_.render("route-create-dialog", ctx)}});
         }
     }
     else {
         Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
-        response_.write(engine_.render("page-edit-dialog-new", ctx)) ;
+        response_.write(engine_.render("route-create-dialog", ctx)) ;
     }
 
 }
@@ -144,7 +140,7 @@ void RouteController::edit(const string &id)
         throw HttpResponseException(Response::not_found) ;
 }
 
-void RouteController::update()
+/*void RouteController::update()
 {
     if ( request_.method_ == "POST" ) {
 
@@ -198,9 +194,33 @@ void RouteController::update()
     }
 
 }
+*/
+/*
+void RouteController::uploadTrack(const string &route_id) {
+    auto it = request_.FILE_.find("gpx_file") ;
+    if ( it != it.end() ) {
+    Request::UploadedFile &file = it->second ;
+
+    routes_.uploadTrack(route_id, )
+                $result = $this->routes_->uploadTrack($file[0]['tmp_name'], $route_id) ;
+
+                if ( $result )
+                    $response->setJSON([]) ;
+                else
+                    $response->setJSON(['error'=> 'Failed to parse input file']) ;
+
+            }
+            else
+                 $response.setStatus(403) ;
+        }
+
+}
+*/
 
 void RouteController::track(const string &id) {
-    Variant data = routes_.fetchTrackGeoJSON(id) ;
+    RouteGeometry geom ;
+    routes_.fetchGeometry(id, geom);
+    Variant data = RouteModel::exportGeoJSON(geom) ;
     response_.writeJSONVariant(data) ;
 }
 
@@ -225,17 +245,16 @@ static string url_encode(const string &value) {
 }
 
 void RouteController::download(const string &format, const string &route_id) {
-    vector<Track> tracks ;
-    vector<Waypoint> wpts ;
-    routes_.fetchTracks(route_id, tracks, wpts) ;
+    RouteGeometry geom ;
+    routes_.fetchGeometry(route_id, geom) ;
 
     string mime, data ;
     if ( format == "gpx" ) {
         mime = "application/gpx+xml" ;
-        data = RouteModel::exportGpx(tracks, wpts) ;
+        data = RouteModel::exportGpx(geom) ;
     } else {
         mime = "application/vnd.google-earth.kml+xml" ;
-        data = RouteModel::exportKml(tracks, wpts) ;
+        data = RouteModel::exportKml(geom) ;
     }
 
     string title = routes_.fetchTitle(route_id) ;
@@ -276,24 +295,30 @@ bool RouteController::dispatch()
     bool logged_in = user_.check() ;
 
     if ( request_.matches("GET", "/{mountain:[\\w]+}?", attributes)  ) {
-        list(attributes.get("mountain")) ;
+        browse(attributes.get("mountain")) ;
         return true ;
     }
-    if ( request_.matches("GET", "/pages/list/") ) { // fetch table data
-        if ( logged_in ) fetch() ;
+    if ( request_.matches("GET", "/routes/edit/") ) {
+        if ( logged_in ) edit() ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/pages/add/") ) {
+    if ( request_.matches("GET", "/routes/list/") ) {
+        if ( logged_in ) list() ;
+        else throw HttpResponseException(Response::unauthorized) ;
+        return true ;
+    }
+    if ( request_.matches("GET|POST", "/routes/add/") ) {
         if ( logged_in ) create() ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/pages/update/") ) {
+ /*   if ( request_.matches("GET|POST", "/pages/update/") ) {
         if ( logged_in ) update() ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
+    */
     else if ( request_.matches("GET", "/page/edit/{id}/", attributes) ) {
         if ( logged_in ) edit(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
@@ -345,7 +370,7 @@ void RouteController::view(const std::string &route_id) {
 
 }
 
-void RouteController::list(const string &mountain)
+void RouteController::browse(const string &mountain)
 {
     if ( !mountain.empty() ) {
 
@@ -369,6 +394,17 @@ void RouteController::list(const string &mountain)
     }
 
 
+}
+
+void RouteController::list()
+{
+    RouteTableView view(con_) ;
+    uint offset = request_.GET_.value<int>("page", 1) ;
+    uint results_per_page = request_.GET_.value<int>("total", 10) ;
+
+    Variant data = view.fetch(offset, results_per_page) ;
+
+    response_.write(engine_.render("routes-table-view", data )) ;
 }
 
 
