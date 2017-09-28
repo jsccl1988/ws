@@ -85,11 +85,11 @@ public:
         root_(root_dir),
         engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
-        engine_.registerHelper("i18n", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
+        engine_.registerBlockHelper("i18n", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
             return engine_.renderString(boost::locale::translate(src), ctx) ;
         }) ;
 
-        engine_.registerHelper("make_two_columns", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
+        engine_.registerBlockHelper("make_two_columns", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
             Variant v = params.at(0) ; // parameters is the array to iterate
 
             size_t len = v.length() ;
@@ -124,7 +124,7 @@ public:
 
     void handle(const Request &req, Response &resp) override {
 
-        sqlite::Connection con(root_ + "/db.sqlite") ; // establish connection with database
+        sqlite::Connection con(root_ + "/routes.sqlite") ; // establish connection with database
         Session session(session_handler_, req, resp) ; // start a new session
 
         DefaultAuthorizationModel auth(Variant::fromJSONFile(root_ + "templates/acm.json")) ;
@@ -134,6 +134,9 @@ public:
 
         // request router
 
+        for( sqlite::Row r: con.query("select * from routes")() ) {
+            cout << r["title"].as<string>() << endl ;
+        }
 
         if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;

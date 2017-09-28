@@ -15,29 +15,27 @@
 				
 		function onEditRecord() 	{
 			var id = $(this).closest('tr').data('id') ;
-			item.formModal({url: options.updateUrl, title: 'Edit Record', data: {id: id}}) ;
+			item.formModal({url: options.updateUrl, title: 'Edit Record', data: {id: id}, onSuccess: function() { reload() ; }}) ;
 		} ;
 				
-				function onDeleteRecord() {
-					var id = $(this).closest('tr').data('id') ;
-					 $.ajax({
-	        			url: options['deleteUrl'],
-			    	    type: 'POST',
-			    	    dataType: 'json',
-	        			data: { 'id': id },
-	        			cache: false,
-	        			success: function(data, textStatus, jqXHR)
-	        			{
-							reload() ;
-			    	    },
-	        			error: function(jqXHR, textStatus, errorThrown)
-	        			{
-	        			    // Handle errors here
-	        			    console.log('ERRORS: ' + textStatus);
-	        			    // STOP LOADING SPINNER
-	        			}
-			    	}) ;
-				}
+		function onDeleteRecord() {
+			var id = $(this).closest('tr').data('id') ;
+			 $.ajax({
+	    		url: options['deleteUrl'],
+		   	    type: 'POST',
+		   	    dataType: 'json',
+	    		data: { 'id': id },
+	    		cache: false,
+	    		success: function(data, textStatus, jqXHR)	{
+					reload() ;
+				},
+				error: function(jqXHR, textStatus, errorThrown)	{
+       			    // Handle errors here
+       			    console.log('ERRORS: ' + textStatus);
+       			    // STOP LOADING SPINNER
+       			}
+	    	}) ;
+		}
 				
     	function reload() {
   			$(item).load(options['listUrl'], $.param({page: current_page, total: results_per_view}), function(response, status, xhr) {

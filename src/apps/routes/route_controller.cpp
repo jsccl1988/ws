@@ -39,13 +39,24 @@ RouteCreateForm::RouteCreateForm(const Request &req, const RouteModel &routes): 
 }
 
 
+
+RouteUpdateForm::RouteUpdateForm(sqlite::Connection &con, const RouteModel &routes): con_(con), routes_(routes) {
+
+    field<InputField>("title", "text").label("Title").required()
+        .addValidator<NonEmptyValidator>() ;
+
+    field<SelectField>("mountain", boost::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
+    .required().label("Mountain") ;
+}
+
+
 class RouteTableView: public SQLiteTableView {
 public:
     RouteTableView(Connection &con): SQLiteTableView(con, "routes_list_view")  {
 
         con_.exec("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
 
-        addColumn("Title", "title") ;
+        addColumn("Title", "title", "<a href=\"route/edit/{{id}}\">{{value}}</a>") ;
         addColumn("Mountain", "mountain") ;
     }
 };
@@ -59,6 +70,12 @@ void RouteController::fetch()
     Variant data = view.fetch(offset, results_per_page ) ;
 
     response_.write(engine_.render("pages-table-view", data )) ;
+}
+
+void RouteController::query() {
+    double x = request_.POST_.value<double>("x", 0) ;
+    double y = request_.POST_.value<double>("y", 0) ;
+    response_.writeJSONVariant(routes_.query(x, y)) ;
 }
 // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, permalink TEXT);
 
@@ -116,46 +133,37 @@ void RouteController::create()
 
 void RouteController::edit(const string &id)
 {
+    Variant data = routes_.fetch(id) ;
 
-    sqlite::Query stmt(con_, "SELECT title, content, permalink FROM pages WHERE id=?") ;
-    sqlite::QueryResult res = stmt(id) ;
-
-    if ( res ) {
-
-        string permalink, title, content ;
-        res.into(title, content, permalink) ;
-
-        Variant ctx( Variant::Object{
-                     { "page", page_.data(permalink, title) },
-                     { "id", id },
-                     { "title", title },
-                     { "content", content },
-                     { "slug", permalink }
-        }) ;
-
-        response_.write(engine_.render("page-edit", ctx)) ;
-
-    }
-    else
+    if ( data.isNull() )
         throw HttpResponseException(Response::not_found) ;
+
+    Variant wpts = routes_.fetchWaypoints(id) ;
+    Variant attachments = routes_.fetchAttachments(id) ;
+
+    Variant ctx( Variant::Object{
+        { "page", page_.data("edit_route", "Edit route") },
+        { "route", data },
+        { "wpts", wpts },
+        { "attachments", attachments }
+    }) ;
+
+    response_.write(engine_.render("route-edit", ctx)) ;
 }
 
-/*void RouteController::update()
+void RouteController::update()
 {
     if ( request_.method_ == "POST" ) {
 
         string id = request_.POST_.get("id") ;
 
-        RouteEditForm form(con_, id) ;
+        RouteUpdateForm form(con_, routes_) ;
 
-        if ( form.validate(request_.POST_) ) {
+        if ( form.validate(request_) ) {
 
             // write data to database
 
-            sqlite::Statement stmt(con_, "UPDATE pages SET title = ?, permalink = ? WHERE id = ?") ;
-
-            stmt(form.getValue("title"), form.getValue("slug"), id) ;
-
+            routes_.updateInfo(id, form.getValue("title"), form.getValue("mountain")) ;
 
             // send a success message
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
@@ -164,7 +172,7 @@ void RouteController::edit(const string &id)
             Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
             response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("page-edit-dialog-new", ctx)}});
+                                                       {"content", engine_.render("route-edit-dialog", ctx)}});
         }
     }
     else {
@@ -172,50 +180,26 @@ void RouteController::edit(const string &id)
         const Dictionary &params = request_.GET_ ;
         string id = params.get("id") ;
 
-        RouteEditForm form(con_, id) ;
+        RouteUpdateForm form(con_, routes_) ;
 
         if ( id.empty() ) {
             throw HttpResponseException(Response::not_found) ;
         }
 
-        sqlite::Query q(con_, "SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
-        sqlite::QueryResult res = q.exec() ;
-
-        if ( !res ) {
-            response_.stock_reply(Response::not_found) ;
-            return ;
+        string title, mountain ;
+        if ( !routes_.getInfo(id, title, mountain) ) {
+            throw HttpResponseException(Response::not_found) ;
         }
 
-        form.init(res.getAll()) ;
+        form.init({{"title", title}, {"mountain", mountain}}) ;
 
         Variant ctx( Variant::Object{{"form", form.data()}} ) ;
 
-        response_.write(engine_.render("page-edit-dialog-new", ctx)) ;
+        response_.write(engine_.render("route-edit-dialog", ctx)) ;
     }
 
 }
-*/
-/*
-void RouteController::uploadTrack(const string &route_id) {
-    auto it = request_.FILE_.find("gpx_file") ;
-    if ( it != it.end() ) {
-    Request::UploadedFile &file = it->second ;
 
-    routes_.uploadTrack(route_id, )
-                $result = $this->routes_->uploadTrack($file[0]['tmp_name'], $route_id) ;
-
-                if ( $result )
-                    $response->setJSON([]) ;
-                else
-                    $response->setJSON(['error'=> 'Failed to parse input file']) ;
-
-            }
-            else
-                 $response.setStatus(403) ;
-        }
-
-}
-*/
 
 void RouteController::track(const string &id) {
     RouteGeometry geom ;
@@ -276,16 +260,16 @@ void RouteController::download(const string &format, const string &route_id) {
 void RouteController::remove()
 {
    const Dictionary &params = request_.POST_ ;
-    string id = params.get("id") ;
+   string id = params.get("id") ;
 
     if ( id.empty() )
         throw HttpResponseException(Response::not_found) ;
     else {
-        sqlite::Statement stmt(con_, "DELETE FROM pages where id=?", id) ;
-        stmt.exec() ;
-        response_.writeJSON("{}") ;
+        if ( routes_.remove(id) )
+            response_.writeJSON("{}") ;
+        else
+            throw HttpResponseException(Response::not_found) ;
     }
-
 }
 
 bool RouteController::dispatch()
@@ -313,13 +297,12 @@ bool RouteController::dispatch()
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
- /*   if ( request_.matches("GET|POST", "/pages/update/") ) {
+    if ( request_.matches("GET|POST", "/routes/update/") ) {
         if ( logged_in ) update() ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    */
-    else if ( request_.matches("GET", "/page/edit/{id}/", attributes) ) {
+    else if ( request_.matches("GET", "/route/edit/{id}/", attributes) ) {
         if ( logged_in ) edit(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
@@ -329,9 +312,13 @@ bool RouteController::dispatch()
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/page/delete/") ) {
+    else if ( request_.matches("POST", "/routes/delete/") ) {
         if ( logged_in ) remove() ;
         else throw HttpResponseException(Response::unauthorized) ;
+        return true ;
+    }
+    else if ( request_.matches("POST", "/query/route") ) {
+        query() ;
         return true ;
     }
     else if ( request_.matches("GET", "/download/track/{format:gpx|kml}/{id}", attributes) ) {
@@ -392,8 +379,6 @@ void RouteController::browse(const string &mountain)
                  } )  ;
         response_.write(engine_.render("routes-all", ctx)) ;
     }
-
-
 }
 
 void RouteController::list()
@@ -406,5 +391,4 @@ void RouteController::list()
 
     response_.write(engine_.render("routes-table-view", data )) ;
 }
-
 

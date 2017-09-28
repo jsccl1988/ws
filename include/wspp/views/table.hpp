@@ -18,8 +18,8 @@ public:
 
     TableView() {}
 
-    void addColumn(const std::string &header, const std::string &name_key, const std::string &col_type = std::string()) {
-        columns_.emplace_back(header, name_key, col_type) ;
+    void addColumn(const std::string &header, const std::string &name_key, const std::string &widget = "{{value}}") {
+        columns_.emplace_back(header, name_key, widget) ;
     }
 
     // return total records
@@ -32,16 +32,16 @@ public:
     Variant::Object fetch(uint page, uint results_per_page);
 
     // a hook to modify the display value of a cell
-    virtual Variant transform(const std::string &key, const std::string &value) { return value ; }
+    virtual Variant transform(int id, const std::string &key, const std::string &value) { return value ; }
 
 protected:
 
     struct Column {
     public:
 
-        Column(const std::string &header, const std::string &name, const std::string &value = std::string()): header_(header), key_(name), type_(value) {}
+        Column(const std::string &header, const std::string &name, const std::string &widget): header_(header), key_(name), widget_(widget) {}
 
-        std::string key_, header_, type_ ;
+        std::string key_, header_, widget_ ;
     };
 
 

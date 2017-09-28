@@ -27,12 +27,11 @@ void Connection::open(const std::string &db, int flags) {
 }
 
  void Connection::close() {
-     check() ;
-
-     if( sqlite3_close(handle_) != SQLITE_OK )
+     if ( handle_ ) {
+         if( sqlite3_close(handle_) != SQLITE_OK )
          throw Exception(sqlite3_errmsg(handle_));
-
-     handle_ = nullptr ;
+         handle_ = nullptr ;
+     }
  }
 
 void Connection::exec(const string &sql, ...)
@@ -62,9 +61,20 @@ void Connection::check() {
          throw Exception("Database is not open.");
 }
 
-Connection::~Connection()
-{
+Connection::~Connection() {
     close() ;
+}
+
+Connection::Connection(Connection &&other): handle_(other.handle_) {
+    other.handle_ = nullptr ;
+}
+
+Connection &Connection::operator = (Connection &&other) {
+    if ( this != &other ) {
+       handle_ = other.handle_ ;
+       other.handle_ = nullptr;
+    }
+    return *this ;
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -76,12 +86,11 @@ Statement::Statement(Connection &con, const string &sql): last_arg_idx_(0)
 {
     con.check() ;
 
-    const char * tail = 0;
     sqlite3_stmt *handle ;
+    const char * tail = 0;
     if ( sqlite3_prepare_v2(con.handle(), sql.c_str(), -1, &handle ,&tail) != SQLITE_OK )
           throw Exception(con.handle()) ;
-    handle_.reset(handle, sqlite3_finalize) ;
-
+     handle_.reset(handle, sqlite3_finalize) ;
 }
 
 Statement::~Statement() {
@@ -91,14 +100,14 @@ void Statement::clear()
 {
      check();
      if ( sqlite3_reset(handle_.get()) != SQLITE_OK ) throwStmtException();
-//    if ( sqlite3_clear_bindings(handle_.get()) != SQLITE_OK ) throwStmtException() ;
+//    if ( sqlite3_clear_bindings(handle_.get().get()) != SQLITE_OK ) throwStmtException() ;
      last_arg_idx_ = 0 ;
 }
 
 void Statement::finalize() {
     check();
     if ( sqlite3_finalize(handle_.get()) != SQLITE_OK ) throwStmtException();
-    handle_ = 0;
+    handle_.reset();
 }
 
 void Statement::throwStmtException()
@@ -107,7 +116,7 @@ void Statement::throwStmtException()
 }
 
 void Statement::check() {
-    if( !handle_ ) throw Exception("Statement has not been compiled.");
+    if( !handle_.get() ) throw Exception("Statement has not been compiled.");
 }
 
 /* returns true if the command returned data */
@@ -246,6 +255,18 @@ int Query::columnIdx(const string &name) const {
 
 QueryResult Query::exec() {
     return QueryResult(*this) ;
+}
+
+Query::Query(Query &&other): Statement(std::move(other)) {
+    std::cout << "ok here" << std::endl ;
+}
+
+Query &&Query::operator =(Query &&other) {
+    std::cout << "ok here" << std::endl ;
+}
+
+QueryResult Query::operator()() {
+    return exec() ;
 }
 
 
@@ -531,6 +552,8 @@ void Transaction::rollback()
 }
 
 QueryResult::iterator::iterator(QueryResult &res, bool at_end): qres_(res), at_end_(at_end), current_(new Row(qres_)) {}
+
+Column::Column(QueryResult &qr, const string &name): qres_(qr), idx_(qr.columnIdx(name)) {}
 
 } // sqlite
 

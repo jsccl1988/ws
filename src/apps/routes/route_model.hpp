@@ -27,20 +27,28 @@ class RouteModel {
     Variant fetchMountain(const std::string &mountain) const;
     Variant fetchAllByMountain() const;
     Variant fetch(const std::string &id) const;
+    Variant fetchWaypoints(const std::string &id) const;
     Variant fetchAttachments(const std::string &id) const;
     std::string getMountainName(const std::string &mountain_id) const;
     std::string getAttachmentTitle(const std::string &att_id) const;
     Dictionary getMountainsDict() const ;
 
+    bool updateInfo(const std::string &id, const std::string &title, const std::string &mountain_id) ;
+    bool getInfo(const std::string &id, std::string &title, std::string &mountain_id) ;
+
     bool importRoute(const std::string &title, const std::string &role_id, const RouteGeometry &geom) ;
 
     void fetchGeometry(const std::string &route_id, RouteGeometry &geom) ;
+
+    bool remove(const std::string &id) ;
 
     static Variant exportGeoJSON(const RouteGeometry &geom) ;
     static std::string exportGpx(const RouteGeometry &geom) ;
     static std::string exportKml(const RouteGeometry &geom) ;
 
     std::string fetchTitle(const std::string &id) const ;
+    Variant query(double x, double y) const ;
+
 
 protected:
     void fetchMountains() ;

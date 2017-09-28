@@ -223,7 +223,10 @@ private:
 class Parser {
 public:
 
-    Parser(const boost::shared_ptr<TemplateLoader> &loader, const map<string, TemplateRenderer::Helper> &helpers, bool caching): idx_(0), loader_(loader), helpers_(helpers), caching_(caching) {
+    Parser(const boost::shared_ptr<TemplateLoader> &loader,
+           const map<string, TemplateRenderer::BlockHelper> &block_helpers,
+           const map<string, TemplateRenderer::ValueHelper> &value_helpers,
+           bool caching): idx_(0), loader_(loader), block_helpers_(block_helpers), value_helpers_(value_helpers), caching_(caching) {
     }
 
     SectionNode::Ptr parse(const string &key) {
@@ -296,7 +299,8 @@ private:
     uint idx_ ;
     boost::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;
-    const map<string, TemplateRenderer::Helper> &helpers_ ;
+    const map<string, TemplateRenderer::BlockHelper> &block_helpers_ ;
+    const map<string, TemplateRenderer::ValueHelper> &value_helpers_ ;
 };
 
 bool Parser::parseComplexTag(const string &tag, string &name, vector<Arg> &args) {
@@ -464,7 +468,7 @@ struct PartialNode: public Node {
 
         if ( key.empty() ) key = key_ ;
 
-        Parser parser(context_.loader_, context_.helpers_, context_.caching_) ;
+        Parser parser(context_.loader_, context_.block_helpers_, context_.value_helpers_, context_.caching_) ;
         auto ast = parser.parse(key) ;
         if ( ast ) {
             ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
@@ -480,13 +484,13 @@ struct PartialNode: public Node {
     const Parser &context_ ;
 };
 
-struct HelperNode: public Node {
+struct BlockHelperNode: public Node {
 
 
-    typedef boost::shared_ptr<HelperNode> Ptr ;
+    typedef boost::shared_ptr<BlockHelperNode> Ptr ;
 
     // inherit parent parameters
-    HelperNode(const string &name, const vector<Parser::Arg> &args, TemplateRenderer::Helper helper): key_(name), args_(args), helper_(helper) {}
+    BlockHelperNode(const string &name, const vector<Parser::Arg> &args, TemplateRenderer::BlockHelper helper): key_(name), args_(args), helper_(helper) {}
 
     void eval(ContextStack &ctx, string &res) const override {
 
@@ -505,8 +509,35 @@ struct HelperNode: public Node {
     Type type() const override { return Helper ; }
 
     string key_, content_ ;
-    TemplateRenderer::Helper helper_ ;
+    TemplateRenderer::BlockHelper helper_ ;
     vector<Parser::Arg> args_ ;
+
+};
+
+struct ValueHelperNode: public Node {
+
+    typedef boost::shared_ptr<ValueHelperNode> Ptr ;
+
+    // inherit parent parameters
+    ValueHelperNode(const string &name, const vector<Parser::Arg> &args, TemplateRenderer::ValueHelper helper, bool escape): key_(name), args_(args), helper_(helper), escape_(escape) {}
+
+    void eval(ContextStack &ctx, string &res) const override {
+
+        ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
+        Variant::Array params = Parser::getParams(args_, ctx) ;
+        pair<bool, string> part = helper_(ctx, params) ;
+        ctx.pop() ;
+
+        if ( escape_ && !part.first ) res.append(escape(part.second)) ;
+        else res.append(part.second) ;
+    }
+
+    Type type() const override { return Helper ; }
+
+    string key_ ;
+    TemplateRenderer::ValueHelper helper_ ;
+    vector<Parser::Arg> args_ ;
+    bool escape_ ;
 
 };
 
@@ -522,7 +553,7 @@ struct ExtensionNode: public ContainerNode {
 
         // load base node
 
-        Parser parser(context_.loader_, context_.helpers_, context_.caching_) ;
+        Parser parser(context_.loader_, context_.block_helpers_, context_.value_helpers_, context_.caching_) ;
         auto ast = parser.parse(name_) ;
         if ( ast ) {
             // replace parent blocks with child blocks
@@ -562,7 +593,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
     stack.push_back(root) ;
 
     int s_cursor = 0, e_cursor ;
-    HelperNode::Ptr helper_node ;
+    BlockHelperNode::Ptr helper_node ;
 
     while (!stack.empty()) {
         ContainerNode::Ptr parent = stack.back() ;
@@ -590,9 +621,9 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 
             if ( tag.type_ == Tag::SectionBegin  ) {
                 if ( parseComplexTag(tag.name_, name, args)) {
-                    auto it = helpers_.find(name) ;
-                    if ( it != helpers_.end()) { // if it is a registered helper
-                        helper_node.reset(new HelperNode(name, args, it->second)) ;
+                    auto it = block_helpers_.find(name) ;
+                    if ( it != block_helpers_.end()) { // if it is a registered helper
+                        helper_node.reset(new BlockHelperNode(name, args, it->second)) ;
                         parent->children_.push_back(helper_node) ;
                         s_cursor = idx_ ;
                     }
@@ -617,12 +648,23 @@ SectionNode::Ptr Parser::parseString(const string &src) {
                 }
             }
             else if ( tag.type_ == Tag::RawSubstitutionAmpersand || tag.type_ == Tag::RawSubstitutionCurlyBracket ) {
-                if ( parseSimpleTag(tag.name_, name))
-                    parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, false)) ;
+                if ( parseComplexTag(tag.name_, name, args)) {
+                        auto it = value_helpers_.find(name) ;
+                        if ( it != value_helpers_.end()) { // if it is a registered helper
+                           parent->children_.push_back(boost::make_shared<ValueHelperNode>(name, args, it->second, false)) ;
+                        } else
+                            parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, false)) ;
+                }
             }
             else if ( tag.type_ == Tag::EscapedSubstitution ) {
-                if ( parseSimpleTag(tag.name_, name))
-                    parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, true)) ;
+                if ( parseComplexTag(tag.name_, name, args)) {
+                    auto it = value_helpers_.find(name) ;
+                    if ( it != value_helpers_.end()) { // if it is a registered helper
+                       parent->children_.push_back(boost::make_shared<ValueHelperNode>(name, args, it->second, true)) ;
+                    } else
+                        parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, true)) ;
+                }
+
             }
             else if ( tag.type_ == Tag::Partial ) {
                 if ( parseComplexTag(tag.name_, name, args) )
@@ -655,7 +697,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 
 string TemplateRenderer::render(const string &src, const Variant &ctx) {
 
-    Parser parser(loader_,  helpers_, caching_) ;
+    Parser parser(loader_,  block_helpers_, value_helpers_, caching_) ;
 
     string res ;
     SectionNode::Ptr ast = parser.parse(src) ;
@@ -668,12 +710,11 @@ string TemplateRenderer::render(const string &src, const Variant &ctx) {
     }
 
     return res ;
-
 }
 
 string TemplateRenderer::renderString(const string &src, ContextStack &ctx) {
 
-    Parser parser(loader_,  helpers_, caching_) ;
+    Parser parser(loader_,  block_helpers_, value_helpers_, caching_) ;
 
     string res ;
     SectionNode::Ptr ast = parser.parseString(src) ;
@@ -685,9 +726,22 @@ string TemplateRenderer::renderString(const string &src, ContextStack &ctx) {
     return res ;
 }
 
-void TemplateRenderer::registerHelper(const string &name, TemplateRenderer::Helper helper)
+void TemplateRenderer::registerBlockHelper(const string &name, TemplateRenderer::BlockHelper helper)
 {
-    helpers_.insert({name, helper}) ;
+    block_helpers_.insert({name, helper}) ;
+}
+
+void TemplateRenderer::registerValueHelper(const string &name, TemplateRenderer::ValueHelper helper)
+{
+    value_helpers_.insert({name, helper}) ;
+}
+
+void TemplateRenderer::registerDefaultHelpers() {
+    registerValueHelper("render", [&](ContextStack &ctx, Variant::Array params) -> pair<bool, string> {
+        Variant key = params.at(0) ;
+        if ( key.isNull() ) return make_pair(true, string()) ;
+        return make_pair(true, renderString(key.toString(), ctx)) ;
+    }) ;
 }
 
 

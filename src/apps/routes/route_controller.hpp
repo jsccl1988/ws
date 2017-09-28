@@ -33,6 +33,16 @@ private:
     const RouteModel &routes_ ;
 };
 
+class RouteUpdateForm: public wspp::web::Form {
+public:
+    RouteUpdateForm(Connection &con, const RouteModel &routes) ;
+
+private:
+
+    Connection &con_ ;
+    const RouteModel &routes_ ;
+};
+
 // CREATE TABLE routes ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, mountain TEXT )
 // CREATE TABLE mountains ( id TEXT PRIMARY KEY, name TEXT, description TEXT, lat DOUBLE, lon DOUBLE )
 
@@ -54,6 +64,7 @@ public:
     void edit(const string &page_id) ;
     void remove() ;
     void fetch();
+    void query() ;
     void update();
     void uploadTrack() ;
     void track(const string &route_id) ;

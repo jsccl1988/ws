@@ -14,19 +14,16 @@
 			<thead>
 				 <tr>
 					 {{#headers}}
-	    			    <th>{{.}}</th>
+	    			    <th class="col-{{id}}">{{name}}</th>
 	    			 {{/headers}}   
-	    			 <th align="center"><em class="fa fa-cog"></em></th>
+	    			 <th class="col-action-buttons" align="center"><em class="fa fa-cog"></em></th>
 	    		 </tr>
 			</thead>
 			<tbody id="data-grid">
 				{{#rows}}
 					<tr data-id="{{id}}">
 					{{#columns}}
-						<td>
-						{{#type}} {{> widget }}	{{/type}}
-						{{^type}} {{value}}	{{/type}}
-						</td>	
+						<td>{{render widget}}</td>	
 					{{/columns}}	
 						<td align="center" style="width: 100px;">
 							<a id="edit-button" class="btn btn-default"><em class="fa fa-pencil"></em></a>

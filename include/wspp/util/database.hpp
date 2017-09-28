@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <boost/thread/mutex.hpp>
 #include <boost/utility.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include <wspp/util/dictionary.hpp>
 
@@ -29,44 +30,8 @@ class Blob ;
 
 extern NullType Nil;
 
-class Connection: boost::noncopyable {
+class Statement ;
 
-public:
-
-    Connection();
-    Connection(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
-    ~Connection();
-
-    // open connection to database withe given flags
-    void open(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
-    void close() ;
-
-    operator int () { return handle_ != nullptr ; }
-    /**
-     * @brief Helper for executing an sql statement, including a colon separated list of statements
-     * @param sql Format string similar to printf. Use %q for arguments that need quoting (see sqlite3_mprintf documentation)
-     */
-    void exec(const std::string &sql, ...) ;
-
-    sqlite3_int64 last_insert_rowid() {
-        return sqlite3_last_insert_rowid(handle_);
-    }
-
-    int changes() {
-        return sqlite3_changes(handle_);
-    }
-
-    sqlite3 *handle() { return handle_ ; }
-
-protected:
-
-    friend class Statement ;
-    friend class Transaction ;
-
-    void check() ;
-
-    sqlite3 *handle_ ;
-};
 
 class Exception: public std::runtime_error
 {
@@ -105,7 +70,18 @@ public:
         bindm(args...) ;
     }
 
-    ~Statement();
+    virtual ~Statement();
+
+    Statement( Statement&& other ) {
+        std::cout << "ok here" << std::endl ;
+    }
+
+    Statement & operator = ( Statement &&other ) {
+        std::cout << "ok here" << std::endl ;
+    }
+
+    Statement(const Statement &) = delete ;
+    Statement & operator = ( const Statement &other ) = delete ;
 
 
     /** \brief clear is used if you'd like to reuse a command object
@@ -172,9 +148,10 @@ public:
     }
 
     template<typename ...Args>
-    void operator()(Args... args) {
+    Statement &operator()(Args... args) {
         bindm(args...) ;
         exec() ;
+        return *this ;
     }
 
 protected:
@@ -201,14 +178,165 @@ private:
 
 };
 
+
+
 class Row ;
 class Query ;
+
+
+class Query: public Statement {
+public:
+    Query(Connection &con, const std::string &sql) ;
+
+    template<typename ...Args>
+    Query(Connection& con, const std::string & sql, Args... args): Query(con, sql) {
+        bindm(args...) ;
+    }
+
+    QueryResult exec() ;
+
+    template<typename ...Args>
+    QueryResult operator()(Args... args) {
+        bindm(args...) ;
+        return exec() ;
+    }
+
+    QueryResult operator()();
+
+    Query( Query&& other );
+    Query & operator = ( Query &&other );
+
+    Query(const Query &) = delete ;
+    Query & operator = ( const Query &other ) = delete ;
+
+private:
+    friend class QueryResult ;
+
+    int columnIdx(const std::string &name) const ;
+    std::map<std::string, int> field_map_ ;
+};
+
+
+
+class Column {
+public:
+
+    template <class T>
+    T as() const {
+        return qres_.get<T>(idx_) ;
+    }
+
+private:
+
+    friend class Row ;
+
+    Column(QueryResult &qr, int idx): qres_(qr), idx_(idx) {}
+    Column(QueryResult &qr, const std::string &name);
+
+    QueryResult &qres_ ;
+    int idx_ ;
+};
+
+class Row {
+public:
+    Row(QueryResult &qr): qres_(qr) {}
+
+    uint columns() const { return qres_.columns() ; }
+    Column operator [] (int idx) const { return Column(qres_, idx); }
+    Column operator [] (const std::string &name) const { return Column(qres_, name); }
+    bool isValid() const { return (int)qres_ ; }
+
+private:
+
+    QueryResult &qres_ ;
+};
+
+
+// Wraps pointer to buffer and its size. Memory management is external
+class Blob {
+public:
+
+    Blob(const char *data, uint32_t sz): size_(sz), data_(data) {}
+
+    const char *data() const { return data_ ; }
+    uint32_t size() const { return size_ ; }
+
+private:
+    const char *data_ = nullptr;
+    uint32_t size_ = 0 ;
+};
+
+class Connection {
+
+public:
+
+    Connection();
+    Connection(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
+    ~Connection();
+
+    Connection ( Connection&& other ) ;
+    Connection& operator = ( Connection&& other ) ;
+
+    Connection ( const Connection& other ) = delete ;
+    Connection& operator = ( const Connection& other ) = delete ;
+
+    // open connection to database withe given flags
+    void open(const std::string &name, int flags = SQLITE_OPEN_READWRITE);
+    void close() ;
+
+    operator int () { return handle_ != nullptr ; }
+    /**
+     * @brief Helper for executing an sql statement, including a colon separated list of statements
+     * @param sql Format string similar to printf. Use %q for arguments that need quoting (see sqlite3_mprintf documentation)
+     */
+    void exec(const std::string &sql, ...) ;
+
+    sqlite3_int64 last_insert_rowid() {
+        return sqlite3_last_insert_rowid(handle_);
+    }
+
+    int changes() {
+        return sqlite3_changes(handle_);
+    }
+
+    sqlite3 *handle() { return handle_ ; }
+
+    Statement statement(const std::string &sql) {
+        return Statement(*this, sql) ;
+    }
+
+    template<typename ...Args>
+    Statement statement(Connection& con, const std::string & sql, Args... args) {
+        return Statement(*this, args...) ;
+    }
+
+    Query query(const std::string &sql) {
+        return Query(*this, sql) ;
+    }
+
+    template<typename ...Args>
+    Query query(Connection& con, const std::string & sql, Args... args) {
+        return Query(*this, args...) ;
+    }
+
+protected:
+
+    friend class Statement ;
+    friend class Transaction ;
+
+    void check() ;
+
+    sqlite3 *handle_ ;
+};
+
 class QueryResult
 {
 
 public:
 
-    QueryResult(QueryResult &&other) = default ;
+    QueryResult(QueryResult &&other) {
+        std::cout << "ok here" << std::endl ;
+    }
     QueryResult(QueryResult &other) = delete ;
     QueryResult& operator=(const QueryResult &other) = delete;
     QueryResult& operator=(QueryResult &&other) = default;
@@ -296,89 +424,14 @@ private:
 
     QueryResult(Query &cmd);
 
+    void check() const ;
+
 private:
 
-    Query &cmd_ ;
+    Query cmd_ ;
     bool empty_ ;
 
 } ;
-
-
-class Column {
-public:
-
-    template <class T> T as() const {
-        return qres_.get<T>(idx_) ;
-    }
-
-private:
-
-    friend class Row ;
-
-    Column(QueryResult &qr, int idx): qres_(qr), idx_(idx) {}
-    Column(QueryResult &qr, const std::string &name): qres_(qr), idx_(qr.columnIdx(name)) {}
-
-    QueryResult &qres_ ;
-    int idx_ ;
-};
-
-class Row {
-public:
-    Row(QueryResult &qr): qres_(qr) {}
-
-    uint columns() const { return qres_.columns() ; }
-    Column operator [] (int idx) const { return Column(qres_, idx); }
-    Column operator [] (const std::string &name) const { return Column(qres_, name); }
-    bool isValid() const { return (int)qres_ ; }
-
-private:
-
-    QueryResult &qres_ ;
-};
-
-
-class Query: public Statement {
-public:
-    Query(Connection &con, const std::string &sql) ;
-
-    template<typename ...Args>
-    Query(Connection& con, const std::string & sql, Args... args): Query(con, sql) {
-        bindm(args...) ;
-    }
-
-    QueryResult exec() ;
-
-    template<typename ...Args>
-    QueryResult operator()(Args... args) {
-        bindm(args...) ;
-        return exec() ;
-    }
-
-    QueryResult operator()() {
-        return exec() ;
-    }
-
-private:
-    friend class QueryResult ;
-
-    int columnIdx(const std::string &name) const ;
-    std::map<std::string, int> field_map_ ;
-};
-
-// Wraps pointer to buffer and its size. Memory management is external
-class Blob {
-public:
-
-    Blob(const char *data, uint32_t sz): size_(sz), data_(data) {}
-
-    const char *data() const { return data_ ; }
-    uint32_t size() const { return size_ ; }
-
-private:
-    const char *data_ = nullptr;
-    uint32_t size_ = 0 ;
-};
-
 
 
 class Transaction : boost::noncopyable

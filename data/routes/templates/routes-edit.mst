@@ -1,5 +1,15 @@
 {{<layout }}
 
+{{$extra_headers}}
+<style>
+	table { table-layout:fixed; }
+	th.col-title { width: 70%; }
+	th.col-mountain { width: 20%; }
+	th.col-action-buttons { width: 100px; }
+}
+</style>
+{{/extra_headers}}
+
 {{$contents}}
 		<div id="routes-list-view">
 		</div>

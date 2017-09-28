@@ -2,7 +2,8 @@
 
 (function($) {
 	$.fn.form = function(params) { 
-//	params = $.extend( {minlength: 0, maxlength: 99999}, params);
+	var defaults = { data: {}, onSuccess: function() {} } ;
+		var params = $.extend( {}, defaults, params );
 	
 		// traverse all nodes
 		this.each(function() {
@@ -22,7 +23,11 @@
 			}
 			
 			form.submit(function(e) {
-				 var formData = new FormData(this);
+				var form_data = new FormData(this);
+				for ( var key in params.data ) {
+    				form_data.append(key, params.data[key]);
+				}	
+
 				$.ajax({
 					type: "POST",
 					dataType: "json",
@@ -30,7 +35,7 @@
 					processData: false,
 				    contentType: false,
 //					data: form.serialize(), // serializes the form's elements.
-					data: formData,
+					data: form_data,
 					success: function(data)	{
 						if ( data.success ) 
 							params.onSuccess() ;
@@ -78,7 +83,7 @@
 	};
 	
 	$.fn.formModal = function(params) { 
-		var defaults = { onSuccess: function () {} } ;
+		var defaults = { onSuccess: function () {}, data: {} } ;
 		var params = $.extend( {}, defaults, params );
 		this.each(function() {
 			var that = $(this);
@@ -87,7 +92,7 @@
 	    
 		    	e.preventDefault();
 		    
-		    	var msg = $('<div></div>').load(params.url, 
+		    	var msg = $('<div></div>').load(params.url + '?' + $.param(params.data),
 				function(response, status, xhr) {
 					msg.find(':file').filestyle({btnClass: "btn-primary"}) ;
 					var dialog = new BootstrapDialog({ 
@@ -101,9 +106,10 @@
         
 					var form = msg.form({ 
 						url: params.url,
+						data: params.data,
 						onSuccess: function() {
-							dialog.close() ;
 							params.onSuccess() ;
+							dialog.close() ;
 						}
 					}) ; 
 					

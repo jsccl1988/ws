@@ -61,7 +61,7 @@ Variant::Object TableView::fetch(uint page, uint results_per_page) {
 
     Variant::Array headers ;
     for( const Column &c: columns_ ) {
-        headers.push_back(c.header_)    ;
+        headers.push_back(Variant::Object{{"id", c.key_}, {"name", c.header_}})    ;
     }
 
     uint num_pages = ceil(total_count/(double)results_per_page) ;
@@ -87,17 +87,19 @@ Variant SQLiteTableView::rows(uint offset, uint count)  {
     while ( res ) {
         Variant::Array columns ;
 
+        int id = res.get<int>(id_column_) ;
+
         for( const Column &c: columns_ ) {
             Variant::Object col ;
             string cname = c.key_ ;
             if ( res.hasColumn(cname) ) {
-                col.insert({{"value", transform(cname, res.get<string>(cname))}}) ;
-                if ( !c.type_.empty() ) col.insert({{"type", c.type_}}) ;
+                col.insert({{"value", transform(id, cname, res.get<string>(cname))}}) ;
+                col.insert({{"widget", c.widget_}}) ;
             }
             columns.emplace_back(col) ;
         }
 
-        entries.emplace_back(Variant::Object{{"columns", columns}, {"id", res.get<int>(id_column_)}}) ;
+        entries.emplace_back(Variant::Object{{"columns", columns}, {"id", id}}) ;
 
         res.next() ;
     };

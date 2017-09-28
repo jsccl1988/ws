@@ -60,7 +60,9 @@ struct ContextStack {
 class TemplateRenderer {
 public:
 
-    TemplateRenderer( const boost::shared_ptr<TemplateLoader> &loader, bool caching = false ): loader_(loader), caching_(caching) {}
+    TemplateRenderer( const boost::shared_ptr<TemplateLoader> &loader, bool caching = false ): loader_(loader), caching_(caching) {
+        registerDefaultHelpers() ;
+    }
 
     // Render a template using given context and list of partials.
     // The loader is used to map the given key to a file or other resource.
@@ -78,12 +80,18 @@ public:
 
     std::string renderString(const std::string &content, ContextStack &context) ;
 
-    typedef std::function<std::string(const std::string &src, ContextStack &stack, Variant::Array params)> Helper ;
-    void registerHelper(const std::string &name,  Helper helper) ;
+    typedef std::function<std::string(const std::string &src, ContextStack &stack, Variant::Array params)> BlockHelper ;
+    void registerBlockHelper(const std::string &name,  BlockHelper helper) ;
+
+    typedef std::function< std::pair<bool, std::string>(ContextStack &stack, Variant::Array params)> ValueHelper ;
+    void registerValueHelper(const std::string &name,  ValueHelper helper) ;
 
 private:
 
-    std::map<std::string, Helper> helpers_ ;
+    void registerDefaultHelpers() ;
+
+    std::map<std::string, BlockHelper> block_helpers_ ;
+    std::map<std::string, ValueHelper> value_helpers_ ;
 
     boost::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;
