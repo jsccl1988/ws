@@ -134,10 +134,6 @@ public:
 
         // request router
 
-        for( sqlite::Row r: con.query("select * from routes")() ) {
-            cout << r["title"].as<string>() << endl ;
-        }
-
         if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
