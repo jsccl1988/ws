@@ -10,7 +10,7 @@
     	var item = this ;
     	
     	function onNewRecord() 	{
-			item.formModal({url: options.addUrl, title: 'New Record'}) ;
+			item.formModal({url: options.addUrl, title: 'New Record', onSuccess: function() { reload() ; }}) ;
 		} ;
 				
 		function onEditRecord() 	{

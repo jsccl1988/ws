@@ -90,11 +90,11 @@ public:
 
         con_.exec("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, r.role_id AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id") ;
 
-        addColumn("Username", "username") ;
-        addColumn("Role", "role") ;
+        addColumn("Username", "{{username}}") ;
+        addColumn("Role", "{{role}}") ;
     }
 
-    Variant transform(int, const std::string &key, const std::string &value) override {
+    Variant transform(const std::string &key, const std::string &value) override {
         if ( key == "role" ) return roles_[value] ;
         else return value ;
     }

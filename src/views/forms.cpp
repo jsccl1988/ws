@@ -72,10 +72,14 @@ void InputField::fillData(Variant::Object &base) const
     base.insert({"widget", "input-field"}) ;
 }
 
+FileUploadField::FileUploadField(const string &name): FormField(name) {}
+
 void FileUploadField::fillData(Variant::Object &base) const {
     FormField::fillData(base) ;
     base.insert({"type", "file"}) ;
     base.insert({"widget", "file-upload-field"}) ;
+    if ( max_file_size_ ) base.insert({"max_file_size", max_file_size_}) ;
+    if ( !accept_.empty() ) base.insert({"accept", accept_}) ;
 }
 
 SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
@@ -107,7 +111,11 @@ void SelectField::fillData(Variant::Object &base) const
     base.insert({"widget", "select-field"}) ;
     if ( options_ ) {
         Dictionary options = options_->fetch() ;
-        if ( !options.empty() ) base.insert({"options", Variant::fromDictionaryAsArray(options)}) ;
+        Variant::Array optlist ;
+        for( const auto &a: options ) {
+            optlist.emplace_back(Variant::Object{{"value", a.first}, {"label", a.second}, {"select", a.first == value_ }}) ;
+        }
+        if ( !optlist.empty() ) base.insert({"options", optlist}) ;
     }
 }
 

@@ -95,7 +95,6 @@ protected:
     // calls all validators
     virtual bool validate(const string &value) ;
 
-private:
     friend class Form ;
 
     string label_, name_, alias_, value_, id_, place_holder_, initial_value_, help_text_ ;
@@ -155,10 +154,15 @@ private:
 
 class FileUploadField: public FormField {
 public:
-    FileUploadField(const string &name): FormField(name) {}
+    FileUploadField(const string &name);
+
+    FileUploadField &maxFileSize(uint64_t sz) { max_file_size_ = sz ; return *this ; }
+    FileUploadField &accept(const std::string &a) { accept_ = a ; return *this ; }
 
     void fillData(Variant::Object &) const override;
-
+private:
+    uint64_t max_file_size_ = 0 ;
+    std::string accept_ ;
 };
 
 class SelectField: public FormField {

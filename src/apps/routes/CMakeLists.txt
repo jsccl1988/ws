@@ -10,6 +10,8 @@ ADD_EXECUTABLE(routes_app
     page_controller.cpp
     users_controller.cpp
     route_controller.cpp
+    attachment_controller.cpp
+    wpts_controller.cpp
     page_view.cpp
 )
 

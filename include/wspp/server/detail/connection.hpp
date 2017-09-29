@@ -97,6 +97,7 @@ private:
                             }
 
                          }
+
                         catch ( ... ) {
                             response_.stock_reply(Response::internal_server_error) ;
                         }

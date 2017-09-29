@@ -100,8 +100,6 @@
 						message: msg
 					});
 					
-							
-					dialog.realize() ;
 					dialog.open() ;
         
 					var form = msg.form({ 

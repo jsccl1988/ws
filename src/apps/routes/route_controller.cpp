@@ -56,8 +56,8 @@ public:
 
         con_.exec("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
 
-        addColumn("Title", "title", "<a href=\"route/edit/{{id}}\">{{value}}</a>") ;
-        addColumn("Mountain", "mountain") ;
+        addColumn("Title",  "<a href=\"route/edit/{{id}}\">{{title}}</a>") ;
+        addColumn("Mountain", "{{mountain}}") ;
     }
 };
 
@@ -92,14 +92,12 @@ void RouteController::publish()
 {
     const Dictionary &params = request_.POST_ ;
     string content = params.get("content") ;
-    string permalink = params.get("slug") ;
     string id = params.get("id") ;
 
-    sqlite::Statement stmt(con_, "UPDATE pages SET content = ? WHERE id = ?", content, id) ;
+    sqlite::Statement stmt(con_, "UPDATE routes SET description = ? WHERE id = ?", content, id) ;
     stmt.exec() ;
-    string href = "/page/" + permalink ;
-    response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Page succesfully updated. View <a href=\"" + href + "\">page</a>"}}) ;
 
+    response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Route description succesfully updated"}}) ;
 }
 
 
@@ -307,7 +305,7 @@ bool RouteController::dispatch()
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/page/publish/") ) {
+    else if ( request_.matches("POST", "/route/publish/") ) {
         if ( logged_in ) publish() ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;

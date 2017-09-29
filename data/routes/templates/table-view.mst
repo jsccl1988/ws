@@ -21,14 +21,19 @@
 			</thead>
 			<tbody id="data-grid">
 				{{#rows}}
+
 					<tr data-id="{{id}}">
-					{{#columns}}
+					
+					{{#headers}}	
+					{{#data}}			
 						<td>{{render widget}}</td>	
-					{{/columns}}	
+					{{/data}}		
+					{{/headers}}	
 						<td align="center" style="width: 100px;">
 							<a id="edit-button" class="btn btn-default"><em class="fa fa-pencil"></em></a>
                             <a id="delete-button" class="btn btn-danger"><em class="fa fa-trash"></em></a>
 						</td>
+
 					</tr>
 				{{/rows}}
 			</tbody>

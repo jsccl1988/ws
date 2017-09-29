@@ -40,12 +40,12 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
 
 class PageTableView: public SQLiteTableView {
 public:
-    PageTableView(Connection &con): SQLiteTableView(con, "pages_list_view")  {
+    PageTableView(Connection &con): SQLiteTableView(con, "pages_list_view" )  {
 
         con_.exec("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
 
-        addColumn("Title", "title") ;
-        addColumn("Slug", "slug") ;
+        addColumn("Title", "{{title}}") ;
+        addColumn("Slug", "{{slug}}") ;
     }
 };
 

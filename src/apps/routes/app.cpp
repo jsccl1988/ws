@@ -26,6 +26,8 @@
 #include "page_controller.hpp"
 #include "users_controller.hpp"
 #include "route_controller.hpp"
+#include "attachment_controller.hpp"
+#include "wpts_controller.hpp"
 
 #include <boost/locale.hpp>
 #include <boost/filesystem.hpp>
@@ -135,6 +137,8 @@ public:
         // request router
 
         if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
+        if ( AttachmentController(req, resp, con, user, engine_, root_ + "/data/uploads/").dispatch() ) return ;
+        if ( WaypointController(req, resp, con, user, engine_).dispatch() ) return ;
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( UsersController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( LoginController(user, req, resp, engine_).dispatch() ) return ;

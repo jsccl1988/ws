@@ -1,12 +1,15 @@
 #include "route_model.hpp"
 
 #include <wspp/util/xml_writer.hpp>
+#include <wspp/util/crypto.hpp>
 
 #include <boost/algorithm/string.hpp>
 
 #include <spatialite.h>
 
 #include <ctime>
+#include <fstream>
+
 
 using namespace std ;
 using namespace wspp::util ;
@@ -59,11 +62,47 @@ bool RouteModel::updateInfo(const string &id, const string &title, const string 
     return true ;
 }
 
+bool RouteModel::updateAttachment(const string &id, const string &name, const string &type_id)
+{
+    sqlite::Statement stmt(con_, "UPDATE attachments SET name = ?, type = ? WHERE id = ?");
+    stmt(name, type_id, id) ;
+    return true ;
+}
+
+bool RouteModel::updateWaypoint(const string &id, const string &name, const string &desc)
+{
+    sqlite::Statement stmt(con_, "UPDATE wpts SET name = ?, desc = ? WHERE id = ?");
+    stmt(name, desc, id) ;
+    return true ;
+}
+
 bool RouteModel::getInfo(const string &id, string &title, string &mountain_id) {
     sqlite::Query stmt(con_, "SELECT title, mountain FROM routes WHERE id = ?");
     sqlite::QueryResult res = stmt(id) ;
     if ( res ) {
         res.into(title, mountain_id) ;
+        return true ;
+    }
+    else return false ;
+}
+
+bool RouteModel::getAttachment(const string &id, string &name, string &type_id)
+{
+    sqlite::Query stmt(con_, "SELECT name, type FROM attachments WHERE id = ?");
+    sqlite::QueryResult res = stmt(id) ;
+    if ( res ) {
+        res.into(name, type_id) ;
+        return true ;
+    }
+    else return false ;
+}
+
+bool RouteModel::getWaypoint(const string &id, string &name, string &desc)
+{
+    sqlite::Query stmt(con_, "SELECT name, desc FROM wpts WHERE id = ?");
+    sqlite::QueryResult res = stmt(id) ;
+    if ( res ) {
+        res.into(name, desc) ;
         return true ;
     }
     else return false ;
@@ -132,6 +171,22 @@ bool RouteModel::importRoute(const string &title, const string &mountain_id, con
     }
 
     trans.commit() ;
+}
+
+bool RouteModel::createAttachment(const string &route_id, const string &name, const string &type_id, const string &data, const string &upload_folder) {
+    string extension, target ;
+    size_t pos = name.rfind('.') ;
+    if ( pos != string::npos ) extension = name.substr(pos) ;
+    target = binToHex(randomBytes()) + extension ;
+
+    ofstream ostrm(upload_folder + '/' + target) ;
+    ostrm.write(&data[0], data.size()) ;
+
+    sqlite::Statement stmt(con_, "INSERT INTO attachments (route, 'type', name, url) VALUES (?, ?, ?, ?)", route_id, type_id, name, target);
+
+    stmt.exec() ;
+
+    return true ;
 }
 
 Variant RouteModel::exportGeoJSON(const RouteGeometry &g) {
@@ -308,6 +363,16 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
 bool RouteModel::remove(const string &id) {
     sqlite::Statement(con_, "DELETE FROM routes WHERE id = ?", id).exec() ;
     sqlite::Statement(con_, "DELETE FROM tracks WHERE id = ?", id).exec() ;
+    sqlite::Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
+    return true ;
+}
+
+bool RouteModel::removeAttachment(const string &id) {
+     sqlite::Statement(con_, "DELETE FROM attachments WHERE id = ?", id).exec() ;
+     return true ;
+}
+
+bool RouteModel::removeWaypoint(const string &id) {
     sqlite::Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
     return true ;
 }
