@@ -10,6 +10,13 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/xml_writer.cpp
     ${SRC_ROOT}/util/xml_sax_parser.cpp
 
+    ${SRC_ROOT}/util/sqlite/connection.cpp
+    ${SRC_ROOT}/util/sqlite/exception.cpp
+    ${SRC_ROOT}/util/sqlite/stmt.cpp
+    ${SRC_ROOT}/util/sqlite/statement.cpp
+    ${SRC_ROOT}/util/sqlite/query.cpp
+    ${SRC_ROOT}/util/sqlite/query_result.cpp
+
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
     ${INCLUDE_ROOT}/util/database.hpp
@@ -18,6 +25,13 @@ SET( UTIL_SOURCES
     ${INCLUDE_ROOT}/util/filesystem.hpp
     ${INCLUDE_ROOT}/util/xml_writer.hpp
     ${INCLUDE_ROOT}/util/xml_sax_parser.hpp
+
+    ${INCLUDE_ROOT}/util/sqlite/connection.hpp
+    ${INCLUDE_ROOT}/util/sqlite/exception.hpp
+    ${INCLUDE_ROOT}/util/sqlite/stmt.hpp
+    ${INCLUDE_ROOT}/util/sqlite/statement.hpp
+    ${INCLUDE_ROOT}/util/sqlite/query.hpp
+    ${INCLUDE_ROOT}/util/sqlite/query_result.hpp
 )
 
 SET ( WEB_SOURCES

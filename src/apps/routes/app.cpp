@@ -38,6 +38,7 @@
 #include <wspp/server/filters/gzip_filter.hpp>
 
 #include <spatialite.h>
+#include <wspp/util/sqlite/connection.hpp>
 
 using namespace std ;
 using namespace wspp::util ;
@@ -168,6 +169,12 @@ private:
 
 int main(int argc, char *argv[]) {
 
+
+    sql::Connection con("/home/malasiot/source/ws/data/routes/routes.sqlite") ;
+
+    for( auto row: con.query("select title, description from routes where id > ?")(5000) ) {
+        cout << row["title"].as<string>() << endl ;
+    }
     // example of seting up translation with boost::locale
     //
     // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...
