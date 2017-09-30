@@ -2,7 +2,7 @@
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 Transaction::Transaction(Connection &con): con_(con) {
     char *err_msg ;

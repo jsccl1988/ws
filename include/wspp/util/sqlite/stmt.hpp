@@ -8,7 +8,7 @@
 #include <string>
 #include <map>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 // wrapper for a sqlite3_stmt
 
@@ -16,7 +16,7 @@ class Stmt
 {
 public:
 
-    Stmt(sqlite3 *con_handle, const std::string & sql) ;
+    Stmt(sqlite3 *con_handle, const std::string & sqlite) ;
     ~Stmt();
 
     void clear();

@@ -79,15 +79,6 @@ Variant::Object TableView::fetch(uint page, uint results_per_page) {
 
 SQLiteTableView::SQLiteTableView(sqlite::Connection &con, const string &table, const string &id_column):
     TableView(), con_(con), table_(table), id_column_(id_column) {
-
-   /* ostringstream sql ;
-    sql << "SELECT * FROM \"" << table_ << "\" LIMIT 0" ;
-    sqlite::Query stmt(con_, sql.str()) ;
-    sqlite::QueryResult res = stmt.exec() ;
-    for(uint i=0 ; i<res.columns() ; i++ ) {
-        keys_.emplace_back(string(res.columnName(i))) ;
-    }
-    */
 }
 
 Variant SQLiteTableView::rows(uint offset, uint count)  {
@@ -95,25 +86,22 @@ Variant SQLiteTableView::rows(uint offset, uint count)  {
     ostringstream sql ;
     sql << "SELECT * FROM " << '"' <<  table_ << '"' << " LIMIT ?, ?" ;
 
-    sqlite::Query q(con_, sql.str(), offset, count) ;
-    sqlite::QueryResult res = q.exec() ;
-
     Variant::Array entries ;
 
-    while ( res ) {
+    for( auto &&r: con_.query(sql.str(), offset, count)) {
         Variant::Object row ;
 
-        string id = res.get<string>(id_column_) ;
+        string id = r[id_column_].as<string>() ;
 
-        for( uint i=0 ; i<res.columns() ; i++ ) {
-            string key = res.columnName(i) ;
-            row.insert({{key, transform(key, res.get<string>(i))}}) ;
+        for( uint i=0 ; i<r.columns() ; i++ ) {
+            string key = r.columnName(i) ;
+            row.insert({{key, transform(key, r[i].as<string>())}}) ;
         }
 
         entries.emplace_back(Variant::Object{{"id", id}, {"data", row}}) ;
 
-        res.next() ;
-    };
+    }
+
 
     return entries ;
 }

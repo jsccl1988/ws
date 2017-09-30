@@ -5,14 +5,14 @@
 #include <wspp/util/sqlite/query_result.hpp>
 #include <string>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class Connection ;
 class QueryResult ;
 
 class Query: public Statement {
 public:
-    Query(Connection &con, const std::string &sql) ;
+    Query(Connection &con, const std::string &sqlite) ;
 
     template<typename ...Args>
     Query(Connection& con, const std::string & sql, Args... args): Query(con, sql) {

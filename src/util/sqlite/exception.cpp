@@ -2,7 +2,7 @@
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 Exception::Exception(sqlite3 *handle): std::runtime_error(sqlite3_errmsg(handle)) {}
 

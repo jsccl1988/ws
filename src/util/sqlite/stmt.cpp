@@ -8,7 +8,7 @@
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 
 Stmt::Stmt(sqlite3 *con, const string &sql): last_arg_idx_(0)

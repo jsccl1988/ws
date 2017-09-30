@@ -1,7 +1,7 @@
 #include <wspp/util/sqlite/statement.hpp>
 #include <wspp/util/sqlite/connection.hpp>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 Statement::Statement(Connection &con, const std::string & sql) {
     con.check() ;

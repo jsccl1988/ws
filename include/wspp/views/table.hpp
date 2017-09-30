@@ -62,9 +62,7 @@ public:
     Variant rows(uint offset, uint count) override;
 
     uint count() override {
-        sqlite::Query stmt(con_, "SELECT count(*) FROM " + table_) ;
-        sqlite::QueryResult res = stmt.exec() ;
-        return res.get<int>(0) ;
+        return con_.query("SELECT count(*) FROM " + table_)[0].as<uint>() ;
     }
 
 protected:

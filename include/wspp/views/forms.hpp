@@ -26,7 +26,7 @@ namespace wspp { namespace web {
 using wspp::util::Variant ;
 using wspp::util::Dictionary ;
 
-class FormField: public boost::noncopyable {
+class FormField {
 public:
 
     // The normalizer preprocesses an input value before passing it to validators

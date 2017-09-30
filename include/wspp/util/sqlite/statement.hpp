@@ -8,7 +8,7 @@
 #include <sqlite3.h>
 #include <string>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class Connection ;
 
@@ -16,7 +16,7 @@ class Statement
 {
 public:
 
-    Statement(Connection &con, const std::string & sql) ;
+    Statement(Connection &con, const std::string & sqlite) ;
 
     // helper for creating a connection and binding parameters
     template<typename ...Args>

@@ -5,7 +5,7 @@
 
 #include <string>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class Transaction
 {

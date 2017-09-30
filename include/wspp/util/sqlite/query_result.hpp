@@ -5,7 +5,7 @@
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/sqlite/statement.hpp>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class Row ;
 class Query ;
@@ -143,6 +143,8 @@ private:
 };
 
 
+
+
 inline Column QueryResult::operator [](const std::string &name) {
     return Column(*this, name) ;
 }
@@ -150,6 +152,8 @@ inline Column QueryResult::operator [](const std::string &name) {
 inline Column QueryResult::operator [](int idx) {
     return Column(*this, idx) ;
 }
+
+class ColumnAccessor ;
 
 class Row {
 public:
@@ -193,11 +197,35 @@ public:
         return qres_.get<T>(name) ;
     }
 
+    template<class T>
+    friend ColumnAccessor operator >> ( const Row &row, T &val ) ;
+
 private:
 
     QueryResult &qres_ ;
 };
 
+class ColumnAccessor {
+public:
+
+    ColumnAccessor(const Row &row): row_(row), idx_(0) {}
+
+    template<class T>
+    ColumnAccessor &operator >> (T &v) {
+        row_.read(++idx_, v) ;
+        return *this ;
+    }
+
+    const Row &row_ ;
+    int idx_ ;
+};
+
+
+template<class T>
+ColumnAccessor operator >> ( const Row &row, T &val ) {
+    row.read(0, val) ;
+    return ColumnAccessor(row) ;
+}
 
 } // namespace sqlite
 } // namespace util

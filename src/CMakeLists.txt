@@ -2,7 +2,7 @@ SET( UTIL_SOURCES
 
     ${SRC_ROOT}/util/dictionary.cpp
     ${SRC_ROOT}/util/logger.cpp
-    ${SRC_ROOT}/util/database.cpp
+
     ${SRC_ROOT}/util/crypto.cpp
     ${SRC_ROOT}/util/zfstream.cpp
     ${SRC_ROOT}/util/json.cpp

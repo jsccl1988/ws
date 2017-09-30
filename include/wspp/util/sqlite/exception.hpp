@@ -5,7 +5,7 @@
 #include <string>
 #include <stdexcept>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class Exception: public std::runtime_error
 {

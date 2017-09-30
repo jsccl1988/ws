@@ -2,7 +2,7 @@
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 QueryResult::QueryResult(std::shared_ptr<Stmt> cmd): cmd_(cmd) {
     next() ;

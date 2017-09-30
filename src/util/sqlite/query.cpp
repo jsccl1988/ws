@@ -2,7 +2,7 @@
 #include <wspp/util/sqlite/connection.hpp>
 
 using namespace std ;
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 Query::Query(Connection &con, const string &sql):
     Statement(con, sql) {

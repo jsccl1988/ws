@@ -5,7 +5,7 @@
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 Connection::Connection(): handle_(nullptr) {
 }

@@ -1,7 +1,7 @@
 #ifndef __SQLITE_TYPES_HPP__
 #define __SQLITE_TYPES_HPP__
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class NullType {} ;
 

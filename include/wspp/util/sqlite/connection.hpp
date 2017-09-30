@@ -6,7 +6,7 @@
 
 #include <wspp/util/sqlite/query.hpp>
 
-namespace wspp { namespace util { namespace sql {
+namespace wspp { namespace util { namespace sqlite {
 
 class Statement ;
 class Query ;
@@ -32,7 +32,7 @@ public:
      * @brief Helper for executing an sql statement, including a colon separated list of statements
      * @param sql Format string similar to printf. Use %q for arguments that need quoting (see sqlite3_mprintf documentation)
      */
-    void exec(const std::string &sql, ...) ;
+    void exec(const std::string &sqlite, ...) ;
 
     sqlite3_int64 last_insert_rowid() {
         return sqlite3_last_insert_rowid(handle_);
@@ -44,8 +44,8 @@ public:
 
     sqlite3 *handle() { return handle_ ; }
 
-    Statement prepareStatement(const std::string &sql) ;
-    Query prepareQuery(const std::string &sql) ;
+    Statement prepareStatement(const std::string &sqlite) ;
+    Query prepareQuery(const std::string &sqlite) ;
 
     // helper for creating a connection and binding parameters
     template<typename ...Args>
