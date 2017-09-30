@@ -51,7 +51,6 @@ public:
         return bind(++last_arg_idx_, p) ;
     }
 
-    template <typename T>
     Stmt &bindm() {
         return *this ;
     }

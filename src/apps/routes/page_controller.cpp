@@ -21,9 +21,7 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
         .addValidator([&] (const string &val, const FormField &f) {
             bool error ;
             if ( id_.empty() ) {
-                sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ?") ;
-                sqlite::QueryResult res = q(val) ;
-                error = res.get<int>(0) ;
+                error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val)[0].as<int>() ;
             }
             else {
                 sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
@@ -77,11 +75,9 @@ void PageController::publish()
     string permalink = params.get("slug") ;
     string id = params.get("id") ;
 
-    sqlite::Statement stmt(con_, "UPDATE pages SET content = ? WHERE id = ?", content, id) ;
-    stmt.exec() ;
+    con_.execute("UPDATE pages SET content = ? WHERE id = ?", content, id) ;
     string href = "/page/" + permalink ;
     response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Page succesfully updated. View <a href=\"" + href + "\">page</a>"}}) ;
-
 }
 
 void PageController::create()
@@ -127,7 +123,7 @@ void PageController::edit(const string &id)
     if ( res ) {
 
         string permalink, title, content ;
-        res.into(title, content, permalink) ;
+        res >> title >> content >> permalink ;
 
         Variant ctx( Variant::Object{
                      { "page", page_.data(permalink, title) },
@@ -156,10 +152,8 @@ void PageController::update()
 
             // write data to database
 
-            sqlite::Statement stmt(con_, "UPDATE pages SET title = ?, permalink = ? WHERE id = ?") ;
-
-            stmt(form.getValue("title"), form.getValue("slug"), id) ;
-
+            con_.execute("UPDATE pages SET title = ?, permalink = ? WHERE id = ?",
+                         form.getValue("title"), form.getValue("slug"), id) ;
 
             // send a success message
             response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
@@ -182,8 +176,7 @@ void PageController::update()
             throw HttpResponseException(Response::not_found) ;
         }
 
-        sqlite::Query q(con_, "SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
-        sqlite::QueryResult res = q.exec() ;
+        sqlite::QueryResult res = con_.query("SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
 
         if ( !res ) {
             response_.stock_reply(Response::not_found) ;
@@ -207,8 +200,7 @@ void PageController::remove()
     if ( id.empty() )
         throw HttpResponseException(Response::not_found) ;
     else {
-        sqlite::Statement stmt(con_, "DELETE FROM pages where id=?", id) ;
-        stmt.exec() ;
+        con_.execute("DELETE FROM pages where id=?", id) ;
         response_.writeJSON("{}") ;
     }
 
@@ -267,8 +259,7 @@ bool PageController::dispatch()
 
 void PageController::show(const std::string &page_id)
 {
-    sqlite::Query q(con_, "SELECT id, title, content FROM pages WHERE permalink=?", page_id) ;
-    sqlite::QueryResult res = q.exec() ;
+    sqlite::QueryResult res = con_.query("SELECT id, title, content FROM pages WHERE permalink=?", page_id) ;
 
     if ( res ) {
 

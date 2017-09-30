@@ -27,8 +27,7 @@ public:
         string sql("CREATE TEMPORARY VIEW wpt_list_view AS SELECT id, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat, ele FROM wpts WHERE route = ") ;
         sql += route_id;
 
-        sqlite::Statement stmt(con_, sql) ;
-        stmt.exec() ;
+        con_.execute(sql) ;
 
         addColumn("Name", "{{name}}") ;
         addColumn("Description", "{{desc}}") ;

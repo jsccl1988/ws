@@ -23,12 +23,6 @@ AttachmentCreateForm::AttachmentCreateForm(const Request &req, const RouteModel 
             auto it = request_.FILE_.find("attachment-file") ;
             if ( it == request_.FILE_.end() )
                 throw FormFieldValidationError("No file received") ;
-/*
-            const Request::UploadedFile &up = it->second ;
-
-            if ( up.size_ > max_attachment_file_size )
-                throw FormFieldValidationError(boost::format("Uploaded file should be less than %d MB") %  max_attachment_file_size/1024/1024);
-                */
         }) ;
 }
 
@@ -51,8 +45,7 @@ public:
         string sql("CREATE TEMPORARY VIEW attachments_list_view AS SELECT id, name, type FROM attachments WHERE route = ") ;
         sql += route_id;
 
-        sqlite::Statement stmt(con_, sql) ;
-        stmt.exec() ;
+        con_.execute(sql) ;
 
         addColumn("Name", "{{name}}") ;
         addColumn("Type", "{{type}}") ;
