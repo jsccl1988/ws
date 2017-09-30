@@ -1,5 +1,6 @@
 #include <wspp/util/sqlite/connection.hpp>
 #include <wspp/util/sqlite/exception.hpp>
+#include <wspp/util/sqlite/transaction.hpp>
 
 
 using namespace std ;
@@ -47,13 +48,17 @@ void Connection::exec(const string &sql, ...)
     va_end(arguments);
 }
 
-Statement Connection::statement(const string &sql)
+Statement Connection::prepareStatement(const string &sql)
 {
     return Statement(*this, sql) ;
 }
 
-Query Connection::query(const string &sql) {
+Query Connection::prepareQuery(const string &sql) {
     return Query(*this, sql) ;
+}
+
+Transaction Connection::transaction() {
+    return Transaction(*this) ;
 }
 
 void Connection::check() {
@@ -64,11 +69,6 @@ void Connection::check() {
 Connection::~Connection() {
     close() ;
 }
-
-
-
-
-
 
 
 } // namespace sqlite

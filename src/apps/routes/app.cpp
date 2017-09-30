@@ -172,7 +172,7 @@ int main(int argc, char *argv[]) {
 
     sql::Connection con("/home/malasiot/source/ws/data/routes/routes.sqlite") ;
 
-    for( auto row: con.query("select title, description from routes where id > ?")(5000) ) {
+    for( auto row: con.query("select title, description from routes where id > ?", 5000) ) {
         cout << row["title"].as<string>() << endl ;
     }
     // example of seting up translation with boost::locale

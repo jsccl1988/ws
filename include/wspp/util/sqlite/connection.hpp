@@ -10,6 +10,7 @@ namespace wspp { namespace util { namespace sql {
 
 class Statement ;
 class Query ;
+class Transaction ;
 
 class Connection {
 
@@ -43,8 +44,21 @@ public:
 
     sqlite3 *handle() { return handle_ ; }
 
-    Statement statement(const std::string &sql) ;
-    Query query(const std::string &sql) ;
+    Statement prepareStatement(const std::string &sql) ;
+    Query prepareQuery(const std::string &sql) ;
+
+    // helper for creating a connection and binding parameters
+    template<typename ...Args>
+    QueryResult query(const std::string & sql, Args... args) {
+        return Query(*this, sql)(args...) ;
+    }
+
+    template<typename ...Args>
+    void execute(const std::string &sql, Args... args) {
+        Statement(*this, sql)(args...) ;
+    }
+
+    Transaction transaction() ;
 
     void check() ;
 

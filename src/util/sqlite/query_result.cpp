@@ -12,7 +12,7 @@ int QueryResult::columns() const {
     return cmd_->columns() ;
 }
 
-const char *QueryResult::columnName(int idx) const {
+string QueryResult::columnName(int idx) const {
     return cmd_->columnName(idx) ;
 }
 

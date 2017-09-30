@@ -16,6 +16,7 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/sqlite/statement.cpp
     ${SRC_ROOT}/util/sqlite/query.cpp
     ${SRC_ROOT}/util/sqlite/query_result.cpp
+    ${SRC_ROOT}/util/sqlite/transaction.cpp
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
@@ -32,6 +33,7 @@ SET( UTIL_SOURCES
     ${INCLUDE_ROOT}/util/sqlite/statement.hpp
     ${INCLUDE_ROOT}/util/sqlite/query.hpp
     ${INCLUDE_ROOT}/util/sqlite/query_result.hpp
+    ${INCLUDE_ROOT}/util/sqlite/transaction.hpp
 )
 
 SET ( WEB_SOURCES
