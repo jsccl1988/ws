@@ -11,7 +11,9 @@ using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
-AttachmentCreateForm::AttachmentCreateForm(const Request &req, const RouteModel &routes): request_(req), routes_(routes) {
+AttachmentCreateForm::AttachmentCreateForm(const Request &req, RouteModel &routes, const string &route_id,
+                                           const string &upload_folder):
+    request_(req), routes_(routes), upload_folder_(upload_folder), route_id_(route_id) {
 
     field<SelectField>("type", boost::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
     .required().label("Type") ;
@@ -23,17 +25,50 @@ AttachmentCreateForm::AttachmentCreateForm(const Request &req, const RouteModel 
             auto it = request_.FILE_.find("attachment-file") ;
             if ( it == request_.FILE_.end() )
                 throw FormFieldValidationError("No file received") ;
-        }) ;
+    }) ;
+}
+
+void AttachmentCreateForm::onSuccess(const Request &request)
+{
+   auto it = request.FILE_.find("attachment-file") ;
+
+   routes_.createAttachment(route_id_, it->second.name_, getValue("type"), it->second.data_, upload_folder_) ;
 }
 
 
-AttachmentUpdateForm::AttachmentUpdateForm(sqlite::Connection &con, const RouteModel &routes): con_(con), routes_(routes) {
+AttachmentUpdateForm::AttachmentUpdateForm(RouteModel &routes, const string &route_id):
+    route_id_(route_id), routes_(routes) {
 
     field<InputField>("name", "text").label("Name").required()
         .addValidator<NonEmptyValidator>() ;
 
     field<SelectField>("type", boost::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
-    .required().label("Type") ;
+            .required().label("Type") ;
+}
+
+void AttachmentUpdateForm::onSuccess(const Request &request) {
+    string id = request.POST_.get("id") ;
+
+    // write data to database
+
+    routes_.updateAttachment(id, getValue("name"), getValue("type")) ;
+}
+
+void AttachmentUpdateForm::onGet(const Request &request)
+{
+    const Dictionary &params = request.GET_ ;
+    string id = params.get("id") ;
+
+    if ( id.empty() ) {
+        throw HttpResponseException(Response::not_found) ;
+    }
+
+    string name, type_id ;
+    if ( !routes_.getAttachment(id, name, type_id) ) {
+        throw HttpResponseException(Response::not_found) ;
+    }
+
+    init({{"name", name}, {"type", type_id}}) ;
 }
 
 
@@ -65,81 +100,16 @@ private:
 
 void AttachmentController::create(const std::string &route_id)
 {
-    AttachmentCreateForm form(request_, routes_) ;
+    AttachmentCreateForm form(request_, routes_, route_id, upload_folder_) ;
 
-    if ( request_.method_ == "POST" ) {
-
-        if ( form.validate(request_) ) {
-
-            auto it = request_.FILE_.find("attachment-file") ;
-
-            routes_.createAttachment(route_id, it->second.name_, form.getValue("type"), it->second.data_, upload_folder_) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("attachment-create-dialog", ctx)}});
-        }
-    }
-    else {
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("attachment-create-dialog", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void AttachmentController::update(const std::string &route_id)
 {
-    if ( request_.method_ == "POST" ) {
+    AttachmentUpdateForm form(routes_, route_id) ;
 
-        string id = request_.POST_.get("id") ;
-
-        AttachmentUpdateForm form(con_, routes_) ;
-
-        if ( form.validate(request_) ) {
-
-            // write data to database
-
-            routes_.updateAttachment(id, form.getValue("name"), form.getValue("type")) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("attachment-edit-dialog", ctx)}});
-        }
-    }
-    else {
-
-        const Dictionary &params = request_.GET_ ;
-        string id = params.get("id") ;
-
-        AttachmentUpdateForm form(con_, routes_) ;
-
-        if ( id.empty() ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        string name, type_id ;
-        if ( !routes_.getAttachment(id, name, type_id) ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        form.init({{"name", name}, {"type", type_id}}) ;
-
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("attachment-edit-dialog", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void AttachmentController::remove(const std::string &route_id)

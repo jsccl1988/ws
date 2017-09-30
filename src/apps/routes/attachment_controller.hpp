@@ -21,21 +21,27 @@ using wspp::web::TemplateRenderer ;
 
 class AttachmentCreateForm: public wspp::web::Form {
 public:
-    AttachmentCreateForm(const Request &req, const RouteModel &routes) ;
+    AttachmentCreateForm(const Request &req, RouteModel &routes, const std::string &route_id, const string &upload_folder) ;
+
+    void onSuccess(const Request &request) override ;
 
 private:
     const Request &request_ ;
-    const RouteModel &routes_ ;
+    RouteModel &routes_ ;
+    const string upload_folder_ ;
+    const string route_id_ ;
 };
 
 class AttachmentUpdateForm: public wspp::web::Form {
 public:
-    AttachmentUpdateForm(Connection &con, const RouteModel &routes) ;
+    AttachmentUpdateForm(RouteModel &routes, const string &route_id) ;
 
+    void onSuccess(const Request &request) override ;
+    void onGet(const Request &request) override ;
 private:
 
-    Connection &con_ ;
-    const RouteModel &routes_ ;
+    RouteModel &routes_ ;
+    string route_id_ ;
 };
 
 class AttachmentController {

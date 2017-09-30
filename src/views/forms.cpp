@@ -1,4 +1,5 @@
 #include <wspp/views/forms.hpp>
+#include <wspp/views/renderer.hpp>
 #include <wspp/util/crypto.hpp>
 
 #include <boost/make_shared.hpp>
@@ -152,13 +153,10 @@ CSRFField::CSRFField(const string &name,  Session &session): InputField(name, "h
 */
 
 
-Form::Form(const std::string &prefix, const string &suffix): field_prefix_(prefix), field_suffix_(suffix) {
+Form::Form() {}
 
-}
-
-void Form::addField(const FormField::Ptr &field)
-{
-    field->id(field_prefix_ + field->name_ + field_suffix_) ;
+void Form::addField(const FormField::Ptr &field) {
+ //   field->id(field_prefix_ + field->name_ + field_suffix_) ;
     field->count_ = fields_.size() ;
     fields_.push_back(field) ;
     field_map_.insert({field->name_, field}) ;
@@ -212,6 +210,43 @@ string Form::getValue(const string &field_name)
     const auto &it = field_map_.find(field_name) ;
     assert ( it != field_map_.end() ) ;
     return it->second->value_ ;
+}
+
+std::string Form::render(TemplateRenderer &e) {
+
+    Variant::Object form ;
+    if ( !enctype_.empty() )
+        form.insert({"enctype", enctype_}) ;
+    if ( !action_.empty() )
+        form.insert({"action", action_}) ;
+    if ( !method_.empty() )
+        form.insert({"method", method_}) ;
+
+    form.insert({"button", Variant::Object{{"name", button_name_}, {"title", button_title_}}}) ;
+
+    form.insert({"data", data()}) ;
+
+    return e.render(form_template_, form) ;
+}
+
+void Form::handle(const Request &request, Response &response, TemplateRenderer &engine)
+{
+    if ( request.method_ == "POST" ) {
+
+        if ( validate(request) ) {
+            onSuccess(request) ;
+
+            // send a success message
+            response.writeJSONVariant(Variant::Object{{"success", true}}) ;
+        }
+        else {
+            response.writeJSONVariant(Variant::Object{{"success", false}, {"content", render(engine) }});
+        }
+    }
+    else {
+        onGet(request) ;
+        response.write(render(engine)) ;
+    }
 }
 
 bool Form::validate(const Request &req) {

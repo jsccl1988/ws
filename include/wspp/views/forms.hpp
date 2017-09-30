@@ -15,6 +15,7 @@
 
 using std::string ;
 using wspp::server::Request ;
+using wspp::server::Response ;
 
 namespace wspp { namespace web {
 
@@ -185,11 +186,18 @@ private:
     bool is_checked_ = false ;
 };
 
+class TemplateRenderer ;
 
 class Form {
 public:
 
-    Form(const string &field_prefix = "", const string &field_suffix = "_field") ;
+    Form() ;
+
+    Form &setAction(const std::string &action) { action_ = action ; return *this ; }
+    Form &setMethod(const std::string &method) { method_ = method ; return *this ; }
+    Form &setEncType(const std::string &enc) { enctype_ = enc ; return *this ; }
+    Form &setTemplate(const std::string &t) { form_template_ = t ; return *this ; }
+    Form &setButtonTitle(const std::string &title) { button_title_ = title ; return *this ; }
 
     template<typename T, typename ... Args >
     T &field(Args... args) {
@@ -214,15 +222,26 @@ public:
 
     string getValue(const string &field_name) ;
 
+    string render(TemplateRenderer &r) ;
 
+    virtual void onSuccess(const Request &request) {}
+    virtual void onGet(const Request &request) {}
+
+    // Use this to avoid boilerplate in form request handling
+    // When a POST request is recieved and succesfully validated then onSuccess function is called
+    // When a GET request is received for initial rendering of the form then the onGet handler is called to initialize
+    // the form
+    void handle(const Request &req, server::Response &response, TemplateRenderer &engine) ;
 
 protected:
 
     std::vector<FormField::Ptr> fields_ ;
     std::map<string, FormField::Ptr> field_map_ ;
-    string field_prefix_, field_suffix_ ;
+    std::string form_template_ = "form";
     std::vector<string> errors_ ;
     bool is_valid_ = false ;
+    string enctype_, method_ = "POST", action_ = "#" ;
+    string button_name_ = "submit", button_title_ = "Submit" ;
 
     void addField(const FormField::Ptr &field);
 } ;
