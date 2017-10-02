@@ -113,8 +113,22 @@ The helper lambda has the following form
 "src" is the contents of the block unrenderer and "ctx" is the current context. "params" will contain the list of params. The function should assure that the correct value of parameters has been provided. Normally 
 the lambda should capture an instance of the TemplateRenderer which gives access to the render function "renderString". For example:
 ```
-engine.registerBlockHelper("b", [&](const string &src, ContextStack &ctx, Variant::Array params) {
+engine.registerBlockHelper("bold", [&](const string &src, ContextStack &ctx, Variant::Array params) {
       return "<bold>" + engine.renderString(src, ctx) + "</bold>" ;
 }) ;
 ```
 will wrap the text enclosed in a `{{#bold}}` section. 
+
+### Value Helpers
+
+These are similar to block helpers but they can be used in variable substitutions:
+```
+{{ helper_name(var) }}
+```
+In this case the helper signature is 
+```
+ [&](ContextStack &ctx, Variant::Array params) -> pair<bool,string> { ...  } 
+```
+And should also return a true/false value specifying whether the string has been already escaped.
+
+A usefull predefine value helper is the render function `{{ render(var) }}` that can be used to render some short inline Mustache contained in the variable.
