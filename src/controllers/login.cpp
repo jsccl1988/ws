@@ -21,6 +21,9 @@ public:
     LoginForm(User &auth) ;
 
     bool validate(const Request &vals) override ;
+
+    void onSuccess(const Request &request) override;
+
 private:
     User &auth_ ;
 
@@ -70,6 +73,15 @@ bool LoginForm::validate(const Request &vals) {
     return true ;
 }
 
+void LoginForm::onSuccess(const Request &request) {
+    string username = getValue("username") ;
+    bool remember_me = getValue("remember-me") == "on" ;
+
+    string stored_password, user_id, role ;
+    auth_.load(username, user_id, stored_password, role) ;
+    auth_.persist(username, user_id, role, remember_me) ;
+}
+
 bool LoginController::dispatch()
 {
     if ( request_.matches("GET|POST", "/user/login/") ) login() ;
@@ -82,38 +94,7 @@ void LoginController::login()
 {
     LoginForm form(user_) ;
 
-    if ( request_.method_ == "POST" ) {
-
-        if ( form.validate(request_) ) {
-
-            string username = form.getValue("username") ;
-            bool remember_me = form.getValue("remember-me") == "on" ;
-
-            string stored_password, user_id, role ;
-            user_.load(username, user_id, stored_password, role) ;
-            user_.persist(username, user_id, role, remember_me) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            //Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-      //      cout << ctx.toJSON() << endl ;
-//            response_.writeJSONVariant(Variant::Object{{"success", false},
-//                                                       {"content", engine_.render("login-dialog", ctx)}});
-
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                                   {"errors", form.errors()}});
-
-        }
-    }
-    else {
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("login-dialog", ctx)) ;
-    }
+    form.handle(request_, response_, engine_) ;
 }
 
 void LoginController::logout()

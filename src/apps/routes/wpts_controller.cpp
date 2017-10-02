@@ -11,19 +11,47 @@ using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
-WaypointUpdateForm::WaypointUpdateForm(sqlite::Connection &con, const RouteModel &routes): con_(con), routes_(routes) {
+class WaypointUpdateForm: public wspp::web::Form {
+public:
+    WaypointUpdateForm(RouteModel &routes, const std::string &route_id): routes_(routes), route_id_(route_id) {
+        field<InputField>("name", "text").label("Name").required()
+            .addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("name", "text").label("Name").required()
-        .addValidator<NonEmptyValidator>() ;
+        field<InputField>("desc", "text").label("Description") ;
+    }
 
-    field<InputField>("desc", "text").label("Description") ;
-}
+    void onSuccess(const wspp::server::Request &request) override {
+        string id = request.POST_.get("id") ;
+        routes_.updateWaypoint(id, getValue("name"), getValue("desc")) ;
+    }
+    void onGet(const wspp::server::Request &request) override {
+        const Dictionary &params = request.GET_ ;
+        string id = params.get("id") ;
+
+        if ( id.empty() )
+            throw HttpResponseException(Response::not_found) ;
+
+        string name, desc ;
+        if ( !routes_.getWaypoint(id, name, desc) ) {
+            throw HttpResponseException(Response::not_found) ;
+        }
+
+        init({{"name", name}, {"desc", desc}}) ;
+    }
+
+private:
+
+    RouteModel &routes_ ;
+    string route_id_ ;
+};
+
 
 class WaypointTableView: public SQLiteTableView {
 public:
     WaypointTableView(Connection &con, const std::string &route_id):
         SQLiteTableView(con, "wpt_list_view") {
 
+        setTitle("Waypoints") ;
         string sql("CREATE TEMPORARY VIEW wpt_list_view AS SELECT id, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat, ele FROM wpts WHERE route = ") ;
         sql += route_id;
 
@@ -38,51 +66,9 @@ public:
 
 void WaypointController::update(const std::string &route_id)
 {
-    if ( request_.method_ == "POST" ) {
+    WaypointUpdateForm form(routes_, route_id) ;
 
-        string id = request_.POST_.get("id") ;
-
-        WaypointUpdateForm form(con_, routes_) ;
-
-        if ( form.validate(request_) ) {
-
-            // write data to database
-
-            routes_.updateWaypoint(id, form.getValue("name"), form.getValue("desc")) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("waypoint-edit-dialog", ctx)}});
-        }
-    }
-    else {
-
-        const Dictionary &params = request_.GET_ ;
-        string id = params.get("id") ;
-
-        WaypointUpdateForm form(con_, routes_) ;
-
-        if ( id.empty() ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        string name, desc ;
-        if ( !routes_.getWaypoint(id, name, desc) ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        form.init({{"name", name}, {"desc", desc}}) ;
-
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("waypoint-edit-dialog", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void WaypointController::remove(const std::string &route_id)
@@ -126,11 +112,6 @@ bool WaypointController::dispatch()
 void WaypointController::list(const std::string &route_id)
 {
     WaypointTableView view(con_, route_id) ;
-    uint offset = request_.GET_.value<int>("page", 1) ;
-    uint results_per_page = request_.GET_.value<int>("total", 10) ;
-
-    Variant data = view.fetch(offset, results_per_page) ;
-
-    response_.write(engine_.render("waypoints-table-view", data )) ;
+    view.render(request_, response_, engine_) ;
 }
 

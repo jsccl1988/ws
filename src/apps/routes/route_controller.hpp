@@ -22,25 +22,29 @@ using wspp::web::TemplateRenderer ;
 
 class RouteCreateForm: public wspp::web::Form {
 public:
-    RouteCreateForm(const Request &req, const RouteModel &routes) ;
+    RouteCreateForm(const Request &req, RouteModel &routes) ;
 
     const RouteGeometry &geom() const { return geom_ ; }
+
+    void onSuccess(const Request &request) override;
 
 private:
 
     RouteGeometry geom_ ;
     const Request &request_ ;
-    const RouteModel &routes_ ;
+    RouteModel &routes_ ;
 };
 
 class RouteUpdateForm: public wspp::web::Form {
 public:
-    RouteUpdateForm(Connection &con, const RouteModel &routes) ;
+    RouteUpdateForm(Connection &con, RouteModel &routes) ;
 
+    void onSuccess(const Request &request) override;
+    void onGet(const Request &request) override;
 private:
 
     Connection &con_ ;
-    const RouteModel &routes_ ;
+    RouteModel &routes_ ;
 };
 
 // CREATE TABLE routes ( id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, description TEXT, mountain TEXT )

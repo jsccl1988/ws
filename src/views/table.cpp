@@ -1,4 +1,5 @@
 #include <wspp/views/table.hpp>
+#include <wspp/views/renderer.hpp>
 
 using namespace std ;
 
@@ -74,7 +75,16 @@ Variant::Object TableView::fetch(uint page, uint results_per_page) {
 
     Variant pages = make_pager_data(page, num_pages) ;
 
-    return Variant::Object({{"page", page}, {"pager", pages}, {"headers", headers}, {"rows", entries}, {"total_rows", total_count}, {"total_pages", num_pages }} ) ;
+    return Variant::Object({{"title", title_}, {"page", page}, {"pager", pages}, {"headers", headers}, {"rows", entries}, {"total_rows", total_count}, {"total_pages", num_pages }} ) ;
+}
+
+void TableView::render(const server::Request &request, server::Response &response, TemplateRenderer &engine) {
+    uint offset = request.GET_.value<int>("page", 1) ;
+    uint results_per_page = request.GET_.value<int>("total", 10) ;
+
+    Variant data = fetch(offset, results_per_page) ;
+
+    response.write(engine.render("table-view", data )) ;
 }
 
 SQLiteTableView::SQLiteTableView(sqlite::Connection &con, const string &table, const string &id_column):

@@ -13,7 +13,16 @@ using namespace wspp::server ;
 
 class UserModifyForm: public wspp::web::Form {
 public:
-    UserModifyForm(User &user,  const string &id ) ;
+    UserModifyForm(User &user, const string &id ) ;
+
+    void onSuccess(const Request &request) override {
+        string password = getValue("password") ;
+        string role = getValue("role") ;
+
+        user_.update(id_, password, role) ;
+    }
+    void onGet(const Request &request) override {
+    }
 
 private:
     User &user_ ;
@@ -23,6 +32,14 @@ private:
 class UserCreateForm: public wspp::web::Form {
 public:
     UserCreateForm(User &user) ;
+
+    void onSuccess(const Request &request) override {
+        string username = getValue("username") ;
+        string password = getValue("password") ;
+        string role = getValue("role") ;
+
+        user_.create(username, password, role) ;
+    }
 
 private:
     User &user_ ;
@@ -88,6 +105,7 @@ class UsersTableView: public SQLiteTableView {
 public:
     UsersTableView(Connection &con, const Dictionary &roles): SQLiteTableView(con, "users_list_view"), roles_(roles)  {
 
+        setTitle("Users") ;
         con_.exec("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, r.role_id AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id") ;
 
         addColumn("Username", "{{username}}") ;
@@ -106,12 +124,8 @@ private:
 void UsersController::fetch()
 {
     UsersTableView view(con_, user_.auth().getRoles()) ;
-    uint offset = request_.GET_.value<int>("page", 1) ;
-    uint results_per_page = request_.GET_.value<int>("total", 10) ;
 
-    Variant data = view.fetch(offset, results_per_page ) ;
-
-    response_.write(engine_.render("users-table-view", data )) ;
+    view.render(request_, response_, engine_) ;
 }
 
 
@@ -126,94 +140,29 @@ void UsersController::edit()
 
 
 
-void UsersController::create()
-{
+void UsersController::create() {
     UserCreateForm form(user_) ;
 
-    if ( request_.method_ == "POST" ) {
-
-        if ( form.validate(request_) ) {
-
-            // write data to database
-
-            string username = form.getValue("username") ;
-            string password = form.getValue("password") ;
-            string role = form.getValue("role") ;
-
-            user_.create(username, password, role) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("users-edit-dialog-new", ctx)}});
-        }
-    }
-    else {
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("users-edit-dialog-new", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 
-void UsersController::update()
-{
-    if ( request_.method_ == "POST" ) {
+void UsersController::update() {
+    UserModifyForm form(user_, request_.GET_.get("id")) ;
 
-        string id = request_.POST_.get("id") ;
-
-        UserModifyForm form(user_, id) ;
-
-        if ( form.validate(request_) ) {
-
-            string password = form.getValue("password") ;
-            string role = form.getValue("role") ;
-
-            user_.update(id, password, role) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("users-edit-dialog-new", ctx)}});
-        }
-    }
-    else {
-
-        const Dictionary &params = request_.GET_ ;
-        string id = params.get("id") ;
-
-        UserModifyForm form(user_, id) ;
-
-        if ( id.empty() ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("users-edit-dialog-new", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void UsersController::remove()
 {
-   const Dictionary &params = request_.POST_ ;
+    const Dictionary &params = request_.POST_ ;
     string id = params.get("id") ;
 
     if ( id.empty() )
         throw HttpResponseException(Response::not_found) ;
     else {
-        sqlite::Statement(con_, "DELETE FROM users where id=?", id).exec() ;
-        sqlite::Statement(con_, "DELETE FROM user_roles where user_id=?", id).exec() ;
+        con_.execute("DELETE FROM users where id=?", id) ;
+        con_.execute("DELETE FROM user_roles where user_id=?", id);
         response_.writeJSON("{}") ;
     }
 

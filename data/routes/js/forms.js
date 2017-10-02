@@ -82,37 +82,42 @@
 		return this ;
 	};
 	
-	$.fn.formModal = function(params) { 
+	var bs_modal_html='<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title"></h4></div><div class="modal-body"></div></div></div>' ;
+	
+	$.fn.formModal = function(cmd, params) { 
+	
 		var defaults = { onSuccess: function () {}, data: {} } ;
-		var params = $.extend( {}, defaults, params );
+		params = $.extend( {}, defaults, params );
+		
+		var that = this ;
+		
+		function load() {
+	
+			var content = that.find('.modal-body') ;
+			 $(content).load(params.url + '?' + $.param(params.data),
+				function(response, status, xhr) {
+					    
+				var form = content.form({ 
+					url: params.url,
+					data: params.data,
+					onSuccess: function() {
+						params.onSuccess() ;
+						that.modal('hide') ;
+					}
+				}) ; 
+				that.modal('show') ;
+			}) ;
+		} ;
+		
 		this.each(function() {
 			var that = $(this);
-			
-			that.click(function (e) {
-	    
-		    	e.preventDefault();
-		    
-		    	var msg = $('<div></div>').load(params.url + '?' + $.param(params.data),
-				function(response, status, xhr) {
-					msg.find(':file').filestyle({btnClass: "btn-primary"}) ;
-					var dialog = new BootstrapDialog({ 
-						title: params.title,
-						message: msg
-					});
-					
-					dialog.open() ;
-        
-					var form = msg.form({ 
-						url: params.url,
-						data: params.data,
-						onSuccess: function() {
-							params.onSuccess() ;
-							dialog.close() ;
-						}
-					}) ; 
-					
-				}) ;
-			}) ;	
+			if ( cmd == 'create' ) {
+				that.addClass("modal fade").attr("role", "dialog") ;
+				that.append(bs_modal_html) ;
+				$('.modal-title', that).html(params.title) ;
+			} else if ( cmd == 'show' ) {
+				load() ;
+			}	
 		});
 		
 		return this ;

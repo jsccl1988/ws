@@ -77,6 +77,8 @@ public:
     AttachmentTableView(Connection &con, const std::string &route_id, const Dictionary &amap):
         SQLiteTableView(con, "attachments_list_view"), attachments_map_(amap) {
 
+        setTitle("Attachments") ;
+
         string sql("CREATE TEMPORARY VIEW attachments_list_view AS SELECT id, name, type FROM attachments WHERE route = ") ;
         sql += route_id;
 
@@ -158,11 +160,6 @@ bool AttachmentController::dispatch()
 void AttachmentController::list(const std::string &route_id)
 {
     AttachmentTableView view(con_, route_id, routes_.getAttachmentsDict()) ;
-    uint offset = request_.GET_.value<int>("page", 1) ;
-    uint results_per_page = request_.GET_.value<int>("total", 10) ;
-
-    Variant data = view.fetch(offset, results_per_page) ;
-
-    response_.write(engine_.render("attachments-table-view", data )) ;
+    view.render(request_, response_, engine_) ;
 }
 

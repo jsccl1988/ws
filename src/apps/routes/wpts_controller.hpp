@@ -25,15 +25,6 @@ using std::string ;
 using wspp::web::TemplateRenderer ;
 
 
-class WaypointUpdateForm: public wspp::web::Form {
-public:
-    WaypointUpdateForm(Connection &con, const RouteModel &routes) ;
-
-private:
-
-    Connection &con_ ;
-    const RouteModel &routes_ ;
-};
 
 class WaypointController {
 public:

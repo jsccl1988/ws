@@ -19,16 +19,27 @@ using wspp::server::Session ;
 using std::string ;
 using wspp::web::TemplateRenderer ;
 
-class PageEditForm: public wspp::web::Form {
+class PageCreateForm: public wspp::web::Form {
 public:
-    PageEditForm(Connection &con, const string &id = string()) ;
+    PageCreateForm(Connection &con) ;
+
+    void onSuccess(const Request &request) override ;
 
 private:
-    wspp::web::InputField *title_field_, *slug_field_ ;
     Connection &con_ ;
-    string id_ ;
 };
 
+class PageUpdateForm: public wspp::web::Form {
+public:
+    PageUpdateForm(Connection &con, const std::string &id) ;
+
+    void onSuccess(const Request &request) override ;
+    void onGet(const Request &request) override ;
+
+private:
+    Connection &con_ ;
+    std::string id_ ;
+};
 
 class PageController {
 public:

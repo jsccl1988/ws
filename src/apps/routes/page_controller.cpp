@@ -11,7 +11,7 @@ using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
-PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
+PageCreateForm::PageCreateForm(sqlite::Connection &con): con_(con) {
 
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
@@ -19,26 +19,71 @@ PageEditForm::PageEditForm(sqlite::Connection &con, const string &id): con_(con)
     field<InputField>("slug", "text").label("Slug").required()
         .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
         .addValidator([&] (const string &val, const FormField &f) {
-            bool error ;
-            if ( id_.empty() ) {
-                error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val)[0].as<int>() ;
-            }
+
+            bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val)[0].as<int>() ;
+            if ( error )
+                throw FormFieldValidationError("A page with this slug already exists") ;
+
+    /*}
+
             else {
                 sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
                 sqlite::QueryResult res = q.exec() ;
                 error = res.get<int>(0) ;
             }
+*/
 
-            if ( error ) {
+    }) ;
+}
+
+void PageCreateForm::onSuccess(const Request &request) {
+    // write data to database
+
+    con_.execute("INSERT INTO pages ( title, permalink ) VALUES ( ?, ? )", getValue("title"), getValue("slug")) ;
+}
+
+
+PageUpdateForm::PageUpdateForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
+    field<InputField>("title", "text").label("Title").required()
+        .addValidator<NonEmptyValidator>() ;
+
+    field<InputField>("slug", "text").label("Slug").required()
+        .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
+        .addValidator([&] (const string &val, const FormField &f) {
+
+            bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_)[0].as<int>() ;
+            if ( error )
                 throw FormFieldValidationError("A page with this slug already exists") ;
-            }
-        }) ;
+    }) ;
+}
+
+void PageUpdateForm::onSuccess(const Request &request) {
+    con_.execute("UPDATE pages SET title = ?, permalink = ? WHERE id = ?",
+                 getValue("title"), getValue("slug"), id_) ;
+}
+
+void PageUpdateForm::onGet(const Request &request) {
+
+    const Dictionary &params = request.GET_ ;
+    string id = params.get("id") ;
+
+    if ( id.empty() )
+        throw HttpResponseException(Response::not_found) ;
+
+    sqlite::QueryResult res = con_.query("SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
+
+    if ( !res )
+        throw HttpResponseException(Response::not_found) ;
+
+    init(res.getAll()) ;
 }
 
 
 class PageTableView: public SQLiteTableView {
 public:
     PageTableView(Connection &con): SQLiteTableView(con, "pages_list_view" )  {
+
+        setTitle("Pages") ;
 
         con_.exec("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
 
@@ -82,36 +127,9 @@ void PageController::publish()
 
 void PageController::create()
 {
-    PageEditForm form(con_) ;
+    PageCreateForm form(con_) ;
 
-    if ( request_.method_ == "POST" ) {
-
-        if ( form.validate(request_) ) {
-
-            // write data to database
-
-            sqlite::Statement stmt(con_, "INSERT INTO pages ( title, permalink ) VALUES ( ?, ? )") ;
-
-            stmt.bind(1, form.getValue("title")) ;
-            stmt.bind(2, form.getValue("slug")) ;
-            stmt.exec() ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("page-edit-dialog-new", ctx)}});
-        }
-    }
-    else {
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("page-edit-dialog-new", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void PageController::edit(const string &id)
@@ -142,54 +160,11 @@ void PageController::edit(const string &id)
 
 void PageController::update()
 {
-    if ( request_.method_ == "POST" ) {
+    string id = request_.POST_.get("id") ;
 
-        string id = request_.POST_.get("id") ;
+    PageUpdateForm form(con_, id) ;
 
-        PageEditForm form(con_, id) ;
-
-        if ( form.validate(request_) ) {
-
-            // write data to database
-
-            con_.execute("UPDATE pages SET title = ?, permalink = ? WHERE id = ?",
-                         form.getValue("title"), form.getValue("slug"), id) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("page-edit-dialog-new", ctx)}});
-        }
-    }
-    else {
-
-        const Dictionary &params = request_.GET_ ;
-        string id = params.get("id") ;
-
-        PageEditForm form(con_, id) ;
-
-        if ( id.empty() ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        sqlite::QueryResult res = con_.query("SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
-
-        if ( !res ) {
-            response_.stock_reply(Response::not_found) ;
-            return ;
-        }
-
-        form.init(res.getAll()) ;
-
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("page-edit-dialog-new", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void PageController::remove()

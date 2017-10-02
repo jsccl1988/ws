@@ -3,12 +3,20 @@
 
 #include <wspp/util/variant.hpp>
 #include <wspp/util/database.hpp>
+#include <wspp/server/session.hpp>
+#include <wspp/server/request.hpp>
 
 #include <string>
 #include <vector>
 
+
+using wspp::server::Request ;
+using wspp::server::Response ;
+
 namespace wspp {
 namespace web {
+
+class TemplateRenderer ;
 
 using namespace util ;
 // abstrcation of a table view
@@ -17,6 +25,8 @@ class TableView {
 public:
 
     TableView() {}
+
+    void setTitle(const std::string &title) { title_ = title ; }
 
     void addColumn(const std::string &header, const std::string &widget) {
         columns_.emplace_back(header, widget) ;
@@ -34,6 +44,8 @@ public:
     // a hook to modify the display value of a cell
     virtual Variant transform(const std::string &key, const std::string &value) { return value ; }
 
+    void render(const Request &request, Response &response, TemplateRenderer &engine) ;
+
 protected:
 
     struct Column {
@@ -46,6 +58,7 @@ protected:
 
 
     std::vector<Column> columns_ ;
+    std::string title_ ;
 
 };
 

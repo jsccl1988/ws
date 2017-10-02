@@ -13,7 +13,7 @@ using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
-RouteCreateForm::RouteCreateForm(const Request &req, const RouteModel &routes): request_(req), routes_(routes) {
+RouteCreateForm::RouteCreateForm(const Request &req, RouteModel &routes): request_(req), routes_(routes) {
 
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
@@ -35,12 +35,14 @@ RouteCreateForm::RouteCreateForm(const Request &req, const RouteModel &routes): 
             GpxParser parser(strm, geom_) ;
             if ( !parser.parse() )
                 throw FormFieldValidationError("Not valid GPX file") ;
-        }) ;
+    }) ;
 }
 
+void RouteCreateForm::onSuccess(const Request &request) {
+    routes_.importRoute(getValue("title"), getValue("mountain"), geom_) ;
+}
 
-
-RouteUpdateForm::RouteUpdateForm(sqlite::Connection &con, const RouteModel &routes): con_(con), routes_(routes) {
+RouteUpdateForm::RouteUpdateForm(sqlite::Connection &con, RouteModel &routes): con_(con), routes_(routes) {
 
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
@@ -49,10 +51,30 @@ RouteUpdateForm::RouteUpdateForm(sqlite::Connection &con, const RouteModel &rout
     .required().label("Mountain") ;
 }
 
+void RouteUpdateForm::onSuccess(const Request &request) {
+    string id = request.POST_.get("id") ;
+    routes_.updateInfo(id, getValue("title"), getValue("mountain")) ;
+}
+
+void RouteUpdateForm::onGet(const Request &request) {
+    const Dictionary &params = request.GET_ ;
+    string id = params.get("id") ;
+
+    if ( id.empty() )
+        throw HttpResponseException(Response::not_found) ;
+
+    string title, mountain ;
+    if ( !routes_.getInfo(id, title, mountain) )
+        throw HttpResponseException(Response::not_found) ;
+
+    init({{"title", title}, {"mountain", mountain}}) ;
+}
 
 class RouteTableView: public SQLiteTableView {
 public:
     RouteTableView(Connection &con): SQLiteTableView(con, "routes_list_view")  {
+
+        setTitle("Routes") ;
 
         con_.exec("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
 
@@ -101,32 +123,9 @@ void RouteController::publish()
 }
 
 
-void RouteController::create()
-{
+void RouteController::create() {
     RouteCreateForm form(request_, routes_) ;
-
-    if ( request_.method_ == "POST" ) {
-
-        if ( form.validate(request_) ) {
-
-            routes_.importRoute(form.getValue("title"), form.getValue("mountain"), form.geom()) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("route-create-dialog", ctx)}});
-        }
-    }
-    else {
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("route-create-dialog", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 void RouteController::edit(const string &id)
@@ -151,51 +150,9 @@ void RouteController::edit(const string &id)
 
 void RouteController::update()
 {
-    if ( request_.method_ == "POST" ) {
+    RouteUpdateForm form(con_, routes_) ;
 
-        string id = request_.POST_.get("id") ;
-
-        RouteUpdateForm form(con_, routes_) ;
-
-        if ( form.validate(request_) ) {
-
-            // write data to database
-
-            routes_.updateInfo(id, form.getValue("title"), form.getValue("mountain")) ;
-
-            // send a success message
-            response_.writeJSONVariant(Variant::Object{{"success", true}}) ;
-        }
-        else {
-            Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-            response_.writeJSONVariant(Variant::Object{{"success", false},
-                                                       {"content", engine_.render("route-edit-dialog", ctx)}});
-        }
-    }
-    else {
-
-        const Dictionary &params = request_.GET_ ;
-        string id = params.get("id") ;
-
-        RouteUpdateForm form(con_, routes_) ;
-
-        if ( id.empty() ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        string title, mountain ;
-        if ( !routes_.getInfo(id, title, mountain) ) {
-            throw HttpResponseException(Response::not_found) ;
-        }
-
-        form.init({{"title", title}, {"mountain", mountain}}) ;
-
-        Variant ctx( Variant::Object{{"form", form.data()}} ) ;
-
-        response_.write(engine_.render("route-edit-dialog", ctx)) ;
-    }
-
+    form.handle(request_, response_, engine_) ;
 }
 
 
@@ -382,11 +339,8 @@ void RouteController::browse(const string &mountain)
 void RouteController::list()
 {
     RouteTableView view(con_) ;
-    uint offset = request_.GET_.value<int>("page", 1) ;
-    uint results_per_page = request_.GET_.value<int>("total", 10) ;
 
-    Variant data = view.fetch(offset, results_per_page) ;
-
-    response_.write(engine_.render("routes-table-view", data )) ;
+    view.render(request_, response_, engine_) ;
 }
+
 

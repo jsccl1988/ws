@@ -305,7 +305,7 @@ private:
 
 bool Parser::parseComplexTag(const string &tag, string &name, vector<Arg> &args) {
     static boost::regex rx_args(R"%((\w+)\s*=\s*"([^"]*)|(\w+)|"([^"]*)")%") ;
-    static boost::regex rx_name(R"(^\s*([^\s]+)\s*)") ;
+    static boost::regex rx_name(R"(^\s*([^\s\()]+))") ;
 
     boost::smatch tmatch ;
     if ( !boost::regex_search(tag, tmatch, rx_name) ) return false ;
@@ -703,9 +703,10 @@ string TemplateRenderer::render(const string &src, const Variant &ctx) {
     SectionNode::Ptr ast = parser.parse(src) ;
 
     if ( ast ) {
-        Variant rc(Variant::Object{{"$root", ctx}}) ;
+        Variant rc(Variant::Object{{"$root", true}}) ;
         ContextStack stack ;
         stack.push(rc) ;
+        stack.push(ctx) ;
         ast->eval(stack, res) ;
     }
 
