@@ -8,7 +8,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/make_shared.hpp>
+
 #include <boost/thread/mutex.hpp>
 #include <boost/regex.hpp>
 #include <boost/tokenizer.hpp>
@@ -55,7 +55,7 @@ struct Tag {
 
 struct Node {
 
-    typedef boost::shared_ptr<Node> Ptr ;
+    typedef std::shared_ptr<Node> Ptr ;
 
     enum Type { RawText, Section, Comment, Substitution, Partial, Extension, Block, Helper } ;
 
@@ -65,7 +65,7 @@ struct Node {
 
 struct RawTextNode: public Node {
 
-    typedef boost::shared_ptr<RawTextNode> Ptr ;
+    typedef std::shared_ptr<RawTextNode> Ptr ;
 
     RawTextNode(const string &text): text_(text) {}
 
@@ -81,7 +81,7 @@ struct RawTextNode: public Node {
 struct BlockNode ;
 
 struct ContainerNode: public Node {
-    typedef boost::shared_ptr<ContainerNode> Ptr ;
+    typedef std::shared_ptr<ContainerNode> Ptr ;
 
     ContainerNode(const string &name): name_(name) {}
 
@@ -92,7 +92,7 @@ struct ContainerNode: public Node {
 
 struct SectionNode: public ContainerNode {
 
-    typedef boost::shared_ptr<SectionNode> Ptr ;
+    typedef std::shared_ptr<SectionNode> Ptr ;
 
     SectionNode(const string &name, bool is_inverted = false): ContainerNode(name), is_inverted_(is_inverted) {}
 
@@ -138,7 +138,7 @@ struct SectionNode: public ContainerNode {
 
 struct BlockNode: public ContainerNode {
 
-    typedef boost::shared_ptr<BlockNode> Ptr ;
+    typedef std::shared_ptr<BlockNode> Ptr ;
 
     BlockNode(const string &name): ContainerNode(name) {}
 
@@ -169,7 +169,7 @@ static string escape(const string &src) {
 
 struct SubstitutionNode: public Node {
 
-    typedef boost::shared_ptr<SubstitutionNode> Ptr ;
+    typedef std::shared_ptr<SubstitutionNode> Ptr ;
 
     SubstitutionNode(const string &var, bool is_escaped): var_(var), is_escaped_(is_escaped) {}
     void eval(ContextStack &ctx, string &res) const override {
@@ -223,7 +223,7 @@ private:
 class Parser {
 public:
 
-    Parser(const boost::shared_ptr<TemplateLoader> &loader,
+    Parser(const std::shared_ptr<TemplateLoader> &loader,
            const map<string, TemplateRenderer::BlockHelper> &block_helpers,
            const map<string, TemplateRenderer::ValueHelper> &value_helpers,
            bool caching): idx_(0), loader_(loader), block_helpers_(block_helpers), value_helpers_(value_helpers), caching_(caching) {
@@ -297,7 +297,7 @@ private:
     friend class ExtensionNode ;
 
     uint idx_ ;
-    boost::shared_ptr<TemplateLoader> loader_ ;
+    std::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;
     const map<string, TemplateRenderer::BlockHelper> &block_helpers_ ;
     const map<string, TemplateRenderer::ValueHelper> &value_helpers_ ;
@@ -451,7 +451,7 @@ bool Parser::nextTag(const string &src, string &raw, Tag &tag, int &cursor) {
 
 struct PartialNode: public Node {
 
-    typedef boost::shared_ptr<PartialNode> Ptr ;
+    typedef std::shared_ptr<PartialNode> Ptr ;
 
     // inherit parent parameters
     PartialNode(const string &name, const vector<Parser::Arg> &args, const Parser &context):
@@ -487,7 +487,7 @@ struct PartialNode: public Node {
 struct BlockHelperNode: public Node {
 
 
-    typedef boost::shared_ptr<BlockHelperNode> Ptr ;
+    typedef std::shared_ptr<BlockHelperNode> Ptr ;
 
     // inherit parent parameters
     BlockHelperNode(const string &name, const vector<Parser::Arg> &args, TemplateRenderer::BlockHelper helper): key_(name), args_(args), helper_(helper) {}
@@ -516,7 +516,7 @@ struct BlockHelperNode: public Node {
 
 struct ValueHelperNode: public Node {
 
-    typedef boost::shared_ptr<ValueHelperNode> Ptr ;
+    typedef std::shared_ptr<ValueHelperNode> Ptr ;
 
     // inherit parent parameters
     ValueHelperNode(const string &name, const vector<Parser::Arg> &args, TemplateRenderer::ValueHelper helper, bool escape): key_(name), args_(args), helper_(helper), escape_(escape) {}
@@ -543,7 +543,7 @@ struct ValueHelperNode: public Node {
 
 struct ExtensionNode: public ContainerNode {
 
-    typedef boost::shared_ptr<ExtensionNode> Ptr ;
+    typedef std::shared_ptr<ExtensionNode> Ptr ;
 
     // inherit parent parameters
     ExtensionNode(const string &name, const vector<Parser::Arg> &args, const Parser &context): context_(context), ContainerNode(name) {
@@ -561,7 +561,7 @@ struct ExtensionNode: public ContainerNode {
             ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
             for( auto &c: ast->children_ ) {
                 if ( c->type() == Node::Block ) {
-                    BlockNode::Ptr block = boost::dynamic_pointer_cast<BlockNode>(c) ;
+                    BlockNode::Ptr block = std::dynamic_pointer_cast<BlockNode>(c) ;
                     auto it = blocks_.find(block->name_) ;
                     if ( it == blocks_.end() ) {
                         block->eval(ctx, res) ; // render default block
@@ -616,7 +616,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
             }
         } else {
             if ( !raw.empty() ) {
-                parent->children_.push_back(boost::make_shared<RawTextNode>(raw)) ;
+                parent->children_.push_back(std::make_shared<RawTextNode>(raw)) ;
             }
 
             if ( tag.type_ == Tag::SectionBegin  ) {
@@ -651,24 +651,24 @@ SectionNode::Ptr Parser::parseString(const string &src) {
                 if ( parseComplexTag(tag.name_, name, args)) {
                         auto it = value_helpers_.find(name) ;
                         if ( it != value_helpers_.end()) { // if it is a registered helper
-                           parent->children_.push_back(boost::make_shared<ValueHelperNode>(name, args, it->second, false)) ;
+                           parent->children_.push_back(std::make_shared<ValueHelperNode>(name, args, it->second, false)) ;
                         } else
-                            parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, false)) ;
+                            parent->children_.push_back(std::make_shared<SubstitutionNode>(name, false)) ;
                 }
             }
             else if ( tag.type_ == Tag::EscapedSubstitution ) {
                 if ( parseComplexTag(tag.name_, name, args)) {
                     auto it = value_helpers_.find(name) ;
                     if ( it != value_helpers_.end()) { // if it is a registered helper
-                       parent->children_.push_back(boost::make_shared<ValueHelperNode>(name, args, it->second, true)) ;
+                       parent->children_.push_back(std::make_shared<ValueHelperNode>(name, args, it->second, true)) ;
                     } else
-                        parent->children_.push_back(boost::make_shared<SubstitutionNode>(name, true)) ;
+                        parent->children_.push_back(std::make_shared<SubstitutionNode>(name, true)) ;
                 }
 
             }
             else if ( tag.type_ == Tag::Partial ) {
                 if ( parseComplexTag(tag.name_, name, args) )
-                    parent->children_.push_back(boost::make_shared<PartialNode>(name, args, *this)) ;
+                    parent->children_.push_back(std::make_shared<PartialNode>(name, args, *this)) ;
             }
             else if ( tag.type_ == Tag::Extension ) {
                 if ( parseComplexTag(tag.name_, name, args) ) {

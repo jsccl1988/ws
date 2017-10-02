@@ -115,7 +115,7 @@ protected:
 
 class OptionsModel {
 public:
-    typedef boost::shared_ptr<OptionsModel> Ptr ;
+    typedef std::shared_ptr<OptionsModel> Ptr ;
 
     virtual Dictionary fetch() = 0 ;
 };
@@ -168,13 +168,13 @@ private:
 
 class SelectField: public FormField {
 public:
-    SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi = false);
+    SelectField(const string &name, std::shared_ptr<OptionsModel> options, bool multi = false);
 
     void fillData(Variant::Object &) const override;
 
 private:
     bool multiple_ ;
-    boost::shared_ptr<OptionsModel> options_ ;
+    std::shared_ptr<OptionsModel> options_ ;
 };
 
 class CheckBoxField: public FormField {

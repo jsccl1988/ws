@@ -86,7 +86,7 @@ public:
     RoutesApp(const std::string &root_dir, SessionHandler &session_handler):
         session_handler_(session_handler),
         root_(root_dir),
-        engine_(boost::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
+        engine_(std::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
         engine_.registerBlockHelper("i18n", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
             return engine_.renderString(boost::locale::translate(src), ctx) ;

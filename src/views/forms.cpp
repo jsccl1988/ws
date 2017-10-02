@@ -83,7 +83,7 @@ void FileUploadField::fillData(Variant::Object &base) const {
     if ( !accept_.empty() ) base.insert({"accept", accept_}) ;
 }
 
-SelectField::SelectField(const string &name, boost::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
+SelectField::SelectField(const string &name, std::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
     addValidator([&](const string &val, const FormField &) {
         Dictionary options = options_->fetch() ;
         if ( multiple_ ) {

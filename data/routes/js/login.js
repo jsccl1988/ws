@@ -1,7 +1,12 @@
 $(function() {
 
-	$("#login").formModal({url: 'user/login', title: 'Sign In', onSuccess: function() { location.reload(false); }}) ;
-
+	
+	$("#login").click(function(e) {
+		e.preventDefault() ;
+		$("#login-modal").formModal('show', {url: 'user/login',  onSuccess: function() { location.reload(false); }}) ;
+	}) ;
+	
+	$("#login-modal").formModal('create', {title: 'Sign In'}) ;
 
     $("#logout").click(function(e) {
 	    e.preventDefault() ;

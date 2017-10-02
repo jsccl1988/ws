@@ -74,7 +74,7 @@ UserCreateForm::UserCreateForm(User &auth): user_(auth) {
         });
 
 
-    field<SelectField>("role", boost::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
+    field<SelectField>("role", std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
     .required().label("Role") ;
 }
 
@@ -96,7 +96,7 @@ UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(i
                 throw FormFieldValidationError("Passwords don't match") ;
         }) ;
 
-    field<SelectField>("role", boost::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
+    field<SelectField>("role", std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
     .required().label("Role") ;
 }
 

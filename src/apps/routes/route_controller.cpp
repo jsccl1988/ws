@@ -18,7 +18,7 @@ RouteCreateForm::RouteCreateForm(const Request &req, RouteModel &routes): reques
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
 
-    field<SelectField>("mountain", boost::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
+    field<SelectField>("mountain", std::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
     .required().label("Mountain") ;
 
     field<FileUploadField>("gpx-file").label("GPX file").required()
@@ -47,7 +47,7 @@ RouteUpdateForm::RouteUpdateForm(sqlite::Connection &con, RouteModel &routes): c
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
 
-    field<SelectField>("mountain", boost::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
+    field<SelectField>("mountain", std::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
     .required().label("Mountain") ;
 }
 

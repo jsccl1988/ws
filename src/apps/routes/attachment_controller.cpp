@@ -15,7 +15,7 @@ AttachmentCreateForm::AttachmentCreateForm(const Request &req, RouteModel &route
                                            const string &upload_folder):
     request_(req), routes_(routes), upload_folder_(upload_folder), route_id_(route_id) {
 
-    field<SelectField>("type", boost::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
+    field<SelectField>("type", std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
     .required().label("Type") ;
 
     const size_t max_attachment_file_size = 5 * 1024 * 1024;
@@ -42,7 +42,7 @@ AttachmentUpdateForm::AttachmentUpdateForm(RouteModel &routes, const string &rou
     field<InputField>("name", "text").label("Name").required()
         .addValidator<NonEmptyValidator>() ;
 
-    field<SelectField>("type", boost::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
+    field<SelectField>("type", std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
             .required().label("Type") ;
 }
 

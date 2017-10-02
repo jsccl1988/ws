@@ -60,7 +60,7 @@ struct ContextStack {
 class TemplateRenderer {
 public:
 
-    TemplateRenderer( const boost::shared_ptr<TemplateLoader> &loader, bool caching = false ): loader_(loader), caching_(caching) {
+    TemplateRenderer( const std::shared_ptr<TemplateLoader> &loader, bool caching = false ): loader_(loader), caching_(caching) {
         registerDefaultHelpers() ;
     }
 
@@ -93,7 +93,7 @@ private:
     std::map<std::string, BlockHelper> block_helpers_ ;
     std::map<std::string, ValueHelper> value_helpers_ ;
 
-    boost::shared_ptr<TemplateLoader> loader_ ;
+    std::shared_ptr<TemplateLoader> loader_ ;
     bool caching_ ;
 } ;
 
