@@ -157,17 +157,17 @@ boost::regex  UriPatternMatcher::makeRegexFromPattern(const string &pat, const R
             patterns.push_back( "(?:" + pattern + ")") ;
     }
 
-    auto it = route.elements_.rbegin() ;
-    auto pit = patterns.rbegin() ;
+    auto it = route.elements_.begin() ;
+    auto pit = patterns.begin() ;
 
-    for(  ; it != route.elements_.rend() ; ++it, ++pit ) {
+    for(  ; it != route.elements_.end() ; ++it, ++pit ) {
         const RouteElement &e = *it ;
 
-        if ( e.optional_ ) rx = "/" + *pit + "?" + rx  ;
-        else rx = "/" + *pit + rx ;
+        if ( e.optional_ ) rx += "(?:" + *pit + "\\/)?"  ;
+        else rx += "(?:" + *pit + "\\/)";
     }
 
-    rx = "^" + rx + '$';
+    rx = "^\\/" + rx + '$';
 
 
     try {
@@ -215,22 +215,12 @@ Route::~Route() {}
 
 static string get_clean_path(const std::string &path)
 {
-    string uri = path ;
-
-    // remove ererything after the query string if any
-    uri = boost::regex_replace(uri, boost::regex("\\?.*"), "") ;
-
-            // trim beginning and trailing slashes
-    uri = boost::algorithm::trim_copy_if(uri, boost::is_any_of("/")) ;
-
-         // Replace multiple slashes in a url, such as /my//dir/url
-    uri = boost::regex_replace(uri, boost::regex("\\/+"), "/");
-
-    return '/' + uri + '/' ;
+    if ( path.back() != '/' ) return path + '/' ;
+    else return path ;
 }
 
 bool Route::matches(const string &path, Dictionary &data) const {
-    return impl_->match(path, data) ;
+    return impl_->match(get_clean_path(path), data) ;
 
 }
 

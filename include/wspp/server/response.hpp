@@ -6,6 +6,7 @@
 
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/variant.hpp>
+#include <wspp/util/i18n.hpp>
 
 namespace wspp { namespace server {
 
@@ -41,6 +42,7 @@ struct Response
 
     /// The content to be sent in the reply.
     std::string content_;
+
 
     /// Get a stock reply.
     void stock_reply(Status status);

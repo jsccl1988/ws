@@ -9,6 +9,7 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/filesystem.cpp
     ${SRC_ROOT}/util/xml_writer.cpp
     ${SRC_ROOT}/util/xml_sax_parser.cpp
+    ${SRC_ROOT}/util/i18n.cpp
 
     ${SRC_ROOT}/util/sqlite/connection.cpp
     ${SRC_ROOT}/util/sqlite/exception.cpp
@@ -26,6 +27,8 @@ SET( UTIL_SOURCES
     ${INCLUDE_ROOT}/util/filesystem.hpp
     ${INCLUDE_ROOT}/util/xml_writer.hpp
     ${INCLUDE_ROOT}/util/xml_sax_parser.hpp
+    ${INCLUDE_ROOT}/util/i18n.hpp
+
 
     ${INCLUDE_ROOT}/util/sqlite/connection.hpp
     ${INCLUDE_ROOT}/util/sqlite/exception.hpp

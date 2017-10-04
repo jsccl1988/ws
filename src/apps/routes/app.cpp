@@ -38,7 +38,7 @@
 #include <wspp/server/filters/gzip_filter.hpp>
 
 #include <spatialite.h>
-#include <wspp/util/sqlite/connection.hpp>
+#include <wspp/util/i18n.hpp>
 
 using namespace std ;
 using namespace wspp::util ;
@@ -88,8 +88,10 @@ public:
         root_(root_dir),
         engine_(std::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
-        engine_.registerBlockHelper("i18n", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
-            return engine_.renderString(boost::locale::translate(src), ctx) ;
+        i18n::instance().setLanguage("el") ;
+
+        engine_.registerValueHelper("_", [&](ContextStack &ctx, Variant::Array params) -> pair<bool, string> {
+            return make_pair(false, engine_.renderString(i18n::instance().trans(params.at(0).toString()), ctx)) ;
         }) ;
 
         engine_.registerBlockHelper("make_two_columns", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
@@ -138,6 +140,14 @@ public:
         // request router
 
         if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
+        if ( req.matches("GET", "/map/") ) {
+            Variant ctx( Variant::Object{
+                         { "page", page.data("map", _("Routes Map")) }}) ;
+
+            resp.write(engine_.render("map", ctx)) ;
+            return ;
+
+        }
         if ( AttachmentController(req, resp, con, user, engine_, root_ + "/data/uploads/").dispatch() ) return ;
         if ( WaypointController(req, resp, con, user, engine_).dispatch() ) return ;
         if ( PageController(req, resp, con, user, engine_, page).dispatch() ) return ;
@@ -169,6 +179,7 @@ private:
 
 int main(int argc, char *argv[]) {
 
+
     // example of seting up translation with boost::locale
     //
     // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...
@@ -177,15 +188,8 @@ int main(int argc, char *argv[]) {
     // -- translate the file: es_ES/LC_MESSAGES/messages.po
     // msgfmt --output-file=es_ES/LC_MESSAGES/messages.mo es_ES/LC_MESSAGES/messages.po
 
-    boost::locale::generator gen;
-    gen.add_messages_domain("messages");
-    gen.add_messages_path(".");
-
-    using namespace boost::locale ;
-    auto loc = gen.generate("es_ES.UTF-8") ;
-    locale::global(loc) ;
-
-    std::cout << __("hello").str() << endl ;
+    i18n::instance().addDomain("messages") ;
+    i18n::instance().addPath(".") ;
 
     Server server("127.0.0.1", "5000") ;
 

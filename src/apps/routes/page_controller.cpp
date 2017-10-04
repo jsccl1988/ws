@@ -95,12 +95,7 @@ public:
 void PageController::fetch()
 {
     PageTableView view(con_) ;
-    uint offset = request_.GET_.value<int>("page", 1) ;
-    uint results_per_page = request_.GET_.value<int>("total", 10) ;
-
-    Variant data = view.fetch(offset, results_per_page ) ;
-
-    response_.write(engine_.render("pages-table-view", data )) ;
+    view.render(request_, response_, engine_) ;
 }
 // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, permalink TEXT);
 
@@ -219,7 +214,7 @@ bool PageController::dispatch()
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/page/delete/") ) {
+    else if ( request_.matches("POST", "/pages/delete/") ) {
         if ( logged_in ) remove() ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;

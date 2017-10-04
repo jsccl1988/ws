@@ -61,6 +61,12 @@ public:
         cmd_->read(idx, val) ;
     }
 
+    template<class T>
+    void read(int idx, boost::optional<T> &val) const {
+        cmd_->read(idx, val) ;
+    }
+
+
     template <typename ... Args>
     void into(Args &... args) {
         readi(0, args...) ;

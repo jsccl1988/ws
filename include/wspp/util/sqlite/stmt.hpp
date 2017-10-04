@@ -4,6 +4,8 @@
 #include <wspp/util/sqlite/exception.hpp>
 #include <wspp/util/sqlite/types.hpp>
 
+#include <boost/optional.hpp>
+
 #include <sqlite3.h>
 #include <string>
 #include <map>
@@ -80,20 +82,43 @@ public:
     template<class T>
     T get(int idx) const ;
 
+    template<class T>
+    boost::optional<T> getOptional(int idx) const {
+        if ( columnType(idx) == SQLITE_NULL ) return {} ;
+        else return get<T>(idx) ;
+    }
+
     template <class T>
     T get(const std::string &name) const {
         int idx = columnIdx(name) ;
         return get<T>(idx) ;
     }
 
+    template <class T>
+    boost::optional<T> getOptional(const std::string &name) const {
+        int idx = columnIdx(name) ;
+        return getOptional<T>(idx) ;
+    }
+
     template<class T>
     void read(int idx, T &val) const ;
 
-    template <typename T>
+    template<class T>
+    void read(int idx, boost::optional<T> &val) const {
+        if ( columnType(idx) != SQLITE_NULL ) {
+            T cval ;
+            read(idx, cval) ;
+            val = cval ;
+        }
+    }
+
+
+
+  /*  template <typename T>
     void read(T &t) {
         return bind(t) ;
     }
-
+*/
     void check() const ;
     bool step();
 

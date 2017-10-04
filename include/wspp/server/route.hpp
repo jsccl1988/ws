@@ -14,7 +14,8 @@ struct RouteImpl ;
 class Route {
 public:
 
-    // create a uri path route
+    // Create a uri path route from the given.
+
     Route(const std::string &pattern) ;
     ~Route() ;
 

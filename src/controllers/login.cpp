@@ -10,6 +10,8 @@
 #include <boost/regex.hpp>
 #include <boost/make_shared.hpp>
 
+#include <wspp/util/i18n.hpp>
+
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::server ;
@@ -31,13 +33,13 @@ private:
 
 LoginForm::LoginForm(User &auth): auth_(auth) {
 
-    field<InputField>("username", "text").required().label("Username")
+    field<InputField>("username", "text").required().label(_("Username"))
         .setNormalizer([&] (const string &val) {
             return User::sanitizeUserName(val) ;
         })
         .addValidator<NonEmptyValidator>();
 
-    field<InputField>("password", "password").required().label("Password")
+    field<InputField>("password", "password").required().label(_("Password"))
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
@@ -45,7 +47,7 @@ LoginForm::LoginForm(User &auth): auth_(auth) {
 
     field<InputField>("csrf_token", "hidden").initial(auth_.token()) ;
 
-    field<CheckBoxField>("remember-me").label("Remember Me:") ;
+    field<CheckBoxField>("remember-me").label(_("Remember Me:")) ;
 }
 
 bool LoginForm::validate(const Request &vals) {
@@ -58,7 +60,7 @@ bool LoginForm::validate(const Request &vals) {
     string password = getValue("password") ;
 
     if ( !auth_.userNameExists(username) ) {
-        errors_.push_back("Username does not exist") ;
+        errors_.push_back(_("Username does not exist")) ;
         return false ;
     }
 
@@ -66,7 +68,7 @@ bool LoginForm::validate(const Request &vals) {
     auth_.load(username, user_id, stored_password, role) ;
 
     if ( !auth_.verifyPassword(password, stored_password) ) {
-        errors_.push_back("Password mismatch") ;
+        errors_.push_back(_("Password mismatch")) ;
         return false ;
     }
 

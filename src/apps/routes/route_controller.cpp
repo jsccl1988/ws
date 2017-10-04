@@ -233,7 +233,11 @@ bool RouteController::dispatch()
 
     bool logged_in = user_.check() ;
 
-    if ( request_.matches("GET", "/{mountain:[\\w]+}?", attributes)  ) {
+    if ( request_.matches("GET", "/")  ) {
+        browse(std::string()) ;
+        return true ;
+    }
+    if ( request_.matches("GET", "/mountain/{mountain:[\\w]+}?", attributes)  ) {
         browse(attributes.get("mountain")) ;
         return true ;
     }

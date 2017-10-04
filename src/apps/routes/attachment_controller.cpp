@@ -11,6 +11,11 @@ using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
+static Route route_list("/attachments/list/{id:\\d+}") ;
+static Route route_add("/attachments/add/{id:\\d+}") ;
+static Route route_update("/attachments/update/{id:\\d+}") ;
+static Route route_delete("/attachments/delete/{id:\\d+}") ;
+
 AttachmentCreateForm::AttachmentCreateForm(const Request &req, RouteModel &routes, const string &route_id,
                                            const string &upload_folder):
     request_(req), routes_(routes), upload_folder_(upload_folder), route_id_(route_id) {
@@ -135,22 +140,22 @@ bool AttachmentController::dispatch()
 
     bool logged_in = user_.check() ;
 
-    if ( request_.matches("GET", "/attachments/list/{id:\\d+}", attributes) ) {
+    if ( request_.matches("GET", route_list, attributes) ) {
         if ( logged_in ) list(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/attachments/add/{id:\\d+}", attributes) ) {
+    if ( request_.matches("GET|POST", route_add, attributes) ) {
         if ( logged_in ) create(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/attachments/update/{id:\\d+}", attributes) ) {
+    if ( request_.matches("GET|POST", route_update, attributes) ) {
         if ( logged_in ) update(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/attachments/delete/{id:\\d+}", attributes) ) {
+    else if ( request_.matches("POST", route_delete, attributes) ) {
         if ( logged_in ) remove(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
