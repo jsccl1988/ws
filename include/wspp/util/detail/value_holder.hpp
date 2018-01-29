@@ -138,6 +138,8 @@ public:
     Variant fetchIndex(uint idx) const override ;
 };
 
+
+
 } // namespace util
 } // namespace wspp
 

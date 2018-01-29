@@ -179,6 +179,11 @@ private:
 
 int main(int argc, char *argv[]) {
 
+    Variant v(Variant::Object{
+                                  {"name", 3},
+                                  {"values", Variant::Array{ {2,  "s" } } }
+                    }) ;
+           cout << v.toJSON() << endl ;
 
     // example of seting up translation with boost::locale
     //
