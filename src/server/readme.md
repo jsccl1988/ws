@@ -1,4 +1,4 @@
-**Simple HTTP server basing on boost::asio**
+**Simple HTTP server based on boost::asio**
 
 Syntax:
 
