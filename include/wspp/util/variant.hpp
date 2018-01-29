@@ -15,7 +15,6 @@
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/detail/value_holder.hpp>
 
-class JSONParser ;
 
 namespace wspp { namespace util {
 
@@ -32,7 +31,10 @@ class IValueHolder ;
 class Variant {
 public:
 
+    // an Object is a map of Variants
     using Object = std::map<std::string, Variant> ;
+
+    // an Array is a vector of Variants
     using Array = std::vector<Variant> ;
 
     // creates a Null value
@@ -53,9 +55,13 @@ public:
     // helper for a key value pair
     Variant(const std::string &key, const std::string &value): Variant(Variant::Object{{key, value}}) {}
 
+    // make Variant from Object
     Variant(const Object &values): value_(new ObjectValueHolder(values)) {}
+
+    // make Variant from Array
     Variant(const Array &values): value_(new ArrayValueHolder(values)) {}
 
+    // make Object from a dictionary
     static Variant fromDictionary(const Dictionary &dict) {
         Variant::Object obj ;
         for( const auto &p: dict )
@@ -63,6 +69,7 @@ public:
         return obj ;
     }
 
+    // make Array from dictionary where each element is the Object {<keyname>: <key>, <valname>: <val>}
     static Variant fromDictionaryAsArray(const Dictionary &dict, const std::string &keyname = "key", const std::string &valname = "val") {
         Variant::Array ar ;
         for( const auto &p: dict )
@@ -70,6 +77,7 @@ public:
         return ar ;
     }
 
+    // make Array from a vector of values
     template<class T>
     static Variant fromVector(const std::vector<T> &vals) {
         Variant::Array ar ;
@@ -78,7 +86,7 @@ public:
         return ar ;
     }
 
-    // may optionaly throw a JSONParseException ;
+    // Parse JSON string into Variant. May optionaly throw a JSONParseException or otherwise return a Null ;
     static Variant fromJSONString(const std::string &src, bool throw_exception = false) ;
     static Variant fromJSONFile(const std::string &path, bool throw_exception = false) ;
 
@@ -86,6 +94,8 @@ public:
     bool isObject() const { return value_->type() == IValueHolder::Object ; }
     bool isArray() const { return value_->type() == IValueHolder::Array ; }
     bool isNull() const { return value_->type() == IValueHolder::Null ; }
+
+    // check if variant stores simple type string, number, integer or boolean
     bool isValue() const {
         return
                 ( value_->type() == IValueHolder::String ||
@@ -99,8 +109,6 @@ public:
         return value_->isFalse() ;
     }
 
-    bool isFunction() const { return value_->type() == IValueHolder::Function ; }
-
     // convert value to string
     std::string toString() const {
         if ( isValue() ) {
@@ -108,6 +116,7 @@ public:
         }
     }
 
+    // Return the keys of an Object otherwise an empty list
     std::vector<std::string> keys() const {
         std::vector<std::string> res ;
 
@@ -121,7 +130,7 @@ public:
          return res ;
     }
 
-    // length of object or array
+    // length of object or array, zero otherwise
     size_t length() const {
         if ( isObject() ) {
             boost::shared_ptr<ObjectValueHolder> e = boost::dynamic_pointer_cast<ObjectValueHolder>(value_) ;
@@ -159,6 +168,16 @@ public:
     // return an element of an array
     Variant at(uint idx) const { return value_->fetchIndex(idx) ; }
 
+
+    // overloaded operators
+    Variant operator [] (const std::string &key) const {
+        return at(key) ;
+    }
+
+    Variant operator [] (uint idx) const {
+        return at(idx) ;
+    }
+
     // convert to JSON string
 
     std::string toJSON() const {
@@ -173,10 +192,10 @@ private:
 };
 
 class JSONParseException: public std::exception {
-private:
-    friend class ::JSONParser ;
-    JSONParseException(const std::string &msg, uint line, uint col) ;
 public:
+
+    JSONParseException(const std::string &msg, uint line, uint col) ;
+
     const char *what() const noexcept override {
         return msg_.c_str() ;
     }
@@ -242,8 +261,6 @@ inline void NullValueHolder::toJSON(std::ostream &strm) const {
 
 
 inline void ObjectValueHolder::toJSON(std::ostream &strm) const {
-
-
     strm << "{" ;
     auto it = values_.cbegin() ;
     if ( it != values_.cend() ) {
@@ -313,7 +330,6 @@ inline std::string IValueHolder::json_escape_string(const std::string &str) {
 }
 
 } // namespace util
-
 } // namespace wspp
 
 #endif

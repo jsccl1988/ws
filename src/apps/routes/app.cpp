@@ -185,6 +185,10 @@ int main(int argc, char *argv[]) {
                     }) ;
            cout << v.toJSON() << endl ;
 
+           cout << v["name"].toString() << endl ;
+           cout << v["values"][0].toString() << endl ;
+           cout << v["values"].length() << endl ;
+           cout << v.isArray() << endl ;
     // example of seting up translation with boost::locale
     //
     // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...
