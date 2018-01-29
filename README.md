@@ -3,7 +3,7 @@
 
 ### Features 
 
-- [Simple web server (based on boost::asio)](src/util/readme.md)
+- [Simple web server (based on boost::asio)](src/server/readme.md)
 - Request parsing (ala PHP)
 - Variant type with JSON support
 - Request path matching and reverse urls (i.e. routing)
