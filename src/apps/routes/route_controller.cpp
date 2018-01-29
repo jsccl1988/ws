@@ -209,7 +209,7 @@ void RouteController::download(const string &format, const string &route_id) {
         response_.headers_.replace("Content-Disposition", "attachment; filename*=UTF-8''" + url_encode ( file_name )) ;
     }
 
-    response_.encode_file_data(data, string(), mime, 0);
+    response_.encodeFileData(data, string(), mime, 0);
 }
 
 void RouteController::remove()

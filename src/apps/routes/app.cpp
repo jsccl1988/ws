@@ -157,7 +157,7 @@ public:
         // not matched : try static file
         fs::path p(root_ + req.path_)  ;
         if ( fs::exists(p) && fs::is_regular_file(p) ) {
-            resp.encode_file(p.string());
+            resp.encodeFile(p.string());
             return ;
         }
 
@@ -191,7 +191,7 @@ int main(int argc, char *argv[]) {
     i18n::instance().addDomain("messages") ;
     i18n::instance().addPath(".") ;
 
-    Server server("127.0.0.1", "5000") ;
+    Server server("vision.iti.gr", "5000") ;
 
     FileSystemSessionHandler sh ;
     DefaultLogger logger("/tmp/logger", true) ;

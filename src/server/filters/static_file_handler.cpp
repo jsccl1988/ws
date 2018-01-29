@@ -17,7 +17,7 @@ void StaticFileHandler::handle(Request &req, Response &resp, FilterChain &chain)
     if ( resp.status_ != Response::ok && req.method_ == "GET" ) {
         fs::path p(root_ + req.path_)  ;
         if ( fs::exists(p) )
-                resp.encode_file(p.string());
+                resp.encodeFile(p.string());
     }
 
     chain.next(req, resp) ;

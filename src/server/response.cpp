@@ -263,7 +263,7 @@ std::string to_string(Response::Status status)
 
 } // namespace stock_replies
 
-void Response::stock_reply(Response::Status status)
+void Response::stockReply(Response::Status status)
 {
     status_ = status;
     content_.assign(stock_replies::to_string(status));
@@ -275,7 +275,7 @@ static void gmt_time_string(char *buf, size_t buf_len, time_t *t) {
     strftime(buf, buf_len, "%a, %d %b %Y %H:%M:%S GMT", gmtime(t));
 }
 
-void Response::encode_file_data(const std::string &bytes, const std::string &encoding, const std::string &mime, time_t mod_time)
+void Response::encodeFileData(const std::string &bytes, const std::string &encoding, const std::string &mime, time_t mod_time)
 {
     status_ = ok ;
 
@@ -339,7 +339,7 @@ static string get_file_mime(const string &mime,  const boost::filesystem::path &
 
 
 
-void Response::encode_file(const std::string &file_path, const std::string &encoding, const std::string &mime )
+void Response::encodeFile(const std::string &file_path, const std::string &encoding, const std::string &mime )
 {
     if ( !fs::exists(file_path) ) {
         throw HttpResponseException(Response::not_found) ;
@@ -352,7 +352,7 @@ void Response::encode_file(const std::string &file_path, const std::string &enco
 
     string omime = mime.empty() ? get_file_mime(mime, file_path) : mime ;
 
-    encode_file_data(bytes, encoding, omime, mod_time) ;
+    encodeFileData(bytes, encoding, omime, mod_time) ;
 
 }
 

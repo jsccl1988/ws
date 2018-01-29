@@ -43,29 +43,46 @@ struct Response
     /// The content to be sent in the reply.
     std::string content_;
 
-
     /// Get a stock reply.
-    void stock_reply(Status status);
+    void stockReply(Status status);
 
-    // this will fill in the reply for sending over a file payload
+    // This will correctly fill in the reply headers for sending over a file payload. It will also set status to OK.
+    // If encoding is empty it will try to guess from the payload (gzip only supported)
 
-    void encode_file_data(const std::string &bytes,
+    void encodeFileData(const std::string &bytes,
                      const std::string &encoding,
                      const std::string &mime,
                      const time_t mod_time
                      ) ;
 
-    void encode_file(const std::string &path_name,
+    // This will load the file given its path name and call encode_file_data above.
+    // If no mime is provided it will try to guess from the file extension
+
+    void encodeFile(const std::string &path_name,
                      const std::string &encoding = std::string(),
                      const std::string &mime = std::string()
                      ) ;
 
+    // Calls write() appropriately setting the content type
     void writeJSON(const std::string &json) ;
+    // Same as above taking as input a Variant converted to JSON string
     void writeJSONVariant(const Variant &json) ;
 
+    // Will write a string and set content type and content length. It will also set status to OK.
     void write(const std::string &content, const std::string &mime = "text/html") ;
+
+    // This should be used for incrementally outputting text. Content type and length have to provided afterwards
     void append(const std::string &content) ;
 
+    // helper for appending arbitrary streamable types
+    template <class T>
+    void append(const T &t) {
+        std::ostringstream strm ;
+        strm << t ;
+        append(strm.str()) ;
+    }
+
+    // setup header corresponding to cookie
     void setCookie(const std::string &name, const std::string &value,
                    time_t expires = 0,
                    const std::string &path = std::string(),
@@ -74,18 +91,13 @@ struct Response
                    bool http_only = false
                    ) ;
 
-    template <class T>
-    void append(const T &t) {
-        std::ostringstream strm ;
-        strm << t ;
-        append(strm.str()) ;
-    }
 
     // set header for content-type
     void setContentType(const std::string &mime);
-    // set header for content-length because on the current content length
+    // set header for content-length based on the current length of the content_ string
     void setContentLength() ;
 
+    // set output status
     void setStatus(Status st) { status_ = st ; }
 };
 

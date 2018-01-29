@@ -74,7 +74,7 @@ private:
                 if ( result )
                 {
                     if ( !request_parser_.decode_message(request_) ) {
-                        response_.stock_reply(Response::bad_request);
+                        response_.stockReply(Response::bad_request);
                     }
                     else {
                         request_.SERVER_.add("REMOTE_ADDR", socket_.remote_endpoint().address().to_string() ) ;
@@ -83,13 +83,13 @@ private:
                              handler_.handle(request_, response_) ;
 
                              if ( response_.status_ != Response::ok )
-                                 response_.stock_reply(response_.status_);
+                                 response_.stockReply(response_.status_);
                          }
                          catch ( HttpResponseException &e  ) {
 
                             response_.status_ = e.code_ ;
                             if ( e.reason_.empty() )
-                                response_.stock_reply(e.code_);
+                                response_.stockReply(e.code_);
                             else {
                                 response_.content_.assign(e.reason_);
                                 response_.setContentType("text/html");
@@ -99,7 +99,7 @@ private:
                          }
 
                         catch ( ... ) {
-                            response_.stock_reply(Response::internal_server_error) ;
+                            response_.stockReply(Response::internal_server_error) ;
                         }
                     }
 
@@ -108,7 +108,7 @@ private:
                 }
                 else if (!result)
                 {
-                    response_.stock_reply(Response::bad_request);
+                    response_.stockReply(Response::bad_request);
 
                     write(response_to_buffers(response_, request_.method_ == "HEAD")) ;
 

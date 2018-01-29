@@ -15,6 +15,7 @@ using util::Dictionary ;
 class Request
 {
 public:
+    // helper function to match a request with a Route pattern (see Route)
     bool matches(const std::string &method, const Route &pattern, Dictionary &attributes) const ;
     bool matches(const std::string &method, const Route &pattern) const;
     bool matches(const std::string &method, const std::string &pattern, Dictionary &attributes) const ;
