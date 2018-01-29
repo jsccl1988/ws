@@ -96,7 +96,6 @@ SET ( SERVER_SOURCES
     ${SRC_ROOT}/server/route.cpp
     ${SRC_ROOT}/server/filter_chain.cpp
     ${SRC_ROOT}/server/exceptions.cpp
-    ${SRC_ROOT}/server/router.cpp
 
     ${SRC_ROOT}/server/filters/request_logger.cpp
     ${SRC_ROOT}/server/filters/static_file_handler.cpp
