@@ -282,7 +282,7 @@ DefaultAuthorizationModel::DefaultAuthorizationModel(Variant role_map)
         if ( permv.isArray() ) {
             for( uint i=0 ; i<permv.length() ; i++ ) {
                 Variant val = permv.at(i) ;
-                if ( val.isValue() ) permissions.emplace_back(val.toString()) ;
+                if ( val.isPrimitive() ) permissions.emplace_back(val.toString()) ;
             }
         }
         role_map_.insert({key, Role(rname, permissions)}) ;

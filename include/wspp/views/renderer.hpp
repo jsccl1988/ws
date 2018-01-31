@@ -34,25 +34,25 @@ private:
 
 struct ContextStack {
 
-    Variant top() const { return stack_.back() ; }
+    const Variant &top() const { return *stack_.back() ; }
 
-    void push(Variant ctx) {
-        stack_.push_back(ctx) ;
+    void push(const Variant &ctx) {
+        stack_.push_back(&ctx) ;
     }
 
     void pop() { stack_.pop_back() ; }
 
-    Variant find(const std::string &item) {
+    const Variant &find(const std::string &item) {
         for ( auto it = stack_.rbegin() ; it != stack_.rend() ; ++it ) {
-            Variant v = it->at(item) ;
+            const Variant &v = (*it)->at(item) ;
             if ( !v.isNull() ) return v ;
         }
 
-        return Variant() ;
+        return Variant::null() ;
     }
 
 
-    std::deque<Variant> stack_ ;
+    std::deque<const Variant *> stack_ ;
 };
 // Mustache template engine implementation
 

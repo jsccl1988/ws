@@ -43,7 +43,6 @@ string FileSystemTemplateLoader::load(const string &key) {
 
 
 struct Tag {
-
     enum Type { None, EscapedSubstitution, RawSubstitutionAmpersand, RawSubstitutionCurlyBracket, Comment, Block, Extension, SectionBegin, SectionEnd, InvertedSectionBegin, Partial } ;
 
     Tag(): type_(None)  {}
@@ -98,12 +97,11 @@ struct SectionNode: public ContainerNode {
 
     Type type() const override { return Section ; }
     void eval(ContextStack &ctx, string &res) const override {
-        Variant val = ctx.find(name_) ;
+        const Variant &val = ctx.find(name_) ;
         if ( !is_inverted_ ) {
             if ( val.isFalse() ) return ; // either does not exist or set to explicitly set to Null, false, empty array
             else if ( val.isArray() ) {
-                for( uint k=0 ; k<val.length() ; k++ ) {
-                    Variant v = val.at(k) ;
+                for( const Variant &v: val ) {
                     ctx.push(v) ;
                     for( auto &c: children_) {
                         c->eval(ctx, res) ;
@@ -175,14 +173,10 @@ struct SubstitutionNode: public Node {
     void eval(ContextStack &ctx, string &res) const override {
 
         string sub ;
-        Variant val ;
-        if ( var_ == "." )
-            val = ctx.top() ;
-        else
-            val = ctx.find(var_) ;
+        const Variant &val = ( var_ == "." ) ? ctx.top() : ctx.find(var_) ;
 
         if ( val.isNull() ) return ;
-        else if ( val.isValue() )
+        else if ( val.isPrimitive() )
             sub = val.toString() ;
         else return ;
 
@@ -462,8 +456,8 @@ struct PartialNode: public Node {
 
         string key ;
 
-        Variant v = ctx.find(key_) ;
-        if ( v.isValue() )
+        const Variant &v = ctx.find(key_) ;
+        if ( v.isPrimitive() )
             key = v.toString() ;
 
         if ( key.empty() ) key = key_ ;
@@ -471,7 +465,8 @@ struct PartialNode: public Node {
         Parser parser(context_.loader_, context_.block_helpers_, context_.value_helpers_, context_.caching_) ;
         auto ast = parser.parse(key) ;
         if ( ast ) {
-            ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
+            Variant args(Parser::getDictionaryArgs(args_, ctx)) ;
+            ctx.push(args) ;
             ast->eval(ctx, res) ;
             ctx.pop() ;
         }
@@ -494,7 +489,8 @@ struct BlockHelperNode: public Node {
 
     void eval(ContextStack &ctx, string &res) const override {
 
-        ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
+        Variant args(Parser::getDictionaryArgs(args_, ctx)) ;
+        ctx.push(args) ;
         Variant::Array params = Parser::getParams(args_, ctx) ;
         string part = helper_(content_, ctx, params) ;
         ctx.pop() ;
@@ -523,7 +519,8 @@ struct ValueHelperNode: public Node {
 
     void eval(ContextStack &ctx, string &res) const override {
 
-        ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
+        Variant args(Parser::getDictionaryArgs(args_, ctx)) ;
+        ctx.push(args) ;
         Variant::Array params = Parser::getParams(args_, ctx) ;
         pair<bool, string> part = helper_(ctx, params) ;
         ctx.pop() ;
@@ -558,7 +555,9 @@ struct ExtensionNode: public ContainerNode {
         if ( ast ) {
             // replace parent blocks with child blocks
 
-            ctx.push(Parser::getDictionaryArgs(args_, ctx)) ;
+            Variant args(Parser::getDictionaryArgs(args_, ctx)) ;
+            ctx.push(args) ;
+
             for( auto &c: ast->children_ ) {
                 if ( c->type() == Node::Block ) {
                     BlockNode::Ptr block = std::dynamic_pointer_cast<BlockNode>(c) ;
@@ -572,6 +571,7 @@ struct ExtensionNode: public ContainerNode {
                 else
                     c->eval(ctx, res) ;
             }
+
             ctx.pop() ;
         }
 

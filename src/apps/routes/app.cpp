@@ -40,6 +40,8 @@
 #include <spatialite.h>
 #include <wspp/util/i18n.hpp>
 
+#include <wspp/util/variant.hpp>
+
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
@@ -96,6 +98,7 @@ public:
 
         engine_.registerBlockHelper("make_two_columns", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
             Variant v = params.at(0) ; // parameters is the array to iterate
+
 
             size_t len = v.length() ;
             size_t len1 = floor(len/2.0) ;
@@ -174,21 +177,22 @@ private:
 };
 
 
-
 #define __(S) boost::locale::translate(S)
 
 int main(int argc, char *argv[]) {
 
-    Variant v(Variant::Object{
-                                  {"name", 3},
-                                  {"values", Variant::Array{ {2,  "s" } } }
-                    }) ;
-           cout << v.toJSON() << endl ;
+    Variant val{Variant::Object{{"name", "-2"}, {"value", 5}, {"items", Variant::Array{{1, 3, "5"}}}}} ;
 
-           cout << v["name"].toString() << endl ;
-           cout << v["values"][0].toString() << endl ;
-           cout << v["values"].length() << endl ;
-           cout << v.isArray() << endl ;
+
+    for( auto it = val.begin() ; it != val.end() ; ++it ) {
+        cout << it.key() << " " << it->toJSON() << endl ;
+    }
+
+  //  cout << q["items"][1].toJSON() << endl ;
+
+   // return 1 ;
+
+
     // example of seting up translation with boost::locale
     //
     // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...

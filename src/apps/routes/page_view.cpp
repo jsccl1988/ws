@@ -4,7 +4,6 @@ using namespace std ;
 using namespace wspp::server ;
 
 PageView::PageView(const User &user, Variant menu): auth_(user), menu_(menu) {
-
 }
 
 Variant PageView::data(const std::string &page_id, const std::string &title) const {

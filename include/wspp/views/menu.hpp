@@ -4,12 +4,12 @@
 #include <string>
 #include <map>
 
-#include <boost/scoped_ptr.hpp>
+#include <boost/shared_ptr.hpp>
 #include <wspp/util/variant.hpp>
 
 namespace wspp { namespace views {
 
-using namespace util ;
+using util::Variant ;
 
 class Menu {
 public:

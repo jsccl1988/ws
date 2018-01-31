@@ -11,15 +11,6 @@
 using namespace std ;
 using namespace wspp::util ;
 
-
-namespace wspp { namespace util {
-JSONParseException::JSONParseException(const string &msg, uint line, uint col) {
-    ostringstream strm ;
-    strm << msg << ", at line " << line << ", column " << col ;
-    msg_ = strm.str() ;
-}
-}}
-
 class JSONParser {
 public:
     JSONParser(const string &src): src_(src), pos_(src) {}
@@ -359,6 +350,8 @@ string JSONParser::unicodeToUTF8(unsigned int cp) {
     return result;
 }
 
+namespace wspp { namespace util {
+
 Variant Variant::fromJSONString(const std::string &src, bool throw_exception) {
     JSONParser parser(src) ;
 
@@ -368,7 +361,7 @@ Variant Variant::fromJSONString(const std::string &src, bool throw_exception) {
         return val ;
     }
     catch ( JSONParseException &e ) {
-        cout << e.what() << endl ;
+      //  cout << e.what() << endl ;
         if ( throw_exception ) throw e ;
         else return Variant() ;
     }
@@ -376,4 +369,7 @@ Variant Variant::fromJSONString(const std::string &src, bool throw_exception) {
 
 Variant Variant::fromJSONFile(const std::string &fpath, bool throw_exception) {
     return fromJSONString(readFileToString(fpath), throw_exception) ;
+}
+
+}
 }
