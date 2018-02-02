@@ -218,17 +218,6 @@ private:
 
     };
 
-    bool expect(const std::string &, char c) ;
-    std::string eatTag(const std::string &) ;
-    void parseTag(const std::string &src, Tag &tag) ;
-    bool nextTag(const std::string &src, std::string &raw, Tag &tag, int &cursor) ;
-    bool parseComplexTag(const std::string &tag, std::string &name, std::vector<Arg> &args) ;
-    bool parseSimpleTag(const std::string &tag, std::string &name) ;
-
-private:
-    friend class PartialNode ;
-    friend class ExtensionNode ;
-
     struct Position {
         Position(const std::string &src): cursor_(src.begin()), end_(src.end()){}
 
@@ -241,6 +230,8 @@ private:
             return p ;
         }
 
+        Position& operator--() { backtrack(); return *this ; }
+
         void advance() {
             // skip new line characters
             column_++ ;
@@ -250,6 +241,17 @@ private:
             }
 
             cursor_ ++ ;
+        }
+
+        void backtrack() {
+            // skip new line characters
+            cursor_ -- ;
+            column_-- ;
+
+            if ( cursor_ != end_ && *cursor_ == '\n' ) {
+                column_ = 1 ; line_ -- ;
+            }
+
 
         }
 
@@ -257,6 +259,19 @@ private:
         uint column_ = 1;
         uint line_ = 1;
     } ;
+
+    bool expect(Position &, char c) ;
+    std::string eatTag(Position &) ;
+    void parseTag(Position &, Tag &tag) ;
+    bool nextTag(Position &, std::string &raw, Tag &tag, std::string::const_iterator &cursor) ;
+    bool parseComplexTag(const std::string &tag, std::string &name, std::vector<Arg> &args) ;
+    bool parseSimpleTag(const std::string &tag, std::string &name) ;
+
+private:
+    friend class PartialNode ;
+    friend class ExtensionNode ;
+
+
 
     uint idx_ ;
 

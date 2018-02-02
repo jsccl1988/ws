@@ -55,10 +55,9 @@ bool Parser::parseSimpleTag(const string &tag, string &name) {
 
     name = boost::trim_copy(tag) ;
     return !name.empty() ;
-
 }
 
-bool Parser::expect(const Position &cursor, char c) {
+bool Parser::expect(Position &cursor, char c) {
     if ( cursor ) {
         if ( *cursor == c ) {
             ++cursor ;
@@ -67,101 +66,105 @@ bool Parser::expect(const Position &cursor, char c) {
     } else return false ;
 }
 
-string Parser::eatTag(const string &src) {
+string Parser::eatTag(Position &cursor) {
     string res ;
 
-    uint nc = src.length() ;
-
-    while ( idx_ < nc ) {
-        if ( expect(src, '}') ) {
-            if ( expect(src, '}') ) {
+    while ( cursor ) {
+        if ( expect(cursor, '}') ) {
+            if ( expect(cursor, '}') ) {
                 return res ;
             }
-            else if ( idx_ < nc ) res.push_back(src[idx_++]) ;
+            else if ( cursor ) {
+                res.push_back(*cursor) ;
+                ++cursor ;
+            }
         }
-        else if ( idx_ < nc ) res.push_back(src[idx_++]) ;
+        else if ( cursor ) {
+            res.push_back(*cursor) ;
+            ++cursor ;
+        }
     }
 }
 
-void Parser::parseTag(const string &src, Tag &tag) {
+void Parser::parseTag(Position &cursor, Tag &tag) {
 
-    uint nc = src.length() ;
+    if ( !cursor ) return ;
 
-    if ( idx_ >= nc ) return ;
-
-    switch ( src[idx_] ) {
-    case '#':  tag.type_ = Tag::SectionBegin ; ++idx_ ; break ;
-    case '/':  tag.type_ = Tag::SectionEnd ; ++idx_ ; break ;
-    case '^':  tag.type_ = Tag::InvertedSectionBegin ; ++idx_ ; break ;
-    case '&':  tag.type_ = Tag::RawSubstitutionAmpersand ; ++idx_ ; break ;
-    case '{':  tag.type_ = Tag::RawSubstitutionCurlyBracket ; ++idx_ ; break ;
-    case '!':  tag.type_ = Tag::Comment ; ++idx_ ; break ;
-    case '>':  tag.type_ = Tag::Partial ; ++idx_ ; break ;
-    case '<':  tag.type_ = Tag::Extension ; ++idx_ ; break ;
-    case '$':  tag.type_ = Tag::Block ; ++idx_ ; break ;
+    switch ( *cursor ) {
+    case '#':  tag.type_ = Tag::SectionBegin ; ++cursor ; break ;
+    case '/':  tag.type_ = Tag::SectionEnd ; ++cursor ; break ;
+    case '^':  tag.type_ = Tag::InvertedSectionBegin ; ++cursor ; break ;
+    case '&':  tag.type_ = Tag::RawSubstitutionAmpersand ; ++cursor ; break ;
+    case '{':  tag.type_ = Tag::RawSubstitutionCurlyBracket ; ++cursor ; break ;
+    case '!':  tag.type_ = Tag::Comment ; ++cursor ; break ;
+    case '>':  tag.type_ = Tag::Partial ; ++cursor ; break ;
+    case '<':  tag.type_ = Tag::Extension ; ++cursor ; break ;
+    case '$':  tag.type_ = Tag::Block ; ++cursor ; break ;
     default: tag.type_ = Tag::EscapedSubstitution ; break ;
     }
 
     // eat comment
     if ( tag.type_ == Tag::Comment ) {
         uint level = 0 ;
-        while ( idx_ < nc ) {
-            if ( expect(src, '}') ) {
-                if ( expect(src, '}') ) {
+        while ( cursor ) {
+            if ( expect(cursor, '}') ) {
+                if ( expect(cursor, '}') ) {
                     if ( level == 0 ) break ;
                     else level -- ;
                 }
-                else ++idx_ ;
+                else ++cursor ;
             }
-            else if ( expect(src, '{') ) {
-                if ( expect(src, '{'))
+            else if ( expect(cursor, '{') ) {
+                if ( expect(cursor, '{'))
                     level++ ;
-                else ++idx_ ;
+                else ++cursor ;
             }
-            else ++idx_ ;
+            else ++cursor ;
         }
 
         return ;
     }
 
-    while ( idx_ < nc ) {
-        if ( expect(src, '}') ) {
-            if ( expect(src, '}') ) {
+    while ( cursor ) {
+        if ( expect(cursor, '}') ) {
+            if ( expect(cursor, '}') ) {
                 if ( tag.type_ == Tag::RawSubstitutionCurlyBracket )
-                    expect(src, '}') ; // just eat the character otherwise we silently continue
+                    expect(cursor, '}') ; // just eat the character otherwise we silently continue
                 return ;
             }
-            else if ( idx_ < nc ) {
+            else if ( cursor ) {
                 //  if ( !isspace(src[idx_]) )
-                tag.name_.push_back(src[idx_]) ;
-                ++idx_ ;
+                tag.name_.push_back(*cursor) ;
+                ++cursor ;
             }
         }
-        else if ( idx_ < nc ) {
+        else if ( cursor ) {
             //      if ( !isspace(src[idx_]) )
-            tag.name_.push_back(src[idx_]) ;
-            ++idx_ ;
+            tag.name_.push_back(*cursor) ;
+            ++cursor ;
         }
     }
 }
 
-bool Parser::nextTag(const string &src, string &raw, Tag &tag, int &cursor) {
-    uint nc = src.length() ;
+bool Parser::nextTag(Position &cursor, string &raw, Tag &tag, std::string::const_iterator &ecursor) {
 
-    while ( idx_ < nc ) {
-        if ( expect(src, '{') ) {
-            if ( expect(src, '{') ) {
+    while ( cursor ) {
+        if ( expect(cursor, '{') ) {
+            if ( expect(cursor, '{') ) {
 
-                cursor = idx_ - 2 ;
-                parseTag(src, tag) ;
+                ecursor = cursor.cursor_ - 2 ;
+                parseTag(cursor, tag) ;
 
                 if ( tag.type_ == Tag::Comment ) continue ;
                 return true ;
             }
-            else --idx_ ;
+            else --cursor ;
         }
 
-        if ( idx_ < nc ) raw.push_back(src[idx_++]) ;
+        if ( cursor ) {
+            raw.push_back(*cursor) ;
+            ++cursor ;
+        }
     }
 
     return false ;
@@ -198,7 +201,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 
     Position cursor(src) ;
 
-    int s_cursor = 0, e_cursor ;
+    string::const_iterator s_cursor = src.begin(), e_cursor ;
     BlockHelperNode::Ptr helper_node ;
 
     while (!stack.empty()) {
@@ -206,7 +209,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
 
         string raw ;
         Tag tag ;
-        bool res = nextTag(src, raw, tag, e_cursor)  ;
+        bool res = nextTag(cursor, raw, tag, e_cursor)  ;
 
         string name ;
         vector<Arg> args ;
@@ -215,7 +218,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
             if ( tag.type_ == Tag::SectionEnd ) {
                 if ( parseSimpleTag(tag.name_, name)) {
                     if ( name == helper_node->key_ ) {
-                        helper_node->content_ = src.substr(s_cursor, e_cursor-s_cursor) ;
+                        helper_node->content_.assign(s_cursor, e_cursor) ;
                         helper_node = nullptr ;
                     }
                 }
@@ -231,7 +234,7 @@ SectionNode::Ptr Parser::parseString(const string &src) {
                     if ( it != ctx_.block_helpers_.end()) { // if it is a registered helper
                         helper_node.reset(new BlockHelperNode(name, args, it->second)) ;
                         parent->children_.push_back(helper_node) ;
-                        s_cursor = idx_ ;
+                        s_cursor = cursor.cursor_ ;
                     }
                     else {
                         SectionNode::Ptr new_section(new SectionNode(name)) ;
