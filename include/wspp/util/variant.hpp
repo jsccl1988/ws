@@ -35,6 +35,8 @@ public:
     using string_t = std::string ;
     using boolean_t = bool ;
 
+    // constructors
+
     Variant(): tag_(Tag::Null) {}
 
     Variant(boolean_t v) noexcept : tag_(Tag::Boolean), b_(v) { }
@@ -100,7 +102,6 @@ public:
         }
         return *this ;
     }
-
 
     Variant(Variant&& other): tag_(other.tag_) {
         switch (tag_)
@@ -253,7 +254,7 @@ public:
     // return an element of an array
     const Variant &at(uint idx) const { return fetchIndex(idx) ; }
 
-    // overloaded operators
+    // overloaded indexing operators
     const Variant &operator [] (const std::string &key) const {
         return fetchKey(key) ;
     }
@@ -262,6 +263,7 @@ public:
         return fetchIndex(idx) ;
     }
 
+    // JSON encoder
     void toJSON(std::ostream &strm) const {
 
         switch ( tag_ ) {
@@ -333,10 +335,7 @@ public:
     }
 
 
-    static const Variant &null() {
-        static Variant null_value ;
-        return null_value ;
-    }
+
 
     class iterator {
     public:
@@ -437,6 +436,12 @@ public:
 
     iterator end() const {
         return iterator(*this, false) ;
+    }
+
+
+    static const Variant &null() {
+        static Variant null_value ;
+        return null_value ;
     }
 
 private:

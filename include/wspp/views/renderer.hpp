@@ -12,6 +12,7 @@ namespace wspp { namespace web {
 using util::Variant ;
 
 // abstract template loader
+
 class TemplateLoader {
 public:
     // override to return a template string from a key
@@ -32,6 +33,8 @@ private:
     std::string suffix_ ;
 };
 
+// This is the stack of variables passed to template renderer substitution mechanism
+
 struct ContextStack {
 
     const Variant &top() const { return *stack_.back() ; }
@@ -42,6 +45,7 @@ struct ContextStack {
 
     void pop() { stack_.pop_back() ; }
 
+    // search the stack to find a variable with matching key
     const Variant &find(const std::string &item) {
         for ( auto it = stack_.rbegin() ; it != stack_.rend() ; ++it ) {
             const Variant &v = (*it)->at(item) ;
@@ -54,8 +58,8 @@ struct ContextStack {
 
     std::deque<const Variant *> stack_ ;
 };
-// Mustache template engine implementation
 
+// Mustache template engine implementation
 
 class TemplateRenderer {
 public:
@@ -78,11 +82,15 @@ public:
 
     std::string render(const std::string &key, const Variant &context) ;
 
+    // Render a mustache template into a string given the context
+    // Usefull for helper functions
     std::string renderString(const std::string &content, ContextStack &context) ;
 
+    // Block helpers registration
     typedef std::function<std::string(const std::string &src, ContextStack &stack, Variant::Array params)> BlockHelper ;
     void registerBlockHelper(const std::string &name,  BlockHelper helper) ;
 
+    // Value helpers registration (the helper returns also boolean flag indicating whether the output needs escaping)
     typedef std::function< std::pair<bool, std::string>(ContextStack &stack, Variant::Array params)> ValueHelper ;
     void registerValueHelper(const std::string &name,  ValueHelper helper) ;
 
@@ -98,6 +106,5 @@ private:
 } ;
 
 } // namespace web
-
 } // namespace wspp
 #endif

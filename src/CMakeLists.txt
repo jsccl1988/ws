@@ -41,6 +41,8 @@ SET( UTIL_SOURCES
 
 SET ( WEB_SOURCES
     ${SRC_ROOT}/views/renderer.cpp
+    ${SRC_ROOT}/views/template_parser.cpp
+    ${SRC_ROOT}/views/template_parser.hpp
     ${SRC_ROOT}/views/forms.cpp
     ${SRC_ROOT}/views/table.cpp
     ${SRC_ROOT}/views/menu.cpp
@@ -51,6 +53,7 @@ SET ( WEB_SOURCES
     ${SRC_ROOT}/models/auth.cpp
 
     ${INCLUDE_ROOT}/views/renderer.hpp
+
     ${INCLUDE_ROOT}/views/forms.hpp
     ${INCLUDE_ROOT}/views/table.hpp
     ${INCLUDE_ROOT}/views/menu.hpp
