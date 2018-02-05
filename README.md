@@ -8,7 +8,7 @@
 - Variant type with JSON support
 - Request path matching and reverse urls (i.e. routing)
 - [Content rendering using an extension of Mustache](src/util/Renderer.md)
-- Form builder
+- [Form builder](src/views/Forms.md)
 - Table builder
 - SQlite wrapper
 - Password based authentication
