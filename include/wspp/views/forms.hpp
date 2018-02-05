@@ -196,9 +196,13 @@ public:
     Form &setAction(const std::string &action) { action_ = action ; return *this ; }
     Form &setMethod(const std::string &method) { method_ = method ; return *this ; }
     Form &setEncType(const std::string &enc) { enctype_ = enc ; return *this ; }
+
+    // set template to be used for rendering the form
     Form &setTemplate(const std::string &t) { form_template_ = t ; return *this ; }
+
     Form &setButtonTitle(const std::string &title) { button_title_ = title ; return *this ; }
 
+    // helper for fluent field creation
     template<typename T, typename ... Args >
     T &field(Args... args) {
         auto f = std::make_shared<T>(args...) ;
@@ -211,20 +215,24 @@ public:
     // override to add additional validation e.g. requiring more than one fields (do not forget to call base class)
     virtual bool validate(const Request &vals) ;
 
-    // init values with user supplied (no validation)
+    // init form with user supplied values (no validation)
     void init(const Dictionary &vals) ;
 
-    // get form view to pass to template
+    // get form view to pass to template render
     Variant::Object data() const ;
 
     // get errors object
     Variant::Object errors() const ;
 
+    // get value stored in a field
     string getValue(const string &field_name) ;
 
+    // render form
     string render(TemplateRenderer &r) ;
 
+    // override to perform special processing after a succesfull form validation (e.g. persistance)
     virtual void onSuccess(const Request &request) {}
+    // override to perform special processing when a GET request is handled (usually init form from persistance)
     virtual void onGet(const Request &request) {}
 
     // Use this to avoid boilerplate in form request handling

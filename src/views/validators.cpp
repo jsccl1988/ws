@@ -96,10 +96,5 @@ void RegexValidator::validate(const std::string &val, const FormField &field) co
 }
 
 
-
-
-
-
-
 }
 }
