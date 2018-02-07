@@ -23,16 +23,6 @@ PageCreateForm::PageCreateForm(sqlite::Connection &con): con_(con) {
             bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val)[0].as<int>() ;
             if ( error )
                 throw FormFieldValidationError("A page with this slug already exists") ;
-
-    /*}
-
-            else {
-                sqlite::Query q(con_, "SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_) ;
-                sqlite::QueryResult res = q.exec() ;
-                error = res.get<int>(0) ;
-            }
-*/
-
     }) ;
 }
 

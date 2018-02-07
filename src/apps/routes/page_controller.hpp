@@ -51,7 +51,7 @@ public:
     bool dispatch() ;
 
     void show(const string &page_id) ;
-    void list(uint pager) ;
+
     void create() ;
     void publish() ;
     void edit() ;

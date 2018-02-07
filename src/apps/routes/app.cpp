@@ -133,6 +133,9 @@ public:
     void handle(const Request &req, Response &resp) override {
 
         sqlite::Connection con(root_ + "/routes.sqlite") ; // establish connection with database
+
+
+
         Session session(session_handler_, req, resp) ; // start a new session
 
         DefaultAuthorizationModel auth(Variant::fromJSONFile(root_ + "templates/acm.json")) ;
@@ -181,16 +184,6 @@ private:
 
 int main(int argc, char *argv[]) {
 
-    Variant val{Variant::Object{{"name", "-2"}, {"value", 5}, {"items", Variant::Array{{1, 3, "5"}}}}} ;
-
-
-    for( auto it = val.begin() ; it != val.end() ; ++it ) {
-        cout << it.key() << " " << it->toJSON() << endl ;
-    }
-
-  //  cout << q["items"][1].toJSON() << endl ;
-
-   // return 1 ;
 
 
     // example of seting up translation with boost::locale

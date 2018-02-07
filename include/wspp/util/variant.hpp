@@ -181,6 +181,7 @@ public:
     bool isFalse() const {
         if ( tag_ == Tag::Boolean ) return !b_ ;
         else if ( tag_ == Tag::Array ) return a_->size() == 0 ;
+        else if ( tag_ == Tag::Null ) return true ;
         else return false ;
     }
 

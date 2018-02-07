@@ -2,6 +2,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/format.hpp>
 
 #include <wspp/views/table.hpp>
 #include <wspp/server/exceptions.hpp>
@@ -101,20 +102,33 @@ UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(i
 }
 
 
+static void memoryMapDict(Connection &con, const Dictionary &dict, const string &db_id, const string &key_id, const string &val_id) {
+   // con.exec(str(boost::format("ATTACH ':memory:' as %1%") % db_id)) ;
+    string s = str(boost::format("CREATE TEMPORARY TABLE temp.%1% (%2% TEXT PRIMARY KEY, %3% TEXT)") % db_id % key_id % val_id) ;
+    con.exec(s) ;
+
+    sqlite::Statement stmt(con, str(boost::format("INSERT INTO temp.%1% (%2%,%3%) VALUES (?, ?)") % db_id % key_id % val_id)) ;
+
+    sqlite::Transaction t(con) ;
+    for( const auto &p: dict ) {
+        stmt(p.first, p.second) ;
+        stmt.clear() ;
+    }
+    t.commit() ;
+}
+
 class UsersTableView: public SQLiteTableView {
 public:
     UsersTableView(Connection &con, const Dictionary &roles): SQLiteTableView(con, "users_list_view"), roles_(roles)  {
 
         setTitle("Users") ;
-        con_.exec("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, r.role_id AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id") ;
+
+        memoryMapDict(con, roles, "user_roles_dict", "role_id", "role_label");
+
+        con_.exec("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, ur.role_label AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id JOIN temp.user_roles_dict as ur ON ur.role_id = r.role_id") ;
 
         addColumn("Username", "{{username}}") ;
         addColumn("Role", "{{role}}") ;
-    }
-
-    Variant transform(const std::string &key, const std::string &value) override {
-        if ( key == "role" ) return roles_[value] ;
-        else return value ;
     }
 
 private:
@@ -179,6 +193,7 @@ bool UsersController::dispatch()
     if ( request_.matches("GET", "/users/edit/") ) { // load users list editor
         if ( logged_in && user_.can("users.edit")) edit() ;
         else throw HttpResponseException(Response::unauthorized) ;
+        return true ;
     }
     if ( request_.matches("GET", "/users/list/") ) { // fetch table data
         if ( logged_in && user_.can("users.list")) fetch() ;
