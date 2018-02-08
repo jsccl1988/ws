@@ -12,6 +12,10 @@ namespace wspp { namespace util { namespace sqlite {
 
 class Connection ;
 
+// escape column names/identifiers
+
+std::string escapeName(const std::string &unescaped) ;
+
 class Statement
 {
 public:

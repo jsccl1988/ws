@@ -89,7 +89,7 @@ void RouteController::fetch()
     uint offset = request_.GET_.value<int>("page", 1) ;
     uint results_per_page = request_.GET_.value<int>("total", 10) ;
 
-    Variant data = view.fetch(offset, results_per_page ) ;
+    Variant data = view.fetch(offset, results_per_page) ;
 
     response_.write(engine_.render("pages-table-view", data )) ;
 }
@@ -148,13 +148,11 @@ void RouteController::edit(const string &id)
     response_.write(engine_.render("route-edit", ctx)) ;
 }
 
-void RouteController::update()
-{
+void RouteController::update() {
     RouteUpdateForm form(con_, routes_) ;
 
     form.handle(request_, response_, engine_) ;
 }
-
 
 void RouteController::track(const string &id) {
     RouteGeometry geom ;
@@ -313,7 +311,6 @@ void RouteController::view(const std::string &route_id) {
 
         response_.write(engine_.render("route-view", ctx)) ;
     }
-
 }
 
 void RouteController::browse(const string &mountain)
@@ -340,10 +337,8 @@ void RouteController::browse(const string &mountain)
     }
 }
 
-void RouteController::list()
-{
+void RouteController::list() {
     RouteTableView view(con_) ;
-
     view.render(request_, response_, engine_) ;
 }
 
