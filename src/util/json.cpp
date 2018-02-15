@@ -93,7 +93,6 @@ bool JSONParser::parseValue(Variant &val) {
 bool JSONParser::parseString(Variant &val)
 {
     string res ;
-    bool in_escape = false ;
 
     if ( !expect("\"") ) return false ;
     while ( pos_ ) {

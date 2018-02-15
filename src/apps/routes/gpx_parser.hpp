@@ -11,7 +11,7 @@ struct RouteGeometry ;
 
 class GpxParser: public XMLSAXParser {
 public:
-    GpxParser(std::istream &strm, RouteGeometry &geom);
+    GpxParser(const std::string &src, RouteGeometry &geom);
 
     virtual void startElement(const std::string &qname, const AttributeList &attrs) override ;
 

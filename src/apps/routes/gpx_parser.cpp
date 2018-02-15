@@ -5,7 +5,7 @@
 
 using namespace std ;
 
-GpxParser::GpxParser(std::istream &strm, RouteGeometry &geom): XMLSAXParser(strm), geom_(geom) {
+GpxParser::GpxParser(const string &src, RouteGeometry &geom): XMLSAXParser(src), geom_(geom) {
 }
 
 void GpxParser::startElement(const std::string &qname, const XMLSAXParser::AttributeList &attrs) {

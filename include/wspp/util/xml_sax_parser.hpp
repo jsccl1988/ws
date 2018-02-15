@@ -17,9 +17,9 @@ class XMLStreamWrapper ;
 
 class XMLSAXParser {
 public:
-    enum ErrorCode { InvalidChar, NoClosingQuote, TagMismatch, TagInvalid, AttrValueInvalid, InvalidXml } ;
+    enum ErrorCode { InvalidChar, NoClosingQuote, InvalidHeader, TagMismatch, TagInvalid, AttrValueInvalid, InvalidXml } ;
 
-    XMLSAXParser(std::istream &strm) ;
+    XMLSAXParser(const std::string &src) ;
 
     // parse input stream and return true if succesfull, errors are reported through an error callback
 
@@ -46,6 +46,34 @@ public:
 
 private:
 
+    struct Cursor {
+        Cursor(const std::string &src): cursor_(src.begin()), end_(src.end()) {}
+
+        operator bool () const { return cursor_ != end_ ; }
+        char operator * () const { return *cursor_ ; }
+        Cursor& operator++() { advance(); return *this ; }
+        Cursor operator++(int) {
+            Cursor p(*this) ;
+            advance() ;
+            return p ;
+        }
+
+        void advance() {
+            // skip new line characters
+            column_++ ;
+
+            if ( cursor_ != end_ && *cursor_ == '\r' ) ++cursor_ ;
+            if ( cursor_ != end_ && *cursor_ == '\n' ) {
+                column_ = 1 ; line_ ++ ;
+            }
+            cursor_ ++ ;
+        }
+
+        std::string::const_iterator cursor_, end_ ;
+        uint column_ = 1;
+        uint line_ = 1;
+    } ;
+
     bool parseXmlDecl() ;
     bool parseAttributeList(AttributeList &at) ;
     bool parseName(std::string &name);
@@ -58,9 +86,15 @@ private:
     bool parseCData() ;
     bool parseCharacters() ;
     bool parseDocType() ;
-    void fatal(ErrorCode code) ;
+    bool fatal(ErrorCode code) ;
 
-    std::shared_ptr<XMLStreamWrapper> stream_ ;
+    void skipSpace() ;
+    bool expect(char c) ;
+    bool expect(const char *str) ;
+    bool escapeString(std::string &value);
+
+    const std::string &src_ ;
+    Cursor cursor_ ;
 
 };
 

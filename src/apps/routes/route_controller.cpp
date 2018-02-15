@@ -30,9 +30,7 @@ RouteCreateForm::RouteCreateForm(const Request &req, RouteModel &routes): reques
 
             const Request::UploadedFile &up = it->second ;
 
-            istringstream strm(up.data_) ;
-
-            GpxParser parser(strm, geom_) ;
+            GpxParser parser(up.data_, geom_) ;
             if ( !parser.parse() )
                 throw FormFieldValidationError("Not valid GPX file") ;
     }) ;
@@ -83,8 +81,8 @@ public:
     }
 };
 
-void RouteController::fetch()
-{
+void RouteController::fetch() {
+
     RouteTableView view(con_) ;
     uint offset = request_.GET_.value<int>("page", 1) ;
     uint results_per_page = request_.GET_.value<int>("total", 10) ;

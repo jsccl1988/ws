@@ -13,6 +13,7 @@
 #include <wspp/util/database.hpp>
 #include <wspp/util/crypto.hpp>
 #include <wspp/util/variant.hpp>
+#include <wspp/util/filesystem.hpp>
 
 #include <wspp/views/renderer.hpp>
 #include <wspp/views/menu.hpp>
@@ -41,6 +42,7 @@
 #include <wspp/util/i18n.hpp>
 
 #include <wspp/util/variant.hpp>
+#include "gpx_parser.hpp"
 
 using namespace std ;
 using namespace wspp::util ;
@@ -184,7 +186,9 @@ private:
 
 int main(int argc, char *argv[]) {
 
-
+RouteGeometry geom ;
+    GpxParser parser(readFileToString("/home/malasiot/GPS/routes/Βέρμιο/Αγ. Νικόλαος - Πριόνια - Σέλι/ag-nikolaos-prionia.gpx"), geom) ;
+    parser.parse() ;
 
     // example of seting up translation with boost::locale
     //

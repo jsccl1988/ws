@@ -16,125 +16,39 @@ public:
     uint line_, column_ ;
 };
 
-class XMLStreamWrapper {
-public:
-    XMLStreamWrapper(istream &strm): strm_(strm) {
-        line_ = 1 ; chars_ = 0 ; column_ = 1 ;
-        nla_ = 0 ;
-    }
-
-    char next() {
-        char c ;
-        if ( nla_ > 0 )
-            c = look_ahead_[--nla_] ;
-        else {
-            c = strm_.get() ;
-            if ( c == '\r' ) c = strm_.get() ;
-        }
-
-        chars_ ++ ;
-        column_ ++ ;
-
-        if ( c == '\n' ) {
-            line_++ ; column_ = 1 ;
-        }
-
-        return c ;
-    }
-
-    void putback(char c) {
-        look_ahead_[nla_++] = c ;
-        chars_ -- ;
-        column_ -- ;
-        if ( c == '\n' ) {
-            line_-- ; column_ = 1 ;
-        }
-    }
-
-    bool expect(const char *seq) {
-        char buf[256] ;
-        bool match = true ;
-        const char *p = seq ;
-
-        uint k = 0 ;
-        while ( *p ) {
-            char c = next() ;
-            buf[k++] = c ;
-            if ( *p != c ) {
-                match = false ;
-                break ;
-            }
-
-            ++p ;
-        }
-
-        if ( !match )
-            for ( int i=k-1 ; i>=0 ; i-- )
-                putback(buf[i]) ;
-
-        return match ;
-    }
-
-    bool eatWhite() {
-        char c ;
-        uint chars = 0 ;
-        do {
-            c = next() ;
-            chars ++ ;
-        } while ( strm_ && ( c == ' ' || c == '\t' || c == '\r' || c == '\n' ) ) ;
-        putback(c) ;
-        return chars > 1 ;
-    }
-
-    bool good() {
-        return strm_.good() ;
-    }
-
-    bool escapeString(string &value) {
-
-        uint k = 0 ;
-        string quot ;
-        char c = next() ;
-        do {
-            quot += c ;
-            c = next() ;
-            ++k ;
-        } while ( strm_.good() && c != ';' && k < 5 ) ;
-
-        if ( quot == "amp" ) value += '&' ;
-        else if ( quot == "quot" ) value += '\"' ;
-        else if ( quot == "lt" ) value += '<' ;
-        else if ( quot == "gt" ) value += '>' ;
-        else if ( quot == "apos") value += '\'' ;
-        else return false ;
-
-        return true ;
-    }
-
-    char peek() {
-        if ( nla_ > 0 )
-            return look_ahead_[nla_ - 1] ;
-        else
-            return strm_.peek() ;
-    }
-
-    istream &strm_ ;
-    uint line_, chars_, column_ ;
-    char look_ahead_[8] ;
-    uint nla_ ;
-};
-
 static bool is_valid_name_char(char c) {
     return ( isalnum(c) || c == '-' || c == '_' || c == '.' || c == ':' ) ;
 }
 
+bool XMLSAXParser::escapeString(string &value) {
+
+    uint k = 0 ;
+    string quot ;
+    char c = *cursor_++ ;
+    do {
+        quot += c ;
+        c = *cursor_++ ;
+        ++k ;
+    } while ( cursor_ && c != ';' && k < 5 ) ;
+
+    if ( quot == "amp" ) value += '&' ;
+    else if ( quot == "quot" ) value += '\"' ;
+    else if ( quot == "lt" ) value += '<' ;
+    else if ( quot == "gt" ) value += '>' ;
+    else if ( quot == "apos") value += '\'' ;
+    else return false ;
+
+    return true ;
+}
+
 bool XMLSAXParser::parseXmlDecl() {
-    if ( stream_->expect("<?xml") ) {
-        stream_->eatWhite() ;
+    if ( expect("<?xml") ) {
+        skipSpace() ;
         AttributeList attrs ;
-        if ( !parseAttributeList(attrs) ) return false ;
-        stream_->eatWhite() ;
-        return stream_->expect("?>") ;
+        if ( !parseAttributeList(attrs) ) return fatal(InvalidHeader) ;
+        skipSpace() ;
+        if ( !expect("?>") ) return fatal(TagInvalid) ;
+        return true ;
     }
 
     return false ;
@@ -142,43 +56,40 @@ bool XMLSAXParser::parseXmlDecl() {
 
 bool XMLSAXParser::parseName(std::string &name) {
     do {
-        char c = stream_->next() ;
-        if ( !is_valid_name_char(c) ) {
-            stream_->putback(c) ;
-            break ;
-        }
-        else name += c ;
-    } while ( stream_->good() ) ;
+        char c = *cursor_ ;
+        if ( !is_valid_name_char(c) ) break ;
+        else { name += c ; ++cursor_ ; }
+    } while ( cursor_ ) ;
 
     return !name.empty() ;
 }
 
 bool XMLSAXParser::parseAttributeValue(std::string &val) {
 
-    char c = stream_->next() ;
+    char c = *cursor_++ ;
     char oc = c ;
 
     // matching starting quote
-    if ( oc != '"' && oc != '\'' ) {
-        stream_->putback(c) ;
-        return false ;
-    }
+    if ( oc != '"' && oc != '\'' ) return false ;
 
     // eat characters (no backtracking here)
 
-    while ( stream_->good() ) {
-        c = stream_->next() ;
+    while ( cursor_ ) {
+        c = *cursor_ ;
 
         if ( c == '&' ) {
-            if ( !stream_->escapeString(val) ) return false ;
+            ++cursor_ ;
+            if ( !escapeString(val) ) return false ;
         }
-        else if ( c == '<' ) {
-            stream_->putback(c) ; return false ;
+        else if ( c == '<' ) return false ;
+        else if ( c == oc ) {
+            cursor_++ ;
+            break ;
         }
-        else if ( c == oc ) break ;
-        else
+        else {
             val += c ;
-
+            ++cursor_ ;
+        }
     }  ;
 
     // closing quote
@@ -189,27 +100,26 @@ bool XMLSAXParser::parseAttributeValue(std::string &val) {
 bool XMLSAXParser::parseMisc()
 {
     bool match = false ;
-    while ( stream_->good() ) {
-        stream_->eatWhite() ;
+    while ( cursor_ ) {
+        skipSpace() ;
         if ( !parseComment() &&
              !parsePI() ) break ;
         match = true ;
     }
-    stream_->eatWhite() ;
+    skipSpace() ;
     return match ;
 }
 
 bool XMLSAXParser::parseComment()
 {
-    if ( stream_->expect("<!--") ) {
+    if ( expect("<!--") ) {
         char c ;
         do {
-            c = stream_->next() ;
+            c = *cursor_++ ;
         }
-        while ( stream_->good() && c != '-' ) ;
+        while ( cursor_ && c != '-' ) ;
 
-        if ( stream_->expect("->") )
-            return true ;
+        if ( expect("->") ) return true ;
         else
             fatal(InvalidChar) ;
     }
@@ -219,56 +129,59 @@ bool XMLSAXParser::parseComment()
 
 bool XMLSAXParser::parseElement()
 {
-    if ( stream_->expect("<") ) {
+    Cursor oc = cursor_ ;
 
-        char c = stream_->peek() ;
+    if ( expect("<") ) {
+
+        char c = *cursor_ ;
+
         if ( c == '/' ) {
-            stream_->putback('<') ;
+            cursor_ = oc ;
             return false ;
         }
 
         string tag ;
         AttributeList at ;
-        if ( !parseName(tag) ) fatal(TagInvalid) ;
-        stream_->eatWhite() ;
+        if ( !parseName(tag) ) return fatal(TagInvalid) ;
+        skipSpace() ;
 
         parseAttributeList(at) ;
 
-        if ( stream_->expect("/>") ) {
+        if ( expect("/>") ) {
             startElement(tag, at) ;
             characters("") ;
             endElement(tag) ;
             return true ;
         }
-        else if ( stream_->expect(">") ) {
+        else if ( expect(">") ) {
             startElement(tag, at) ;
 
             parseContent() ;
 
-            if ( stream_->expect("</") ) {
+            if ( expect("</") ) {
                 string closing_tag ;
 
-                if ( !parseName(closing_tag) ) fatal(TagInvalid) ;
-                if ( tag != closing_tag ) fatal(TagMismatch) ;
+                if ( !parseName(closing_tag) ) return fatal(TagInvalid) ;
+                if ( tag != closing_tag ) return fatal(TagMismatch) ;
 
-                stream_->eatWhite() ;
-                if ( stream_->expect(">") ) {
+                skipSpace() ;
+                if ( expect(">") ) {
                     endElement(closing_tag) ;
                     return true ;
                 }
             }
         }
-        else fatal(InvalidChar) ;
+        else return fatal(InvalidChar) ;
     }
     return false ;
 }
 
 bool XMLSAXParser::parsePI()
 {
-    if ( stream_->expect("<?") ) {
+    if ( expect("<?") ) {
         char c ;
-        while ( stream_->good() ) {
-            c = stream_->next() ;
+        while ( cursor_ ) {
+            c = *cursor_++ ;
             if ( c == '>' ) break ;
         } ;
         return true ;
@@ -293,13 +206,13 @@ bool XMLSAXParser::parseCData()
 {
     string text ;
 
-    if ( stream_->expect("<![CDATA[") ) {
+    if ( expect("<![CDATA[") ) {
         char c ;
-        while ( stream_->good() ) {
-            c = stream_->next() ;
+        while ( cursor_ ) {
+            c = cursor_++ ;
             if ( c != ']' ) text += c ;
             else {
-                if ( stream_->expect("]>")) {
+                if ( expect("]>")) {
                     if ( !text.empty() )
                         characters(text) ;
                     return true ;
@@ -315,18 +228,17 @@ bool XMLSAXParser::parseCData()
 bool XMLSAXParser::parseCharacters()
 {
     string text ;
-    while ( stream_->good() ) {
-        char c = stream_->next() ;
-        if ( c == '<' ) {
-            stream_->putback(c) ;
-            break ;
-        }
+    while ( cursor_ ) {
+        char c = *cursor_ ;
+        if ( c == '<' ) break ;
         else if ( c == '&' ) {
-           if ( !stream_->escapeString(text) )
-               fatal(InvalidChar) ;
+           if ( !escapeString(text) )
+               return fatal(InvalidChar) ;
         }
-        else
+        else {
            text += c ;
+           ++cursor_ ;
+        }
     }
 
     if ( !text.empty() ) {
@@ -337,20 +249,19 @@ bool XMLSAXParser::parseCharacters()
 }
 
 bool XMLSAXParser::parseDocType() {
-    if ( stream_->expect("<!DOCTYPE") ) {
+    if ( expect("<!DOCTYPE") ) {
         // ignore section
-        while ( stream_->good() ) {
-            char c = stream_->next() ;
+        while ( cursor_ ) {
+            char c = cursor_++ ;
 
             if ( c == '>' ) break ;
             else if ( c == '[') { // skip until ending bracket (maybe nested)
                 uint depth = 1 ;
-                while ( stream_->good() )
+                while ( cursor_ )
                 {
-                    char c = stream_->next() ;
+                    char c = cursor_++;
                     if ( c == '[' ) ++depth ;
-                    else if ( c == ']' )
-                        --depth ;
+                    else if ( c == ']' ) --depth ;
 
                     if ( depth == 0 ) break ;
                 }
@@ -368,23 +279,58 @@ bool XMLSAXParser::parseAttributeList(XMLSAXParser::AttributeList &at)
     do {
         string attrName, attrValue ;
         if ( !parseName(attrName) ) return false ;
-        stream_->eatWhite();
-        if ( !stream_->expect("=") ) fatal(InvalidChar) ;
-        stream_->eatWhite();
+        skipSpace() ;
+        if ( !expect('=') ) fatal(InvalidChar) ;
+        skipSpace() ;
         if ( !parseAttributeValue(attrValue) ) fatal(AttrValueInvalid) ;
         at.add(attrName, attrValue) ;
-        stream_->eatWhite();
-        char c = stream_->peek() ;
+        skipSpace() ;
+        char c = *cursor_ ;
         if ( c == '/' || c == '>' || c == '?' ) break ;
-    } while ( stream_->good() ) ;
+    } while ( cursor_ ) ;
     return true ;
 }
 
-void XMLSAXParser::fatal(ErrorCode code) {
-    throw XMLSAXException(code, stream_->line_, stream_->column_) ;
+bool XMLSAXParser::fatal(ErrorCode code) {
+    throw XMLSAXException(code, cursor_.line_, cursor_.column_) ;
+    return false ;
 }
 
-XMLSAXParser::XMLSAXParser(std::istream &strm): stream_(new XMLStreamWrapper(strm)) {}
+XMLSAXParser::XMLSAXParser(const string &src): src_(src), cursor_(src) {}
+
+void XMLSAXParser::skipSpace() {
+    while ( cursor_ ) {
+        char c = *cursor_ ;
+        if ( isspace(c) ) ++cursor_ ;
+        else return ;
+   }
+}
+
+bool XMLSAXParser::expect(char c) {
+    if ( cursor_ ) {
+        if ( *cursor_ == c ) {
+            ++cursor_ ;
+            return true ;
+        }
+        return false ;
+    }
+    return false ;
+}
+
+bool XMLSAXParser::expect(const char *str) {
+    const char *c = str ;
+
+    skipSpace() ;
+    Cursor cur = cursor_ ;
+    while ( *c != 0 ) {
+        if ( !expect(*c) ) {
+            cursor_ = cur ;
+            return false ;
+        }
+        else ++c ;
+    }
+    return true ;
+}
 
 bool XMLSAXParser::parse() {
     try {
