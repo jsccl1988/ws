@@ -11,6 +11,25 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/util/xml_sax_parser.cpp
     ${SRC_ROOT}/util/i18n.cpp
 
+    ${SRC_ROOT}/database/connection.cpp
+    ${SRC_ROOT}/database/connection_handle.cpp
+    ${SRC_ROOT}/database/driver_factory.cpp
+    ${SRC_ROOT}/database/driver.cpp
+    ${SRC_ROOT}/database/exception.cpp
+    ${SRC_ROOT}/database/statement.cpp
+    ${SRC_ROOT}/database/transaction.cpp
+    ${SRC_ROOT}/database/query.cpp
+    ${SRC_ROOT}/database/query_result.cpp
+    ${SRC_ROOT}/database/statement_handle.cpp
+
+
+
+    ${SRC_ROOT}/database/drivers/sqlite/driver.cpp
+    ${SRC_ROOT}/database/drivers/sqlite/connection.cpp
+    ${SRC_ROOT}/database/drivers/sqlite/exceptions.cpp
+    ${SRC_ROOT}/database/drivers/sqlite/statement.cpp
+    ${SRC_ROOT}/database/drivers/sqlite/query_result.cpp
+
     ${SRC_ROOT}/util/sqlite/connection.cpp
     ${SRC_ROOT}/util/sqlite/exception.cpp
     ${SRC_ROOT}/util/sqlite/stmt.cpp

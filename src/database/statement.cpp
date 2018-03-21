@@ -1,15 +1,15 @@
-#include <wspp/util/sqlite/statement.hpp>
-#include <wspp/util/sqlite/connection.hpp>
+#include <wspp/database/statement.hpp>
+#include <wspp/database/connection.hpp>
 
 #include <boost/algorithm/string.hpp>
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sqlite {
+namespace wspp { namespace db {
 
 Statement::Statement(Connection &con, const std::string & sql) {
-   con.check() ;
-   stmt_.reset(new Stmt(con.handle(), sql)) ;
+    con.check() ;
+    stmt_ = con.handle()->createStatement(sql) ;
 }
 
 std::string escapeName(const std::string &unescaped) {
@@ -17,6 +17,5 @@ std::string escapeName(const std::string &unescaped) {
     return '"' + e + '"' ;
 }
 
-} // namespace sqlite
 } // namespace db
 } // namespace wspp

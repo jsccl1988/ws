@@ -13,7 +13,6 @@ QueryResult Query::exec() {
     return QueryResult(stmt_) ;
 }
 
-
 } // namespace sqlite
 } // namespace util
 } // namespace wspp

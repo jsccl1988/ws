@@ -44,6 +44,8 @@
 #include <wspp/util/variant.hpp>
 #include "gpx_parser.hpp"
 
+#include <wspp/database/connection.hpp>
+
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
@@ -186,9 +188,21 @@ private:
 
 int main(int argc, char *argv[]) {
 
-RouteGeometry geom ;
-    GpxParser parser(readFileToString("/home/malasiot/GPS/routes/Βέρμιο/Αγ. Νικόλαος - Πριόνια - Σέλι/ag-nikolaos-prionia.gpx"), geom) ;
-    parser.parse() ;
+    wspp::db::Connection con("sqlite:/home/malasiot/source/ws/data/routes/routes.sqlite") ;
+    wspp::db::Query q(con, "SELECT * from routes") ;
+    wspp::db::QueryResult res = q.exec() ;
+
+    while ( res.next() ) {
+        auto dict = res.getAll() ;
+        cout << dict.count() << endl ;
+    }
+
+    for( wspp::db::Row r: res ) {
+        string x, y, z ;
+        r.into(x, y, z) ;
+            cout << x << endl ;
+    }
+
 
     // example of seting up translation with boost::locale
     //
