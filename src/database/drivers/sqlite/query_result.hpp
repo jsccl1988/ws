@@ -15,7 +15,10 @@ public:
 
     ~SQLiteQueryResultHandle() {}
 
-    bool empty() const override ;
+    int at() const override {
+        return pos_ ;
+    }
+
 
     bool next() override ;
 
@@ -41,10 +44,11 @@ public:
     void read(int idx, std::string &val) const override ;
     void read(int idx, Blob &val) const override ;
 
+    void reset() override;
 private:
 
     sqlite3_stmt *stmt_ ;
-    bool empty_ = true ;
+    int pos_ = -1 ;
 } ;
 
 }

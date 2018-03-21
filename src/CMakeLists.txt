@@ -14,7 +14,6 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/database/connection.cpp
     ${SRC_ROOT}/database/connection_handle.cpp
     ${SRC_ROOT}/database/driver_factory.cpp
-    ${SRC_ROOT}/database/driver.cpp
     ${SRC_ROOT}/database/exception.cpp
     ${SRC_ROOT}/database/statement.cpp
     ${SRC_ROOT}/database/transaction.cpp

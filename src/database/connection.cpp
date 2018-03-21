@@ -32,27 +32,6 @@ void Connection::close() {
 
 }
 
-/*
-void Connection::exec(const string &sql, ...)
-{
-    va_list arguments ;
-    va_start(arguments, sql);
-
-    char *sql_ = sqlite3_vmprintf(sql.c_str(), arguments) ;
-
-    char *err_msg ;
-    if ( sqlite3_exec(handle_, sql_, NULL, NULL, &err_msg) != SQLITE_OK ) {
-        string msg(err_msg) ;
-        sqlite3_free(err_msg) ;
-
-        throw Exception(msg) ;
-    }
-
-    sqlite3_free(sql_) ;
-
-    va_end(arguments);
-}
-*/
 Statement Connection::prepareStatement(const string &sql)
 {
     return Statement(*this, sql) ;

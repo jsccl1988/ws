@@ -22,10 +22,6 @@ public:
     QueryResult& operator=(const QueryResult &other) = delete;
     QueryResult& operator=(QueryResult &&other) = default;
 
-    // result is not empty
-    bool isValid() const { return !handle_->empty() ; }
-    operator int () { return !handle_->empty() ; }
-
     // read next row
     bool next() {
         return handle_->next() ;
@@ -78,9 +74,12 @@ public:
         handle_->read(idx, val) ;
     }
 
+    void reset() {
+        handle_->reset() ;
+    }
 
     template <typename ... Args>
-    void into(Args &... args) {
+    void into(Args &... args) const {
         readi(0, args...) ;
     }
 
@@ -96,8 +95,8 @@ public:
         iterator& operator=(const iterator &other) = delete;
         iterator& operator=(iterator &&other) = default;
 
-        bool operator==(const iterator &other) const { return ( qres_ == other.qres_) && ( at_end_ == other.at_end_ ) ; }
-        bool operator!=(const iterator &other) const { return ( qres_ != other.qres_) || ( at_end_ != other.at_end_ ) ; }
+        bool operator==(const iterator &other) const { return ( at_end_ == other.at_end_ ) ; }
+        bool operator!=(const iterator &other) const { return ( at_end_ != other.at_end_ ) ; }
 
         iterator& operator++() {
             at_end_ = !qres_.next() ;
@@ -123,12 +122,12 @@ private:
     QueryResultHandlePtr handle_ ;
 
     template <typename T>
-    void readi(int idx, T &t) {
+    void readi(int idx, T &t) const {
         read(idx, t) ;
     }
 
     template <typename First, typename ... Args>
-    void readi(int idx, First &f, Args &... args) {
+    void readi(int idx, First &f, Args &... args) const {
         readi(idx, f) ;
         readi(idx+1, args...) ;
     }
@@ -175,7 +174,7 @@ public:
 
     Column operator [] (int idx) const { return Column(qres_, idx); }
     Column operator [] (const std::string &name) const { return Column(qres_, name); }
-    bool isValid() const { return (int)qres_ ; }
+
 
     // number of columns returned
     int columns() const { return qres_.columns(); }
@@ -191,7 +190,7 @@ public:
     bool hasColumn(const std::string &name) const { return qres_.hasColumn(name); }
 
     template <typename ... Args>
-    void into(Args &... args) {
+    void into(Args &... args) const {
         qres_.into(args...) ;
     }
 

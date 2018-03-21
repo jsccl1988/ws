@@ -32,11 +32,6 @@ public:
     void close() ;
 
     operator int () { return (bool)handle_  ; }
-    /**
-     * @brief Helper for executing an sql statement, including a colon separated list of statements
-     * @param sql Format string similar to printf. Use %q for arguments that need quoting (see sqlite3_mprintf documentation)
-     */
-  //  void exec(const std::string &sqlite, ...) ;
 
 //   sqlite3_int64 last_insert_rowid() {
 //       return sqlite3_last_insert_rowid(handle_);

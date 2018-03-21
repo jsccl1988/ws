@@ -197,7 +197,9 @@ int main(int argc, char *argv[]) {
         cout << dict.count() << endl ;
     }
 
-    for( wspp::db::Row r: res ) {
+    res.reset();
+
+    for( auto && r: con.query("SELECT * from routes") ) {
         string x, y, z ;
         r.into(x, y, z) ;
             cout << x << endl ;

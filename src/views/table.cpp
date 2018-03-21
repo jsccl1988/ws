@@ -1,6 +1,8 @@
 #include <wspp/views/table.hpp>
 #include <wspp/views/renderer.hpp>
 
+#include <cmath>
+
 using namespace std ;
 
 namespace wspp {

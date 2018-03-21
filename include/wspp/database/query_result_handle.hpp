@@ -15,8 +15,6 @@ public:
 
     virtual ~QueryResultHandle() {}
 
-    virtual bool empty() const = 0 ;
-
     virtual bool next() = 0 ;
 
     // number of columns returned
@@ -27,6 +25,9 @@ public:
     virtual std::string columnName(int idx) const = 0 ;
 
     virtual int columnIndex(const std::string &name) const = 0 ;
+
+    virtual int at() const = 0;
+    virtual void reset() = 0;
 
     virtual void read(int idx, int &val) const =0 ;
     virtual void read(int idx, unsigned int &val) const =0 ;

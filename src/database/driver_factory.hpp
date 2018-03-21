@@ -14,7 +14,7 @@ public:
 
     DriverFactory() = default ;
 
-    // open connection to database withe given params
+    // open connection to database with given params
     std::shared_ptr<ConnectionHandle> createConnection(const std::string &dsn) const ;
 
     static const DriverFactory &instance() {

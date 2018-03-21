@@ -19,6 +19,8 @@ std::shared_ptr<ConnectionHandle> DriverFactory::createConnection(const std::str
         return SQLiteDriver::instance().open(params) ;
     }
 
+    return nullptr ;
+
 }
 
 }

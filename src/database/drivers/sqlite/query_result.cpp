@@ -8,18 +8,22 @@
 namespace wspp {
 namespace db {
 
-bool SQLiteQueryResultHandle::empty() const {
-    return empty_ ;
+
+void SQLiteQueryResultHandle::reset() {
+    pos_ = -1 ;
+    sqlite3_reset(stmt_) ;
 }
 
 bool SQLiteQueryResultHandle::next() {
+    if ( pos_ == -2 )
+        throw Exception("next called passed the end of the record set");
+
     switch ( sqlite3_step(stmt_) ) {
     case SQLITE_ROW:
-        empty_ = false ;
+        pos_ ++ ;
         return true ;
     case SQLITE_DONE:
-        empty_ = true ;
-        sqlite3_reset(stmt_) ;
+        pos_ = -2 ;
         return false ;
     default:
         throw SQLiteException(sqlite3_db_handle(stmt_));
