@@ -9,150 +9,134 @@ using namespace std ;
 namespace wspp { namespace db {
 
 
-void PQStatementHandle::check() const {
+void PGSQLStatementHandle::check() const {
     if ( !handle_ )
         throw Exception("Statement has not been compiled.");
 }
 
-void PQStatementHandle::clear() {
+void PGSQLStatementHandle::clear() {
 
 }
 
-void PQStatementHandle::finalize()
+void PGSQLStatementHandle::finalize()
 {
 }
 
 
-StatementHandle &PQStatementHandle::bind(int idx, const NullType &) {
-
+StatementHandle &PGSQLStatementHandle::bind(int idx, const NullType &v) {
     check();
-//    if ( sqlite3_bind_null(handle_, idx) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
 
-StatementHandle &PQStatementHandle::bind(int idx, unsigned char v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, unsigned char v) {
     check();
-//    if ( sqlite3_bind_int(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, char v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, char v) {
     check();
-//    if ( sqlite3_bind_int(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, int v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, int v) {
     check();
-//    if ( sqlite3_bind_int(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, unsigned int v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, unsigned int v) {
     check();
-//    if ( sqlite3_bind_int(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, unsigned short int v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, unsigned short int v) {
     check();
-//    if ( sqlite3_bind_int(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, short int v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, short int v) {
     check();
-//    if ( sqlite3_bind_int(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, long int v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, long int v) {
     check();
-//    if ( sqlite3_bind_int64(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, unsigned long int v) {
+StatementHandle &PGSQLStatementHandle::bind(int idx, unsigned long int v) {
     check();
-//    if ( sqlite3_bind_int64(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, long long int v){
+StatementHandle &PGSQLStatementHandle::bind(int idx, long long int v){
     check();
-//    if ( sqlite3_bind_int64(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, unsigned long long int v){
+StatementHandle &PGSQLStatementHandle::bind(int idx, unsigned long long int v){
     check();
-//    if ( sqlite3_bind_int64(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, double v){
-    check() ;
-//    if ( sqlite3_bind_double(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+StatementHandle &PGSQLStatementHandle::bind(int idx, double v){
+    check();
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, float v){
-    check() ;
-//    if ( sqlite3_bind_double(handle_, idx, v) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+StatementHandle &PGSQLStatementHandle::bind(int idx, float v){
+    check();
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, const string &v){
-    check() ;
-//    if ( sqlite3_bind_text(handle_, idx, v.c_str(), int(v.size()), SQLITE_TRANSIENT ) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+StatementHandle &PGSQLStatementHandle::bind(int idx, const string &v){
+    check();
+    params_.add(idx, v) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, const Blob &blob){
-    check() ;
-//    if ( sqlite3_bind_blob(handle_, idx, blob.data(), blob.size(), SQLITE_TRANSIENT ) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+StatementHandle &PGSQLStatementHandle::bind(int idx, const Blob &blob){
+    check();
+    params_.add(idx, blob) ;
     return *this ;
 }
 
-StatementHandle &PQStatementHandle::bind(int idx, const char *v){
-    check() ;
-//    if ( sqlite3_bind_text(handle_, idx, v, strlen(v), SQLITE_TRANSIENT ) != SQLITE_OK )
-//        throw PQException(sqlite3_db_handle(handle_));
+StatementHandle &PGSQLStatementHandle::bind(int idx, const char *v){
+    check();
+    params_.add(idx, v) ;
     return *this ;
 }
 
-int PQStatementHandle::placeholderNameToIndex(const std::string &name) {
-//    int idx = sqlite3_bind_parameter_index(handle_, name.c_str() );
-//    if ( idx ) return idx ;
-//    else throw Exception(name + " is not a valid statement placeholder") ;
+int PGSQLStatementHandle::placeholderNameToIndex(const std::string &name) {
+
 }
 
-void PQStatementHandle::exec()
+void PGSQLStatementHandle::exec()
 {
 
         check() ;
 
+        vector<const char *> values ;
+        vector<int> lengths, binaries ;
+        params_.marshall(values, lengths, binaries) ;
   //      sqlite3_step(handle_) ;
 
 }
 
-QueryResult PQStatementHandle::execQuery()
+QueryResult PGSQLStatementHandle::execQuery()
 {
 
     //return QueryResult(QueryResultHandlePtr(new SQLiteQueryResultHandle(shared_from_this()))) ;

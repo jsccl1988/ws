@@ -15,6 +15,8 @@ public:
     DriverFactory() = default ;
 
     // open connection to database with given params
+    // dsn is a connection string or uri link to local file (similar to PHP PDO)
+
     std::shared_ptr<ConnectionHandle> createConnection(const std::string &dsn) const ;
 
     static const DriverFactory &instance() {

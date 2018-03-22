@@ -1,5 +1,5 @@
-#ifndef __DATABASE_PQ_DRIVER_CONNECTION_HPP__
-#define __DATABASE_PQ_DRIVER_CONNECTION_HPP__
+#ifndef __DATABASE_PGSQL_CONNECTION_HPP__
+#define __DATABASE_PGSQL_CONNECTION_HPP__
 
 #include <libpq-fe.h>
 
@@ -7,10 +7,10 @@
 
 namespace wspp { namespace db {
 
-class PQConnectionHandle: public ConnectionHandle {
+class PGSQLConnectionHandle: public ConnectionHandle {
 public:
-    PQConnectionHandle(PGconn *handle): handle_(handle) {}
-    ~PQConnectionHandle() { close() ; }
+    PGSQLConnectionHandle(PGconn *handle): handle_(handle) {}
+    ~PGSQLConnectionHandle() { close() ; }
 
     void close() override ;
 

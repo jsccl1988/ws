@@ -28,7 +28,7 @@ std::shared_ptr<ConnectionHandle> DriverFactory::createConnection(const std::str
         return SQLiteDriver::instance().open(params) ;
 #ifdef HAS_PGSQL_DRIVER
     if ( driver_name == "pgsql")
-        return PQDriver::instance().open(params) ;
+        return PGSQLDriver::instance().open(params) ;
 #endif
     return nullptr ;
 

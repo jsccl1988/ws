@@ -1,17 +1,19 @@
-#ifndef __SQLITE_STATEMENT_HPP__
-#define __SQLITE_STATEMENT_HPP__
+#ifndef __PGSQL_STATEMENT_HPP__
+#define __PGSQL_STATEMENT_HPP__
 
 #include <libpq-fe.h>
 
 #include <wspp/database/statement_handle.hpp>
 
+#include "parameters.hpp"
+
 namespace wspp { namespace db {
 
-class PQStatementHandle final: public StatementHandle, public std::enable_shared_from_this<PQStatementHandle> {
+class PGSQLStatementHandle final: public StatementHandle, public std::enable_shared_from_this<PGSQLStatementHandle> {
 public:
-    PQStatementHandle(PGconn *handle): handle_(handle) {}
+    PGSQLStatementHandle(PGconn *handle): handle_(handle) {}
 
-    ~PQStatementHandle() {
+    ~PGSQLStatementHandle() {
         finalize() ;
     }
 
@@ -48,6 +50,8 @@ private:
     PGconn *handle_ ;
 
     void check() const;
+
+    PreparedStatementParameters params_ ;
 };
 
 

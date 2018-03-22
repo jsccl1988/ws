@@ -187,7 +187,7 @@ private:
 int main(int argc, char *argv[]) {
 
     wspp::db::Connection con("uri:file:///home/malasiot/source/ws/data/routes/pg.dsn") ;
-    wspp::db::Query q(con, "SELECT * from routes") ;
+    wspp::db::Query q(con, "SELECT * from playground WHERE equip_id=$1 AND color=$2", 1, "blue") ;
     wspp::db::QueryResult res = q.exec() ;
 
     for( auto && r: con.query("SELECT * from routes") ) {

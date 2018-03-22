@@ -9,7 +9,7 @@ namespace wspp {
 namespace db {
 
 
-PQQueryResultHandle::PQQueryResultHandle(const std::shared_ptr<wspp::db::PQStatementHandle> &stmt): stmt_(stmt) {
+PGSQLQueryResultHandle::PGSQLQueryResultHandle(const std::shared_ptr<wspp::db::PGSQLStatementHandle> &stmt): stmt_(stmt) {
 
 //    int num_fields = sqlite3_column_count(stmt_->handle());
 
@@ -19,97 +19,97 @@ PQQueryResultHandle::PQQueryResultHandle(const std::shared_ptr<wspp::db::PQState
 //    }
 }
 
-void PQQueryResultHandle::reset() {
+void PGSQLQueryResultHandle::reset() {
 //    pos_ = -1 ;
 //    sqlite3_reset(stmt_->handle()) ;
 }
 
-void PQQueryResultHandle::check_has_row() const
+void PGSQLQueryResultHandle::check_has_row() const
 {
     if ( pos_ < 0 )
         throw Exception("No current row in result") ;
 }
 
-bool PQQueryResultHandle::next() {
+bool PGSQLQueryResultHandle::next() {
 
 }
 
-int PQQueryResultHandle::columns() const  {
+int PGSQLQueryResultHandle::columns() const  {
 }
 
-int PQQueryResultHandle::columnType(int idx) const {
+int PGSQLQueryResultHandle::columnType(int idx) const {
 
 }
 
-std::string PQQueryResultHandle::columnName(int idx) const  {
+std::string PGSQLQueryResultHandle::columnName(int idx) const  {
 }
 
-int PQQueryResultHandle::columnIndex(const std::string &name) const {
+int PGSQLQueryResultHandle::columnIndex(const std::string &name) const {
     check_has_row() ;
 }
 
-bool PQQueryResultHandle::columnIsNull(int idx) const {
+bool PGSQLQueryResultHandle::columnIsNull(int idx) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, int &val) const
+void PGSQLQueryResultHandle::read(int idx, int &val) const
 {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, unsigned int &val) const {
+void PGSQLQueryResultHandle::read(int idx, unsigned int &val) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, short int &val) const {
+void PGSQLQueryResultHandle::read(int idx, short int &val) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, unsigned short &val) const {
+void PGSQLQueryResultHandle::read(int idx, unsigned short &val) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, long int &val) const {
+void PGSQLQueryResultHandle::read(int idx, long int &val) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, unsigned long &val) const {
+void PGSQLQueryResultHandle::read(int idx, unsigned long &val) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, bool &v) const {
+void PGSQLQueryResultHandle::read(int idx, bool &v) const {
     check_has_row() ;
 
 }
 
-void PQQueryResultHandle::read(int idx, double &val) const {
+void PGSQLQueryResultHandle::read(int idx, double &val) const {
     check_has_row() ;
 }
 
-void PQQueryResultHandle::read(int idx, float &val) const {
+void PGSQLQueryResultHandle::read(int idx, float &val) const {
     check_has_row() ;
 }
 
-void PQQueryResultHandle::read(int idx, long long int &val) const {
+void PGSQLQueryResultHandle::read(int idx, long long int &val) const {
     check_has_row() ;
 }
 
-void PQQueryResultHandle::read(int idx, unsigned long long &val) const {
+void PGSQLQueryResultHandle::read(int idx, unsigned long long &val) const {
     check_has_row() ;
 }
 
-void PQQueryResultHandle::read(int idx, std::string &val) const {
+void PGSQLQueryResultHandle::read(int idx, std::string &val) const {
     check_has_row() ;
 }
 
-void PQQueryResultHandle::read(int idx, Blob &blob) const {
+void PGSQLQueryResultHandle::read(int idx, Blob &blob) const {
     check_has_row() ;
 }
 

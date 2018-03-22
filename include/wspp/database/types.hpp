@@ -1,6 +1,8 @@
 #ifndef __DATABASE_TYPES_HPP__
 #define __DATABASE_TYPES_HPP__
 
+#include <cstdint>
+
 namespace wspp { namespace db {
 
 class NullType {} ;

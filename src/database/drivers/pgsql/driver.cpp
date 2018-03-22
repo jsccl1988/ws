@@ -1,5 +1,4 @@
 #include "driver.hpp"
-
 #include "connection.hpp"
 
 using namespace std ;
@@ -35,7 +34,7 @@ static string escape_param_value(const string &src) {
     else return dst ;
 }
 
-ConnectionHandlePtr PQDriver::open(const util::Dictionary &params) const {
+ConnectionHandlePtr PGSQLDriver::open(const util::Dictionary &params) const {
 
     string conn_info ;
 
@@ -55,7 +54,7 @@ ConnectionHandlePtr PQDriver::open(const util::Dictionary &params) const {
         PQfinish(handle) ;
         return nullptr ;
     }
-    else return ConnectionHandlePtr(new PQConnectionHandle(handle)) ;
+    else return ConnectionHandlePtr(new PGSQLConnectionHandle(handle)) ;
 }
 }
 }

@@ -47,6 +47,7 @@ IF ( PostgreSQL_FOUND )
         ${SRC_ROOT}/database/drivers/pgsql/exceptions.cpp
         ${SRC_ROOT}/database/drivers/pgsql/statement.cpp
         ${SRC_ROOT}/database/drivers/pgsql/query_result.cpp
+        ${SRC_ROOT}/database/drivers/pgsql/parameters.cpp
 )
 ENDIF ( PostgreSQL_FOUND )
 

@@ -1,5 +1,5 @@
-#ifndef __DATABASE_PQ_DRIVER_HPP__
-#define __DATABASE_PQ_DRIVER_HPP__
+#ifndef __DATABASE_PGSQL_DRIVER_HPP__
+#define __DATABASE_PGSQL_DRIVER_HPP__
 
 #include <memory>
 #include <wspp/util/dictionary.hpp>
@@ -15,14 +15,14 @@ class ConnectionHandle ;
 // for available options see:
 // https://www.postgresql.org/docs/9.4/static/libpq-connect.html
 
-class PQDriver {
+class PGSQLDriver {
 
 public:
 
-    PQDriver() = default ;
+    PGSQLDriver() = default ;
 
-    static const PQDriver &instance() {
-        static PQDriver instance ;
+    static const PGSQLDriver &instance() {
+        static PGSQLDriver instance ;
         return instance ;
     }
 

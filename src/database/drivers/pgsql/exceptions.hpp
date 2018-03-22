@@ -1,5 +1,5 @@
-#ifndef __PQ_EXCEPTIONS_HPP__
-#define __PQ_EXCEPTIONS_HPP__
+#ifndef __PGSQL_EXCEPTIONS_HPP__
+#define __PGSQL_EXCEPTIONS_HPP__
 
 #include <wspp/database/exception.hpp>
 
@@ -7,9 +7,9 @@
 
 namespace wspp { namespace db {
 
-class PQException: public Exception {
+class PGSQLException: public Exception {
 public:
-    PQException(PGconn *handle): Exception(PQerrorMessage(handle)) {}
+    PGSQLException(PGconn *handle): Exception(PQerrorMessage(handle)) {}
 };
 
 } // namespace db

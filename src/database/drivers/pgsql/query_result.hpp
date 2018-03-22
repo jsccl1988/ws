@@ -1,5 +1,5 @@
-#ifndef __PQ_QUERY_RESULT_HANDLE_HPP__
-#define __PQ_QUERY_RESULT_HANDLE_HPP__
+#ifndef __PGSQL_QUERY_RESULT_HANDLE_HPP__
+#define __PGSQL_QUERY_RESULT_HANDLE_HPP__
 
 #include <wspp/database/query_result_handle.hpp>
 #include <wspp/database/types.hpp>
@@ -9,11 +9,11 @@
 namespace wspp {
 namespace db {
 
-class PQQueryResultHandle: public QueryResultHandle {
+class PGSQLQueryResultHandle: public QueryResultHandle {
 public:
-    PQQueryResultHandle(const std::shared_ptr<PQStatementHandle> &stmt);
+    PGSQLQueryResultHandle(const std::shared_ptr<PGSQLStatementHandle> &stmt);
 
-    ~PQQueryResultHandle() {}
+    ~PGSQLQueryResultHandle() {}
 
     int at() const override {
         return pos_ ;
@@ -50,7 +50,7 @@ private:
 
     void check_has_row() const ;
 
-    std::shared_ptr<PQStatementHandle> stmt_ ;
+    std::shared_ptr<PGSQLStatementHandle> stmt_ ;
     int pos_ = -1, num_rows ;
 } ;
 
