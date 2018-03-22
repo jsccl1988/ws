@@ -1,5 +1,5 @@
-#ifndef __SQLITE_QUERY_RESULT_HANDLE_HPP__
-#define __SQLITE_QUERY_RESULT_HANDLE_HPP__
+#ifndef __PQ_QUERY_RESULT_HANDLE_HPP__
+#define __PQ_QUERY_RESULT_HANDLE_HPP__
 
 #include <wspp/database/query_result_handle.hpp>
 #include <wspp/database/types.hpp>
@@ -9,11 +9,11 @@
 namespace wspp {
 namespace db {
 
-class SQLiteQueryResultHandle: public QueryResultHandle {
+class PQQueryResultHandle: public QueryResultHandle {
 public:
-    SQLiteQueryResultHandle(const std::shared_ptr<SQLiteStatementHandle> &stmt);
+    PQQueryResultHandle(const std::shared_ptr<PQStatementHandle> &stmt);
 
-    ~SQLiteQueryResultHandle() {}
+    ~PQQueryResultHandle() {}
 
     int at() const override {
         return pos_ ;
@@ -50,9 +50,8 @@ private:
 
     void check_has_row() const ;
 
-    std::shared_ptr<SQLiteStatementHandle> stmt_ ;
-    std::map<std::string, int> column_map_ ;
-    int pos_ = -1 ;
+    std::shared_ptr<PQStatementHandle> stmt_ ;
+    int pos_ = -1, num_rows ;
 } ;
 
 }

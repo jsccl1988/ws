@@ -2,6 +2,12 @@
 
 #include "drivers/sqlite/driver.hpp"
 
+#ifdef HAS_PGSQL_DRIVER
+#include "drivers/pgsql/driver.hpp"
+#endif
+
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
 using namespace std ;
 
 namespace wspp {
@@ -13,14 +19,46 @@ std::shared_ptr<ConnectionHandle> DriverFactory::createConnection(const std::str
     if ( pos == string::npos ) return nullptr ;
 
     string driver_name = dsn.substr(0, pos) ;
-    string params = dsn.substr(pos+1) ;
+    string param_str = dsn.substr(pos+1) ;
 
-    if ( driver_name == "sqlite" ) {
+    util::Dictionary params ;
+    parseParamString(param_str, params) ;
+
+    if ( driver_name == "sqlite" )
         return SQLiteDriver::instance().open(params) ;
-    }
-
+#ifdef HAS_PGSQL_DRIVER
+    if ( driver_name == "pgsql")
+        return PQDriver::instance().open(params) ;
+#endif
     return nullptr ;
 
+}
+
+
+bool DriverFactory::parseParamString(const string &str, util::Dictionary &params)
+{
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+
+    boost::char_separator<char> sep(";");
+
+    tokenizer tokens(str, sep);
+
+    for ( auto &&tok: tokens ) {
+        size_t pos = tok.find('=') ;
+
+        string key, val ;
+
+        if ( pos == string::npos ) {
+            key = boost::trim_copy(tok) ;
+        }
+        else {
+            key = boost::trim_copy(tok.substr(0, pos)) ;
+            val = boost::trim_copy(tok.substr(pos+1)) ;
+        }
+
+        if ( key.empty() ) return false ;
+        params.add(key, val) ;
+    }
 }
 
 }

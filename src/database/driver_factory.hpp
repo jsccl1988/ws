@@ -22,6 +22,8 @@ public:
         return factory ;
     }
 
+    static bool parseParamString(const std::string &str, util::Dictionary &params) ;
+
 };
 
 

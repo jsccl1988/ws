@@ -26,6 +26,8 @@ public:
 
     virtual int columnIndex(const std::string &name) const = 0 ;
 
+    virtual bool columnIsNull(int idx) const = 0 ;
+
     virtual int at() const = 0;
     virtual void reset() = 0;
 

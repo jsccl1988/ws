@@ -8,6 +8,8 @@
 
 #include <iostream>
 
+#include <boost/optional.hpp>
+
 namespace wspp { namespace db {
 
 class Row ;
@@ -19,15 +21,7 @@ class QueryResult
 
 public:
 
-    QueryResult(QueryResult &&other) {
-        handle_ = other.handle_ ;
-        std::cout << "ok1" << std::endl ;
-    }
-
-    QueryResult(const QueryResult &other) {
-        handle_ = other.handle_ ;
-        std::cout << "ok2" << std::endl ;
-    }
+    QueryResult(QueryResult &&other) = default ;
     QueryResult(QueryResult &other) = delete ;
     QueryResult& operator=(const QueryResult &other) = delete;
     QueryResult& operator=(QueryResult &&other) = default;
@@ -57,6 +51,10 @@ public:
         return handle_->columnIndex(name) ;
     }
 
+    bool columnIsNull(int idx) const {
+        return handle_->columnIsNull(idx) ;
+    }
+
     // bytes of this column (blobs)
     int columnBytes(int idx) const ;
     // has a column with given name
@@ -82,6 +80,15 @@ public:
     template<class T>
     void read(int idx, T &val) const {
         handle_->read(idx, val) ;
+    }
+
+    template<class T>
+    void read(int idx, boost::optional<T> &val) const {
+        if ( !columnIsNull(idx) ) {
+            T v ;
+            handle_->read(idx, v) ;
+            val = v ;
+        }
     }
 
     void reset() {

@@ -21,40 +21,34 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/database/query_result.cpp
     ${SRC_ROOT}/database/statement_handle.cpp
 
-
     ${SRC_ROOT}/database/drivers/sqlite/driver.cpp
     ${SRC_ROOT}/database/drivers/sqlite/connection.cpp
     ${SRC_ROOT}/database/drivers/sqlite/exceptions.cpp
     ${SRC_ROOT}/database/drivers/sqlite/statement.cpp
     ${SRC_ROOT}/database/drivers/sqlite/query_result.cpp
 
-#    ${SRC_ROOT}/util/sqlite/connection.cpp
-#    ${SRC_ROOT}/util/sqlite/exception.cpp
-#    ${SRC_ROOT}/util/sqlite/stmt.cpp
-#    ${SRC_ROOT}/util/sqlite/statement.cpp
-#    ${SRC_ROOT}/util/sqlite/query.cpp
-#    ${SRC_ROOT}/util/sqlite/query_result.cpp
-#    ${SRC_ROOT}/util/sqlite/transaction.cpp
+
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
-#    ${INCLUDE_ROOT}/util/database.hpp
     ${INCLUDE_ROOT}/util/crypto.hpp
     ${INCLUDE_ROOT}/util/zfstream.hpp
     ${INCLUDE_ROOT}/util/filesystem.hpp
     ${INCLUDE_ROOT}/util/xml_writer.hpp
     ${INCLUDE_ROOT}/util/xml_sax_parser.hpp
     ${INCLUDE_ROOT}/util/i18n.hpp
-
-
-#    ${INCLUDE_ROOT}/util/sqlite/connection.hpp
-#    ${INCLUDE_ROOT}/util/sqlite/exception.hpp
-#    ${INCLUDE_ROOT}/util/sqlite/stmt.hpp
-#    ${INCLUDE_ROOT}/util/sqlite/statement.hpp
-#    ${INCLUDE_ROOT}/util/sqlite/query.hpp
-#    ${INCLUDE_ROOT}/util/sqlite/query_result.hpp
-#    ${INCLUDE_ROOT}/util/sqlite/transaction.hpp
 )
+
+IF ( PostgreSQL_FOUND )
+    ADD_DEFINITIONS("-DHAS_PGSQL_DRIVER")
+    LIST(APPEND UTIL_SOURCES
+        ${SRC_ROOT}/database/drivers/pgsql/driver.cpp
+        ${SRC_ROOT}/database/drivers/pgsql/connection.cpp
+        ${SRC_ROOT}/database/drivers/pgsql/exceptions.cpp
+        ${SRC_ROOT}/database/drivers/pgsql/statement.cpp
+        ${SRC_ROOT}/database/drivers/pgsql/query_result.cpp
+)
+ENDIF ( PostgreSQL_FOUND )
 
 SET ( WEB_SOURCES
     ${SRC_ROOT}/views/renderer.cpp
@@ -123,7 +117,7 @@ SET ( SERVER_SOURCES
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})
-TARGET_LINK_LIBRARIES(wspp_util ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} ${CRYPTOPP_LIBRARIES} dl z pthread )
+TARGET_LINK_LIBRARIES(wspp_util ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} ${CRYPTOPP_LIBRARIES} ${PostgreSQL_LIBRARIES} dl z pthread )
 
 ADD_LIBRARY(wspp_web SHARED ${WEB_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_web wspp_util ${Boost_LIBRARIES} )

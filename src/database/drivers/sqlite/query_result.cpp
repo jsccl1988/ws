@@ -70,6 +70,11 @@ int SQLiteQueryResultHandle::columnIndex(const std::string &name) const {
     else return -1 ;
 }
 
+bool SQLiteQueryResultHandle::columnIsNull(int idx) const {
+    check_has_row() ;
+    return ( sqlite3_column_type(stmt_->handle(), idx) == SQLITE_NULL ) ;
+}
+
 void SQLiteQueryResultHandle::read(int idx, int &val) const
 {
     check_has_row() ;

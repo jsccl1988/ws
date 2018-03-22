@@ -6,6 +6,9 @@
 
 #include "driver_factory.hpp"
 
+#include <fstream>
+#include <boost/algorithm/string.hpp>
+
 using namespace std ;
 
 namespace wspp { namespace db {
@@ -19,8 +22,14 @@ Connection::Connection(const std::string &dsn): Connection() {
 
 void Connection::open(const std::string &dsn) {
 
-
-    handle_ = DriverFactory::instance().createConnection(dsn) ;
+    if ( boost::starts_with(dsn, "uri:file://") ) {
+        string fdsn ;
+        ifstream strm(dsn.substr(11)) ;
+        std::getline(strm, fdsn) ;
+        handle_ = DriverFactory::instance().createConnection(fdsn) ;
+    }
+    else
+        handle_ = DriverFactory::instance().createConnection(dsn) ;
 
     if ( !handle_ )
         throw Exception("Cannot establish connection with database") ;

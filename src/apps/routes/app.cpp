@@ -186,13 +186,14 @@ private:
 
 int main(int argc, char *argv[]) {
 
-    wspp::db::Connection con("sqlite:/home/malasiot/source/ws/data/routes/routes.sqlite") ;
+    wspp::db::Connection con("uri:file:///home/malasiot/source/ws/data/routes/pg.dsn") ;
     wspp::db::Query q(con, "SELECT * from routes") ;
     wspp::db::QueryResult res = q.exec() ;
 
     for( auto && r: con.query("SELECT * from routes") ) {
         string x, y, z ;
-        r.into(x, y, z) ;
+        boost::optional<int> d ;
+        r.into(x, y, z, d) ;
             cout << x << endl ;
     }
 
