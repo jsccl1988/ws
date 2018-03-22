@@ -52,10 +52,6 @@ void Connection::check() {
 }
 
 
-Connection::~Connection() {
-    close() ;
-}
-
 
 
 } // namespace db

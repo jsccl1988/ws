@@ -18,6 +18,8 @@ public:
     virtual void begin() = 0 ;
     virtual void commit() = 0 ;
     virtual void rollback() = 0 ;
+
+    virtual uint64_t last_insert_rowid() const = 0 ;
 } ;
 
 typedef std::shared_ptr<ConnectionHandle> ConnectionHandlePtr ;

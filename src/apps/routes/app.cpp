@@ -10,7 +10,6 @@
 #include <wspp/server/server.hpp>
 
 #include <wspp/util/logger.hpp>
-#include <wspp/util/database.hpp>
 #include <wspp/util/crypto.hpp>
 #include <wspp/util/variant.hpp>
 #include <wspp/util/filesystem.hpp>
@@ -50,6 +49,7 @@ using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
+using namespace wspp::db ;
 namespace fs = boost::filesystem ;
 
 class SpatialLiteSingleton
@@ -136,9 +136,7 @@ public:
 
     void handle(const Request &req, Response &resp) override {
 
-        sqlite::Connection con(root_ + "/routes.sqlite") ; // establish connection with database
-
-
+        Connection con("sqlite:" + root_ + "/routes.sqlite") ; // establish connection with database
 
         Session session(session_handler_, req, resp) ; // start a new session
 
@@ -191,13 +189,6 @@ int main(int argc, char *argv[]) {
     wspp::db::Connection con("sqlite:/home/malasiot/source/ws/data/routes/routes.sqlite") ;
     wspp::db::Query q(con, "SELECT * from routes") ;
     wspp::db::QueryResult res = q.exec() ;
-
-    while ( res.next() ) {
-        auto dict = res.getAll() ;
-        cout << dict.count() << endl ;
-    }
-
-    res.reset();
 
     for( auto && r: con.query("SELECT * from routes") ) {
         string x, y, z ;

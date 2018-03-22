@@ -6,7 +6,7 @@
 #include <string>
 #include <wspp/util/dictionary.hpp>
 #include <wspp/util/variant.hpp>
-#include <wspp/util/database.hpp>
+
 #include <wspp/server/session.hpp>
 #include <wspp/server/request.hpp>
 

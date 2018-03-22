@@ -1,4 +1,5 @@
 #include <wspp/database/transaction.hpp>
+#include <wspp/database/connection.hpp>
 
 using namespace std ;
 

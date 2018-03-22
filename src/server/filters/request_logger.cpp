@@ -5,7 +5,7 @@
 #include <wspp/server/filter_chain.hpp>
 #include <wspp/server/exceptions.hpp>
 
-#include <wspp/util/database.hpp>
+#include <wspp/database/exception.hpp>
 
 using namespace wspp::util ;
 
@@ -32,7 +32,7 @@ void RequestLoggerFilter::handle(Request &req, Response &resp, FilterChain &chai
                  ) ;
         throw e ;
     }
-    catch ( sqlite::Exception &e ) {
+    catch ( db::Exception &e ) {
         LOG_X_STREAM(logger_, Debug, "SQL error: " << e.what()) ;
         throw e ;
     }

@@ -64,7 +64,7 @@ void Server::start_accept()
              if (!e)
              {
 
-               connection_manager_.start(boost::make_shared<Connection>(
+               connection_manager_.start(boost::make_shared<HttpConnection>(
                    std::move(socket_), connection_manager_, filters_));
              }
 

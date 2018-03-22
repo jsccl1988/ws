@@ -1,5 +1,6 @@
 #include "route_model.hpp"
 
+
 #include <wspp/util/xml_writer.hpp>
 #include <wspp/util/crypto.hpp>
 
@@ -13,8 +14,9 @@
 
 using namespace std ;
 using namespace wspp::util ;
+using namespace wspp::db ;
 
-RouteModel::RouteModel(sqlite::Connection &con): con_(con) {
+RouteModel::RouteModel(Connection &con): con_(con) {
     fetchMountains() ;
     attachment_titles_ = {{"sketch", "Σκαρίφημα"}, {"description", "Περιγραφή"}} ;
 }
@@ -23,15 +25,14 @@ Variant RouteModel::fetchMountain(const string &mountain) const
 {
     Variant::Array results ;
 
-    sqlite::Query stmt(con_, "SELECT id, title FROM routes WHERE mountain = ?") ;
-    sqlite::QueryResult res = stmt(mountain) ;
+    Query stmt(con_, "SELECT id, title FROM routes WHERE mountain = ?") ;
+    QueryResult res = stmt(mountain) ;
 
     string title ;
     int id ;
-    while ( res ) {
+    while ( res.next() ) {
         res.into(id, title) ;
         results.emplace_back(Variant::Object{ {"id", id},  {"title", title} }) ;
-        res.next() ;
     }
     return results ;
 }
@@ -57,29 +58,29 @@ Dictionary RouteModel::getMountainsDict() const {
 }
 
 bool RouteModel::updateInfo(const string &id, const string &title, const string &mountain_id) {
-    sqlite::Statement stmt(con_, "UPDATE routes SET title = ?, mountain = ? WHERE id = ?");
+    Statement stmt(con_, "UPDATE routes SET title = ?, mountain = ? WHERE id = ?");
     stmt(title, mountain_id, id) ;
     return true ;
 }
 
 bool RouteModel::updateAttachment(const string &id, const string &name, const string &type_id)
 {
-    sqlite::Statement stmt(con_, "UPDATE attachments SET name = ?, type = ? WHERE id = ?");
+    Statement stmt(con_, "UPDATE attachments SET name = ?, type = ? WHERE id = ?");
     stmt(name, type_id, id) ;
     return true ;
 }
 
 bool RouteModel::updateWaypoint(const string &id, const string &name, const string &desc)
 {
-    sqlite::Statement stmt(con_, "UPDATE wpts SET name = ?, desc = ? WHERE id = ?");
+    Statement stmt(con_, "UPDATE wpts SET name = ?, desc = ? WHERE id = ?");
     stmt(name, desc, id) ;
     return true ;
 }
 
 bool RouteModel::getInfo(const string &id, string &title, string &mountain_id) {
-    sqlite::Query stmt(con_, "SELECT title, mountain FROM routes WHERE id = ?");
-    sqlite::QueryResult res = stmt(id) ;
-    if ( res ) {
+    Query stmt(con_, "SELECT title, mountain FROM routes WHERE id = ?");
+    QueryResult res = stmt(id) ;
+    if ( res.next() ) {
         res.into(title, mountain_id) ;
         return true ;
     }
@@ -88,9 +89,9 @@ bool RouteModel::getInfo(const string &id, string &title, string &mountain_id) {
 
 bool RouteModel::getAttachment(const string &id, string &name, string &type_id)
 {
-    sqlite::Query stmt(con_, "SELECT name, type FROM attachments WHERE id = ?");
-    sqlite::QueryResult res = stmt(id) ;
-    if ( res ) {
+    Query stmt(con_, "SELECT name, type FROM attachments WHERE id = ?");
+    QueryResult res = stmt(id) ;
+    if ( res.next() ) {
         res.into(name, type_id) ;
         return true ;
     }
@@ -99,9 +100,9 @@ bool RouteModel::getAttachment(const string &id, string &name, string &type_id)
 
 bool RouteModel::getWaypoint(const string &id, string &name, string &desc)
 {
-    sqlite::Query stmt(con_, "SELECT name, desc FROM wpts WHERE id = ?");
-    sqlite::QueryResult res = stmt(id) ;
-    if ( res ) {
+    Query stmt(con_, "SELECT name, desc FROM wpts WHERE id = ?");
+    QueryResult res = stmt(id) ;
+    if ( res.next() ) {
         res.into(name, desc) ;
         return true ;
     }
@@ -143,14 +144,14 @@ bool RouteModel::importRoute(const string &title, const string &mountain_id, con
     uint64_t route_id ;
 
     {
-        sqlite::Statement stmt(con_, "INSERT INTO routes ( title, mountain ) VALUES (?, ?)", title, mountain_id) ;
+        Statement stmt(con_, "INSERT INTO routes ( title, mountain ) VALUES (?, ?)", title, mountain_id) ;
         stmt.exec() ;
         route_id = con_.last_insert_rowid() ;
     }
 
-    sqlite::Transaction trans(con_) ;
+    Transaction trans(con_) ;
 
-    sqlite::Statement stmt_tracks(con_, "INSERT INTO tracks ( geom, route ) VALUES (ST_GeomFromText(?,4326), ?)") ;
+    Statement stmt_tracks(con_, "INSERT INTO tracks ( geom, route ) VALUES (ST_GeomFromText(?,4326), ?)") ;
 
     for( const Track &track: geom.tracks_ ) {
 
@@ -160,7 +161,7 @@ bool RouteModel::importRoute(const string &title, const string &mountain_id, con
         stmt_tracks.clear() ;
     }
 
-    sqlite::Statement stmt_wpts(con_, "INSERT INTO wpts ( geom, route, name, desc, ele ) VALUES (ST_GeomFromText(?,4326), ?, ?, ?, ?)") ;
+    Statement stmt_wpts(con_, "INSERT INTO wpts ( geom, route, name, desc, ele ) VALUES (ST_GeomFromText(?,4326), ?, ?, ?, ?)") ;
 
     for( const Waypoint &wpt: geom.wpts_ ) {
 
@@ -182,7 +183,7 @@ bool RouteModel::createAttachment(const string &route_id, const string &name, co
     ofstream ostrm(upload_folder + '/' + target) ;
     ostrm.write(&data[0], data.size()) ;
 
-    sqlite::Statement stmt(con_, "INSERT INTO attachments (route, 'type', name, url) VALUES (?, ?, ?, ?)", route_id, type_id, name, target);
+    Statement stmt(con_, "INSERT INTO attachments (route, 'type', name, url) VALUES (?, ?, ?, ?)", route_id, type_id, name, target);
 
     stmt.exec() ;
 
@@ -237,7 +238,7 @@ Variant RouteModel::exportGeoJSON(const RouteGeometry &g) {
 }
 
 
-static GeomBox box_from_extent(const sqlite::Blob &blob) {
+static GeomBox box_from_extent(const Blob &blob) {
 
     double min_lat, min_lon, max_lat, max_lon ;
 
@@ -304,13 +305,13 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
 {
     string name = g.name_ = fetchTitle(route_id) ;
     {
-        sqlite::Query stmt(con_, "SELECT id, geom FROM tracks WHERE route=?") ;
-        sqlite::QueryResult res = stmt(route_id) ;
+        Query stmt(con_, "SELECT id, geom FROM tracks WHERE route=?") ;
+        QueryResult res = stmt(route_id) ;
 
-        while ( res ) {
+        while ( res.next() ) {
             Track tr ;
 
-            sqlite::Blob blob = res.get<sqlite::Blob>("geom") ;
+            Blob blob = res.get<Blob>("geom") ;
             gaiaGeomCollPtr geom = gaiaFromSpatiaLiteBlobWkb ((const unsigned char *)blob.data(), blob.size());
             parse_multi_linestring(geom, tr) ;
             gaiaFreeGeomColl(geom);
@@ -328,13 +329,13 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
     }
 
     {
-        sqlite::Query stmt(con_, "SELECT id, name, ele, desc, geom FROM wpts WHERE route=?") ;
-        sqlite::QueryResult res = stmt(route_id) ;
+        Query stmt(con_, "SELECT id, name, ele, desc, geom FROM wpts WHERE route=?") ;
+        QueryResult res = stmt(route_id) ;
 
-        while ( res ) {
+        while ( res.next() ) {
             Waypoint pt ;
 
-            sqlite::Blob blob = res.get<sqlite::Blob>("geom") ;
+            Blob blob = res.get<Blob>("geom") ;
             gaiaGeomCollPtr geom = gaiaFromSpatiaLiteBlobWkb ((const unsigned char *)blob.data(), blob.size());
             parse_point(geom, pt) ;
             pt.ele_ = res.get<double>("ele") ;
@@ -349,9 +350,9 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
 
     {
 
-        sqlite::Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?") ;
-        sqlite::QueryResult res = stmt(route_id) ;
-        sqlite::Blob blob = res.get<sqlite::Blob>(0) ;
+        Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?") ;
+        QueryResult res = stmt(route_id) ;
+        Blob blob = res.get<Blob>(0) ;
 
         if ( blob.data() != nullptr ) {
             g.box_ = box_from_extent(blob) ;
@@ -361,19 +362,19 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
 }
 
 bool RouteModel::remove(const string &id) {
-    sqlite::Statement(con_, "DELETE FROM routes WHERE id = ?", id).exec() ;
-    sqlite::Statement(con_, "DELETE FROM tracks WHERE id = ?", id).exec() ;
-    sqlite::Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
+    Statement(con_, "DELETE FROM routes WHERE id = ?", id).exec() ;
+    Statement(con_, "DELETE FROM tracks WHERE id = ?", id).exec() ;
+    Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
     return true ;
 }
 
 bool RouteModel::removeAttachment(const string &id) {
-     sqlite::Statement(con_, "DELETE FROM attachments WHERE id = ?", id).exec() ;
+     Statement(con_, "DELETE FROM attachments WHERE id = ?", id).exec() ;
      return true ;
 }
 
 bool RouteModel::removeWaypoint(const string &id) {
-    sqlite::Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
+    Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
     return true ;
 }
 
@@ -623,13 +624,13 @@ string RouteModel::exportKml(const RouteGeometry &g) {
 }
 
 string RouteModel::fetchTitle(const string &id) const {
-    return sqlite::Query(con_, "SELECT title FROM routes WHERE id=?", id).exec().get<string>("title") ;
+    return Query(con_, "SELECT title FROM routes WHERE id=?", id).exec().get<string>("title") ;
 }
 
 Variant RouteModel::query(double x, double y) const {
-    sqlite::Query q(con_, "SELECT r.id, r.title FROM routes AS r JOIN tracks as t ON t.route = r.id WHERE ST_Intersects(ST_Transform(SetSRID(t.geom, 4326), 3857), ST_Buffer(MakePoint(?, ?, 3857), 20)) LIMIT 1") ;
-    sqlite::QueryResult row = q(x, y) ;
-    if ( row )
+    Query q(con_, "SELECT r.id, r.title FROM routes AS r JOIN tracks as t ON t.route = r.id WHERE ST_Intersects(ST_Transform(SetSRID(t.geom, 4326), 3857), ST_Buffer(MakePoint(?, ?, 3857), 20)) LIMIT 1") ;
+    QueryResult row = q(x, y) ;
+    if ( row.next() )
         return Variant::Object{{"id", row.get<uint>("id")}, {"title", row.get<string>("title")}} ;
     else
         return Variant();
@@ -639,14 +640,14 @@ Variant RouteModel::fetchAllByMountain() const
 {
     Variant::Array results ;
 
-    sqlite::Query stmt(con_, "SELECT id, title, mountain FROM routes ORDER BY mountain") ;
-    sqlite::QueryResult res = stmt.exec() ;
+    Query stmt(con_, "SELECT id, title, mountain FROM routes ORDER BY mountain") ;
+    QueryResult res = stmt.exec() ;
 
     string title, mountain, cmountain ;
     int id ;
 
     Variant::Array entry ;
-    while ( res ) {
+    while ( res.next() ) {
         res.into(id, title, mountain) ;
         if ( cmountain.empty() ) cmountain = mountain ;
         if ( mountain != cmountain ) {
@@ -656,19 +657,17 @@ Variant RouteModel::fetchAllByMountain() const
         }
 
         entry.emplace_back(Variant::Object{{"id", id},  {"title", title}}) ;
-
-        res.next() ;
     }
     return results ;
 
 }
 
 Variant RouteModel::fetch(const string &id) const {
-    sqlite::Query stmt(con_, "SELECT title, description, mountain FROM routes WHERE id = ? LIMIT 1") ;
-    sqlite::QueryResult res = stmt(id) ;
+    Query stmt(con_, "SELECT title, description, mountain FROM routes WHERE id = ? LIMIT 1") ;
+    QueryResult res = stmt(id) ;
 
     string title, description, mountain ;
-    if ( res ) {
+    if ( res.next() ) {
         res.into(title, description, mountain) ;
         Variant::Object results{{"id", id}, {"title", title}, {"description", description}, {"mountain", getMountainName(mountain)}} ;
         return results ;
@@ -678,8 +677,8 @@ Variant RouteModel::fetch(const string &id) const {
 
 Variant RouteModel::fetchWaypoints(const string &route_id) const {
 
-    sqlite::Query stmt(con_, "SELECT id, ele, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat FROM wpts where route=?") ;
-    sqlite::QueryResult res = stmt(route_id) ;
+    Query stmt(con_, "SELECT id, ele, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat FROM wpts where route=?") ;
+    QueryResult res = stmt(route_id) ;
 
     Variant::Array wpts ;
 
@@ -687,7 +686,7 @@ Variant RouteModel::fetchWaypoints(const string &route_id) const {
     string name, desc ;
     double ele, lon, lat ;
 
-    while ( res ) {
+    while ( res.next() ) {
         res.into(id, ele, name, desc, lon, lat) ;
         Variant::Object results{{"id", id}, {"name", name}, {"desc", desc}, {"lat", lat}, {"lon", lon}, {"ele", ele}} ;
         wpts.emplace_back(results) ;
@@ -705,13 +704,13 @@ Variant RouteModel::fetchWaypoints(const string &route_id) const {
 // SELECT CreateSpatialIndex('wpts', 'geom');
 
 Variant RouteModel::fetchAttachments(const string &route_id) const  {
-    sqlite::Query stmt(con_, "SELECT id, type, name, url FROM attachments WHERE route = ?") ;
-    sqlite::QueryResult res = stmt(route_id) ;
+    Query stmt(con_, "SELECT id, type, name, url FROM attachments WHERE route = ?") ;
+    QueryResult res = stmt(route_id) ;
 
     string id, type, name, url  ;
 
     Variant::Array results ;
-    while ( res ) {
+    while ( res.next() ) {
         res.into(id, type, name, url) ;
         results.emplace_back(Variant::Object{{"id", id}, {"title", getAttachmentTitle(type)}, {"name", name}, {"url", url}}) ;
         res.next() ;
@@ -722,7 +721,7 @@ Variant RouteModel::fetchAttachments(const string &route_id) const  {
 
 void RouteModel::fetchMountains()
 {
-    sqlite::Query stmt(con_, "SELECT * FROM mountains") ;
+    Query stmt(con_, "SELECT * FROM mountains") ;
 
     for( auto &m: stmt() ) {
         mountains_.emplace(m["id"].as<string>(), Mountain(m["name"].as<string>(), m["lat"].as<double>(), m["lon"].as<double>())) ;

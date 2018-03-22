@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 namespace wspp { namespace db {
 
@@ -52,14 +53,14 @@ public:
     // bind all values sequentially
 
     template <typename ... Args>
-    Statement &bindAll(Args ... args) {
-        return bindm(1, args...) ;
+    Statement &bindAll(Args&& ... args) {
+        return bindm((uint)1, args...) ;
     }
 
     // bind values and execute statement
 
     template<typename ...Args>
-    void operator()(Args... args) {
+    void operator()(Args&&... args) {
         bindAll(args...) ;
         exec() ;
     }
@@ -70,18 +71,18 @@ public:
 
 protected:
 
-    template <typename T>
+
     Statement &bindm(uint idx) {
         return *this ;
     }
 
     template <typename T>
-    Statement &bindm(uint idx, T t) {
+    Statement &bindm(uint idx, T&& t) {
         return bind(idx, t) ;
     }
 
     template <typename First, typename ... Args>
-    Statement &bindm(uint idx, First f, Args ... args) {
+    Statement &bindm(uint idx, First f, Args&& ... args) {
         return bind(idx++, f).bindm(idx, args...) ;
     }
 

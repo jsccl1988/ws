@@ -160,7 +160,7 @@ void SQLiteStatementHandle::exec()
 QueryResult SQLiteStatementHandle::execQuery()
 {
 
-    return QueryResult(QueryResultHandlePtr(new SQLiteQueryResultHandle(handle_))) ;
+    return QueryResult(QueryResultHandlePtr(new SQLiteQueryResultHandle(shared_from_this()))) ;
 }
 
 } // namespace db

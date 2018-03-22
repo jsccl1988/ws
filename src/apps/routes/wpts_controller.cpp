@@ -10,6 +10,7 @@ using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
+using namespace wspp::db ;
 
 class WaypointUpdateForm: public wspp::web::Form {
 public:

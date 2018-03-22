@@ -40,7 +40,7 @@ void RouteCreateForm::onSuccess(const Request &request) {
     routes_.importRoute(getValue("title"), getValue("mountain"), geom_) ;
 }
 
-RouteUpdateForm::RouteUpdateForm(sqlite::Connection &con, RouteModel &routes): con_(con), routes_(routes) {
+RouteUpdateForm::RouteUpdateForm(Connection &con, RouteModel &routes): con_(con), routes_(routes) {
 
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
@@ -74,7 +74,7 @@ public:
 
         setTitle("Routes") ;
 
-        con_.exec("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
+        con_.execute("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
 
         addColumn("Title",  "<a href=\"route/edit/{{id}}\">{{title}}</a>") ;
         addColumn("Mountain", "{{mountain}}") ;
@@ -114,7 +114,7 @@ void RouteController::publish()
     string content = params.get("content") ;
     string id = params.get("id") ;
 
-    sqlite::Statement stmt(con_, "UPDATE routes SET description = ? WHERE id = ?", content, id) ;
+    Statement stmt(con_, "UPDATE routes SET description = ? WHERE id = ?", content, id) ;
     stmt.exec() ;
 
     response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Route description succesfully updated"}}) ;

@@ -1,12 +1,12 @@
 #ifndef __ROUTE_MODEL_HPP__
 #define __ROUTE_MODEL_HPP__
 
-#include <wspp/util/database.hpp>
+#include <wspp/database/connection.hpp>
 #include <wspp/util/variant.hpp>
 
 #include "route_geometry.hpp"
 
-using wspp::util::sqlite::Connection ;
+using wspp::db::Connection ;
 using wspp::util::Variant ;
 using wspp::util::Dictionary ;
 

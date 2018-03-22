@@ -39,11 +39,11 @@ extern std::vector<boost::asio::const_buffer> response_to_buffers(Response &rep,
 
 /// Represents a single HttpConnection from a client.
 
-class Connection:
-        public boost::enable_shared_from_this<Connection>
+class HttpConnection:
+        public boost::enable_shared_from_this<HttpConnection>
 {
 public:
-    explicit Connection(boost::asio::ip::tcp::socket socket,
+    explicit HttpConnection(boost::asio::ip::tcp::socket socket,
                         ConnectionManager& manager,
                         FilterChain &handler) : socket_(std::move(socket)),
         connection_manager_(manager), handler_(handler) {}

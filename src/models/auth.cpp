@@ -6,6 +6,7 @@
 
 using namespace std ;
 using namespace wspp::util ;
+using namespace wspp::db ;
 
 namespace wspp { namespace web {
 
@@ -22,7 +23,7 @@ void User::persist(const std::string &user_name, const std::string &user_id, con
     // remove any expired tokens
 
     {
-        sqlite::Statement stmt(con_, "DELETE FROM auth_tokens WHERE expires < ?", time(nullptr)) ;
+        Statement stmt(con_, "DELETE FROM auth_tokens WHERE expires < ?", time(nullptr)) ;
         stmt.exec() ;
     }
 
@@ -33,14 +34,14 @@ void User::persist(const std::string &user_name, const std::string &user_id, con
         string token = randomBytes(24) ;
         time_t expires 	= std::time(nullptr) + 3600*24*10; // Expire in 10 days
 
-        sqlite::Statement stmt(con_, "INSERT INTO auth_tokens ( user_id, selector, token, expires ) VALUES ( ?, ?, ?, ? );", user_id, selector, binToHex(hashSHA256(token)), expires) ;
+        Statement stmt(con_, "INSERT INTO auth_tokens ( user_id, selector, token, expires ) VALUES ( ?, ?, ?, ? );", user_id, selector, binToHex(hashSHA256(token)), expires) ;
         stmt.exec() ;
 
         response_.setCookie("auth_token", selector + ":" + encodeBase64(token),  expires, "/");
     }
 
     // update user info
-    sqlite::Statement stmt(con_, "UPDATE user_info SET last_sign_in = ? WHERE user_id = ?", std::time(nullptr), user_id) ;
+    Statement stmt(con_, "UPDATE user_info SET last_sign_in = ? WHERE user_id = ?", std::time(nullptr), user_id) ;
     stmt.exec() ;
 
 }
@@ -61,7 +62,7 @@ void User::forget()
             response_.setCookie("auth_token", string(), 0, "/") ;
 
             // update persistent tokens
-            sqlite::Statement stmt(con_, "DELETE FROM auth_tokens WHERE user_id = ?", user_id) ;
+            Statement stmt(con_, "DELETE FROM auth_tokens WHERE user_id = ?", user_id) ;
             stmt.exec() ;
         }
     }
@@ -119,11 +120,11 @@ bool User::check() const
         if ( tokens.size() == 2 && !tokens[0].empty() && !tokens[1].empty() ) {
             // if both selector and token were found check if database has the specific token
 
-            sqlite::Query stmt(con_, "SELECT a.user_id as user_id, a.token as token, u.name as username, r.role_id as role FROM auth_tokens AS a JOIN users AS u ON a.user_id = u.id JOIN user_roles AS r ON r.user_id = u.id WHERE a.selector = ? AND a.expires > ? LIMIT 1",
+            Query stmt(con_, "SELECT a.user_id as user_id, a.token as token, u.name as username, r.role_id as role FROM auth_tokens AS a JOIN users AS u ON a.user_id = u.id JOIN user_roles AS r ON r.user_id = u.id WHERE a.selector = ? AND a.expires > ? LIMIT 1",
                                tokens[0], std::time(nullptr)) ;
-            sqlite::QueryResult res = stmt.exec() ;
+            QueryResult res = stmt.exec() ;
 
-            if ( res ) {
+            if ( res.next() ) {
 
                 string cookie_token = binToHex(hashSHA256(decodeBase64(tokens[1]))) ;
                 string stored_token = res.get<string>("token") ;
@@ -146,9 +147,9 @@ bool User::check() const
 
 bool User::userNameExists(const string &username)
 {
-    sqlite::Query stmt(con_, "SELECT id FROM 'users' WHERE name = ? LIMIT 1;", username) ;
-    sqlite::QueryResult res = stmt.exec() ;
-    return (bool)res ;
+    Query stmt(con_, "SELECT id FROM 'users' WHERE name = ? LIMIT 1;", username) ;
+    QueryResult res = stmt.exec() ;
+    return res.next() ;
 }
 
 bool User::verifyPassword(const string &query, const string &stored) {
@@ -157,10 +158,10 @@ bool User::verifyPassword(const string &query, const string &stored) {
 
 void User::load(const string &username, string &id, string &password, string &role)
 {
-    sqlite::Query stmt(con_, "SELECT u.id AS id, u.password as password, r.role_id as role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id WHERE name = ? LIMIT 1;", username) ;
-    sqlite::QueryResult res = stmt.exec() ;
+    Query stmt(con_, "SELECT u.id AS id, u.password as password, r.role_id as role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id WHERE name = ? LIMIT 1;", username) ;
+    QueryResult res = stmt.exec() ;
 
-    if ( res ) {
+    if ( res.next() ) {
         id = res.get<string>("id") ;
         password = res.get<string>("password") ;
         role = res.get<string>("role") ;
@@ -254,15 +255,15 @@ string User::sanitizePassword(const string &password)
 void User::create(const string &username, const string &password, const string &role)
 {
     string secure_pass = encodeBase64(passwordHash(password)) ;
-    sqlite::Statement(con_, "INSERT INTO users ( name, password ) VALUES ( ?, ? )", username, secure_pass).exec() ;
-    sqlite::Statement(con_, "INSERT INTO user_roles ( user_id, role_id ) VALUES ( ?, ? )", con_.last_insert_rowid(), role).exec() ;
+    Statement(con_, "INSERT INTO users ( name, password ) VALUES ( ?, ? )", username, secure_pass).exec() ;
+    Statement(con_, "INSERT INTO user_roles ( user_id, role_id ) VALUES ( SELECT llast_insert_rowid(), ? )", role).exec() ;
 }
 
 void User::update(const string &id, const string &password, const string &role)
 {
     string secure_pass = encodeBase64(passwordHash(password)) ;
-    sqlite::Statement(con_, "UPDATE users SET password=? WHERE id=?", secure_pass, id).exec() ;
-    sqlite::Statement(con_, "UPDATE user_roles SET role_id=? WHERE user_id=?", role, id).exec() ;
+    Statement(con_, "UPDATE users SET password=? WHERE id=?", secure_pass, id).exec() ;
+    Statement(con_, "UPDATE user_roles SET role_id=? WHERE user_id=?", role, id).exec() ;
 }
 
 //////////////////////////////////////////////////////////////////////////////

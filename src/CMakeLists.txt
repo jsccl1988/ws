@@ -22,24 +22,23 @@ SET( UTIL_SOURCES
     ${SRC_ROOT}/database/statement_handle.cpp
 
 
-
     ${SRC_ROOT}/database/drivers/sqlite/driver.cpp
     ${SRC_ROOT}/database/drivers/sqlite/connection.cpp
     ${SRC_ROOT}/database/drivers/sqlite/exceptions.cpp
     ${SRC_ROOT}/database/drivers/sqlite/statement.cpp
     ${SRC_ROOT}/database/drivers/sqlite/query_result.cpp
 
-    ${SRC_ROOT}/util/sqlite/connection.cpp
-    ${SRC_ROOT}/util/sqlite/exception.cpp
-    ${SRC_ROOT}/util/sqlite/stmt.cpp
-    ${SRC_ROOT}/util/sqlite/statement.cpp
-    ${SRC_ROOT}/util/sqlite/query.cpp
-    ${SRC_ROOT}/util/sqlite/query_result.cpp
-    ${SRC_ROOT}/util/sqlite/transaction.cpp
+#    ${SRC_ROOT}/util/sqlite/connection.cpp
+#    ${SRC_ROOT}/util/sqlite/exception.cpp
+#    ${SRC_ROOT}/util/sqlite/stmt.cpp
+#    ${SRC_ROOT}/util/sqlite/statement.cpp
+#    ${SRC_ROOT}/util/sqlite/query.cpp
+#    ${SRC_ROOT}/util/sqlite/query_result.cpp
+#    ${SRC_ROOT}/util/sqlite/transaction.cpp
 
     ${INCLUDE_ROOT}/util/dictionary.hpp
     ${INCLUDE_ROOT}/util/logger.hpp
-    ${INCLUDE_ROOT}/util/database.hpp
+#    ${INCLUDE_ROOT}/util/database.hpp
     ${INCLUDE_ROOT}/util/crypto.hpp
     ${INCLUDE_ROOT}/util/zfstream.hpp
     ${INCLUDE_ROOT}/util/filesystem.hpp
@@ -48,13 +47,13 @@ SET( UTIL_SOURCES
     ${INCLUDE_ROOT}/util/i18n.hpp
 
 
-    ${INCLUDE_ROOT}/util/sqlite/connection.hpp
-    ${INCLUDE_ROOT}/util/sqlite/exception.hpp
-    ${INCLUDE_ROOT}/util/sqlite/stmt.hpp
-    ${INCLUDE_ROOT}/util/sqlite/statement.hpp
-    ${INCLUDE_ROOT}/util/sqlite/query.hpp
-    ${INCLUDE_ROOT}/util/sqlite/query_result.hpp
-    ${INCLUDE_ROOT}/util/sqlite/transaction.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/connection.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/exception.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/stmt.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/statement.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/query.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/query_result.hpp
+#    ${INCLUDE_ROOT}/util/sqlite/transaction.hpp
 )
 
 SET ( WEB_SOURCES

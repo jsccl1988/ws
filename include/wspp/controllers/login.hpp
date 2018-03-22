@@ -4,7 +4,7 @@
 #include <wspp/server/session.hpp>
 #include <wspp/server/request.hpp>
 #include <wspp/server/response.hpp>
-#include <wspp/util/database.hpp>
+#include <wspp/database/connection.hpp>
 #include <wspp/views/renderer.hpp>
 
 #include <wspp/models/auth.hpp>

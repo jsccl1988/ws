@@ -1,13 +1,13 @@
 #ifndef __WSPP_MODELS_USER_HPP__
 #define __WSPP_MODELS_USER_HPP__
 
-#include <wspp/util/database.hpp>
+#include <wspp/database/connection.hpp>
 #include <wspp/server/session.hpp>
 #include <wspp/server/response.hpp>
 
 namespace wspp { namespace web {
 
-using wspp::util::sqlite::Connection ;
+using wspp::db::Connection ;
 using wspp::server::Session ;
 using wspp::server::Request ;
 using wspp::server::Response ;

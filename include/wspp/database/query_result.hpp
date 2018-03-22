@@ -6,6 +6,8 @@
 
 #include <wspp/database/query_result_handle.hpp>
 
+#include <iostream>
+
 namespace wspp { namespace db {
 
 class Row ;
@@ -17,7 +19,15 @@ class QueryResult
 
 public:
 
-    QueryResult(QueryResult &&other) = default ;
+    QueryResult(QueryResult &&other) {
+        handle_ = other.handle_ ;
+        std::cout << "ok1" << std::endl ;
+    }
+
+    QueryResult(const QueryResult &other) {
+        handle_ = other.handle_ ;
+        std::cout << "ok2" << std::endl ;
+    }
     QueryResult(QueryResult &other) = delete ;
     QueryResult& operator=(const QueryResult &other) = delete;
     QueryResult& operator=(QueryResult &&other) = default;

@@ -11,6 +11,7 @@ using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
+using namespace wspp::db ;
 
 class UserModifyForm: public wspp::web::Form {
 public:
@@ -105,11 +106,11 @@ UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(i
 static void memoryMapDict(Connection &con, const Dictionary &dict, const string &db_id, const string &key_id, const string &val_id) {
    // con.exec(str(boost::format("ATTACH ':memory:' as %1%") % db_id)) ;
     string s = str(boost::format("CREATE TEMPORARY TABLE temp.%1% (%2% TEXT PRIMARY KEY, %3% TEXT)") % db_id % key_id % val_id) ;
-    con.exec(s) ;
+    con.execute(s) ;
 
-    sqlite::Statement stmt(con, str(boost::format("INSERT INTO temp.%1% (%2%,%3%) VALUES (?, ?)") % db_id % key_id % val_id)) ;
+    Statement stmt(con, str(boost::format("INSERT INTO temp.%1% (%2%,%3%) VALUES (?, ?)") % db_id % key_id % val_id)) ;
 
-    sqlite::Transaction t(con) ;
+    Transaction t(con) ;
     for( const auto &p: dict ) {
         stmt(p.first, p.second) ;
         stmt.clear() ;
@@ -125,7 +126,7 @@ public:
 
         memoryMapDict(con, roles, "user_roles_dict", "role_id", "role_label");
 
-        con_.exec("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, ur.role_label AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id JOIN temp.user_roles_dict as ur ON ur.role_id = r.role_id") ;
+        con_.execute("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, ur.role_label AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id JOIN temp.user_roles_dict as ur ON ur.role_id = r.role_id") ;
 
         addColumn("Username", "{{username}}") ;
         addColumn("Role", "{{role}}") ;

@@ -9,6 +9,7 @@ class NullType {} ;
 class Blob {
 public:
 
+    Blob() = default ;
     Blob(const char *data, uint32_t sz): size_(sz), data_(data) {}
 
     const char *data() const { return data_ ; }

@@ -4,21 +4,20 @@
 #include <wspp/database/query_result_handle.hpp>
 #include <wspp/database/types.hpp>
 
-#include <sqlite3.h>
+#include "statement.hpp"
 
 namespace wspp {
 namespace db {
 
 class SQLiteQueryResultHandle: public QueryResultHandle {
 public:
-    SQLiteQueryResultHandle(sqlite3_stmt *stmt): stmt_(stmt) {}
+    SQLiteQueryResultHandle(const std::shared_ptr<SQLiteStatementHandle> &stmt);
 
     ~SQLiteQueryResultHandle() {}
 
     int at() const override {
         return pos_ ;
     }
-
 
     bool next() override ;
 
@@ -47,7 +46,10 @@ public:
     void reset() override;
 private:
 
-    sqlite3_stmt *stmt_ ;
+    void check_has_row() const ;
+
+    std::shared_ptr<SQLiteStatementHandle> stmt_ ;
+    std::map<std::string, int> column_map_ ;
     int pos_ = -1 ;
 } ;
 

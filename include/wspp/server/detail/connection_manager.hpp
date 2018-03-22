@@ -7,8 +7,8 @@
 
 namespace wspp { namespace server {
 
-class Connection ;
-typedef boost::shared_ptr<Connection> ConnectionPtr;
+class HttpConnection ;
+typedef boost::shared_ptr<HttpConnection> ConnectionPtr;
 
 /// Manages open connections so that they may be cleanly stopped when the server
 /// needs to shut down.

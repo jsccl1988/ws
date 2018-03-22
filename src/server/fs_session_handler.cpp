@@ -1,11 +1,16 @@
 #include <wspp/server/fs_session_handler.hpp>
+#include <wspp/database/transaction.hpp>
+
 #include <boost/filesystem.hpp>
+
 #include <iostream>
 #include <chrono>
 #include <random>
 
 using namespace std ;
 using namespace wspp::util ;
+using namespace wspp::db ;
+
 namespace fs = boost::filesystem ;
 
 namespace wspp { namespace server {
@@ -16,22 +21,24 @@ FileSystemSessionHandler::FileSystemSessionHandler(const std::string &db_file) {
 
     if ( db_file.empty() ) {
         fs::path tmp = fs::temp_directory_path() / "wsx_session.sqlite" ;
-        db_.open(tmp.native(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX ) ;
+        db_.open("sqlite:" + tmp.native()/*, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX*/ ) ;
     }
     else {
         fs::path p(db_file) ;
         if ( !fs::exists(p) ) {
             boost::system::error_code ec ;
             fs::create_directories(p.parent_path(), ec) ;
-            db_.open(p.native(), SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX ) ;
+            db_.open("sqlite:" + p.native()/*, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX*/ ) ;
         }
     }
 
-    db_.exec("PRAGMA auto_vacuum = 1;\
-                PRAGMA journal_mode = WAL;\
-                PRAGMA synchronous = NORMAL;\
-                CREATE TABLE IF NOT EXISTS sessions ( sid TEXT PRIMARY KEY NOT NULL, data BLOB DEFAULT NULL, ts INTEGER NOT NULL );\
-                CREATE UNIQUE INDEX IF NOT EXISTS sessions_index ON sessions (sid);") ;
+
+    db_.execute("PRAGMA auto_vacuum = 1") ;
+    db_.execute("PRAGMA journal_mode = WAL");
+    db_.execute("PRAGMA synchronous = NORMAL") ;
+    db_.execute("CREATE TABLE IF NOT EXISTS sessions ( sid TEXT PRIMARY KEY NOT NULL, data BLOB DEFAULT NULL, ts INTEGER NOT NULL );") ;
+    db_.execute("CREATE UNIQUE INDEX IF NOT EXISTS sessions_index ON sessions (sid);") ;
+
 }
 
 bool FileSystemSessionHandler::open() {
@@ -143,17 +150,17 @@ bool FileSystemSessionHandler::writeSessionData(const string &id, const string &
 {
     try {
 
-        sqlite::Transaction trans(db_) ;
-        sqlite::Statement cmd(db_, "REPLACE INTO sessions (sid, data, ts) VALUES (?, ?, ?)",
+        Transaction trans(db_) ;
+        Statement cmd(db_, "REPLACE INTO sessions (sid, data, ts) VALUES (?, ?, ?)",
                           id,
-                          sqlite::Blob(data.data(), data.size()),
+                          Blob(data.data(), data.size()),
                           (uint64_t)std::chrono::system_clock::now().time_since_epoch().count()) ;
         cmd.exec() ;
         trans.commit() ;
 
         return true ;
     }
-    catch ( sqlite::Exception & ) {
+    catch ( Exception & ) {
        return false ;
     }
 
@@ -162,22 +169,22 @@ bool FileSystemSessionHandler::writeSessionData(const string &id, const string &
 bool FileSystemSessionHandler::readSessionData(const string &id, string &data)
 {
     try {
-        sqlite::Query q(db_, "SELECT data FROM sessions WHERE sid = ? LIMIT 1", id) ;
-        sqlite::QueryResult res = q.exec() ;
-        sqlite::Blob bdata = res.get<sqlite::Blob>(0) ;
+        Query q(db_, "SELECT data FROM sessions WHERE sid = ? LIMIT 1", id) ;
+        QueryResult res = q.exec() ;
+        Blob bdata = res.get<Blob>(0) ;
         data.assign(bdata.data(), bdata.size()) ;
         return true ;
     }
-    catch ( sqlite::Exception &e ) {
+    catch ( Exception &e ) {
         cerr << e.what() << endl ;
        return false ;
     }
 }
 
 bool FileSystemSessionHandler::contains(const string &id) {
-    sqlite::Query q(db_, "SELECT sid FROM sessions WHERE sid = ? LIMIT 1", id) ;
-    sqlite::QueryResult res = q.exec() ;
-    return res ;
+    Query q(db_, "SELECT sid FROM sessions WHERE sid = ? LIMIT 1", id) ;
+    QueryResult res = q.exec() ;
+    return res.next() ;
 }
 
 bool FileSystemSessionHandler::write(const Session &session) {
@@ -212,7 +219,7 @@ void FileSystemSessionHandler::gc() {
 
         auto t = std::chrono::system_clock::now() - session_entry_max_lifetime ;
 
-        sqlite::Statement cmd(db_, "DELETE FROM sessions WHERE ts < ?",
+        Statement cmd(db_, "DELETE FROM sessions WHERE ts < ?",
                       (uint64_t)t.time_since_epoch().count()) ;
         cmd.exec() ;
     }

@@ -2,7 +2,7 @@
 #define __WSPP_SERVER_FS_SESSION_HANDLER_HPP__
 
 #include <wspp/server/session_handler.hpp>
-#include <wspp/util/database.hpp>
+#include <wspp/database/connection.hpp>
 
 #include <string>
 
@@ -36,7 +36,7 @@ private:
 
     void gc() ;
 
-    util::sqlite::Connection db_ ;
+    db::Connection db_ ;
 };
 
 

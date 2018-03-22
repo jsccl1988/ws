@@ -6,6 +6,7 @@
 
 #include <wspp/database/query.hpp>
 #include <wspp/database/connection_handle.hpp>
+#include <wspp/database/transaction.hpp>
 
 #include <wspp/util/dictionary.hpp>
 
@@ -13,8 +14,6 @@ namespace wspp { namespace db {
 
 class Statement ;
 class Query ;
-class Transaction ;
-
 
 class Connection {
 
@@ -22,7 +21,6 @@ public:
 
     Connection();
     Connection(const std::string &dsn);
-    ~Connection();
 
     Connection(const Connection &other) = delete ;
     Connection &operator = ( const Connection &other) = delete ;
@@ -32,6 +30,10 @@ public:
     void close() ;
 
     operator int () { return (bool)handle_  ; }
+
+    uint64_t last_insert_rowid() {
+        return handle_->last_insert_rowid() ;
+    }
 
 //   sqlite3_int64 last_insert_rowid() {
 //       return sqlite3_last_insert_rowid(handle_);

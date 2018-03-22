@@ -10,8 +10,9 @@ using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
+using namespace wspp::db ;
 
-PageCreateForm::PageCreateForm(sqlite::Connection &con): con_(con) {
+PageCreateForm::PageCreateForm(Connection &con): con_(con) {
 
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
@@ -33,7 +34,7 @@ void PageCreateForm::onSuccess(const Request &request) {
 }
 
 
-PageUpdateForm::PageUpdateForm(sqlite::Connection &con, const string &id): con_(con), id_(id) {
+PageUpdateForm::PageUpdateForm(Connection &con, const string &id): con_(con), id_(id) {
     field<InputField>("title", "text").label("Title").required()
         .addValidator<NonEmptyValidator>() ;
 
@@ -60,10 +61,7 @@ void PageUpdateForm::onGet(const Request &request) {
     if ( id.empty() )
         throw HttpResponseException(Response::not_found) ;
 
-    sqlite::QueryResult res = con_.query("SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
-
-    if ( !res )
-        throw HttpResponseException(Response::not_found) ;
+    QueryResult res = con_.query("SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
 
     init(res.getAll()) ;
 }
@@ -75,7 +73,7 @@ public:
 
         setTitle("Pages") ;
 
-        con_.exec("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
+        con_.execute("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
 
         addColumn("Title", "{{title}}") ;
         addColumn("Slug", "{{slug}}") ;
@@ -120,10 +118,10 @@ void PageController::create()
 void PageController::edit(const string &id)
 {
 
-    sqlite::Query stmt(con_, "SELECT title, content, permalink FROM pages WHERE id=?") ;
-    sqlite::QueryResult res = stmt(id) ;
+    Query stmt(con_, "SELECT title, content, permalink FROM pages WHERE id=?") ;
+    QueryResult res = stmt(id) ;
 
-    if ( res ) {
+    if ( res.next() ) {
 
         string permalink, title, content ;
         res >> title >> content >> permalink ;
@@ -219,9 +217,9 @@ bool PageController::dispatch()
 
 void PageController::show(const std::string &page_id)
 {
-    sqlite::QueryResult res = con_.query("SELECT id, title, content FROM pages WHERE permalink=?", page_id) ;
+    QueryResult res = con_.query("SELECT id, title, content FROM pages WHERE permalink=?", page_id) ;
 
-    if ( res ) {
+    if ( res.next() ) {
 
         Variant ctx( Variant::Object{
                      { "page", page_.data(page_id, res.get<string>("title")) },

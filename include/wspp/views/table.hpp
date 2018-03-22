@@ -2,7 +2,7 @@
 #define __WSPP_UTIL_TABLE_VIEW_HPP__
 
 #include <wspp/util/variant.hpp>
-#include <wspp/util/database.hpp>
+#include <wspp/database/connection.hpp>
 #include <wspp/server/session.hpp>
 #include <wspp/server/request.hpp>
 
@@ -19,6 +19,7 @@ namespace web {
 class TemplateRenderer ;
 
 using namespace util ;
+using namespace db ;
 
 // abstraction of a table view
 
@@ -73,7 +74,7 @@ public:
     // Each row is populated by performing a select on the table, recovering the column names and associates values
     // For complex tables (e.g. with joins) or you want to rename the column names, subclass and create an SQLite view in the constructor, passing the name of
     // the view to the base class instead of the original table. Note that the id should always be returned.
-    SQLiteTableView(sqlite::Connection &con, const std::string &table, const std::string &id_column = "id");
+    SQLiteTableView(Connection &con, const std::string &table, const std::string &id_column = "id");
 
     Variant rows(uint offset, uint count) override;
 
@@ -82,7 +83,7 @@ public:
     }
 
 protected:
-    sqlite::Connection &con_ ;
+    Connection &con_ ;
     std::string table_, id_column_ ;
 };
 

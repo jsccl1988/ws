@@ -4,7 +4,7 @@
 #include <wspp/server/session.hpp>
 #include <wspp/server/request.hpp>
 #include <wspp/server/response.hpp>
-#include <wspp/util/database.hpp>
+#include <wspp/database/connection.hpp>
 
 #include <wspp/views/forms.hpp>
 #include <wspp/views/renderer.hpp>
@@ -13,7 +13,7 @@
 #include "route_model.hpp"
 #include "page_view.hpp"
 
-using wspp::util::sqlite::Connection ;
+
 using wspp::server::Response ;
 using wspp::server::Request ;
 using wspp::server::Session ;

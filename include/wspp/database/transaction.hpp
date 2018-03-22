@@ -1,11 +1,13 @@
 #ifndef __DATABASE_TRANSACTION_HPP__
 #define __DATABASE_TRANSACTION_HPP__
 
-#include <wspp/database/connection.hpp>
+#include <wspp/database/connection_handle.hpp>
 
 #include <string>
 
 namespace wspp { namespace db {
+
+class Connection ;
 
 class Transaction
 {

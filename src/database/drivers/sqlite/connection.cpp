@@ -56,5 +56,10 @@ void SQLiteConnectionHandle::rollback() {
     exec("ROLLBACK");
 }
 
+uint64_t SQLiteConnectionHandle::last_insert_rowid() const
+{
+    return sqlite3_last_insert_rowid(handle_) ;
+}
+
 }
 }

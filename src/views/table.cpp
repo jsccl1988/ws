@@ -89,7 +89,7 @@ void TableView::render(const server::Request &request, server::Response &respons
     response.write(engine.render("table-view", data )) ;
 }
 
-SQLiteTableView::SQLiteTableView(sqlite::Connection &con, const string &table, const string &id_column):
+SQLiteTableView::SQLiteTableView(Connection &con, const string &table, const string &id_column):
     TableView(), con_(con), table_(table), id_column_(id_column) {
 }
 

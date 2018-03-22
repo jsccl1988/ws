@@ -18,5 +18,6 @@ QueryResult::iterator::iterator(QueryResult &res, bool at_end): qres_(res), at_e
 
 
 
+
 } // namespace db
-} // namespace wspp
+               } // namespace wspp

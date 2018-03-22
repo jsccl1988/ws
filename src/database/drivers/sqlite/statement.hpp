@@ -7,11 +7,13 @@
 
 namespace wspp { namespace db {
 
-class SQLiteStatementHandle final: public StatementHandle {
+class SQLiteStatementHandle final: public StatementHandle, public std::enable_shared_from_this<SQLiteStatementHandle> {
 public:
     SQLiteStatementHandle(sqlite3_stmt *handle): handle_(handle) {}
 
-    ~SQLiteStatementHandle() { finalize() ; }
+    ~SQLiteStatementHandle() {
+        finalize() ;
+    }
 
     void clear() override ;
 
@@ -40,6 +42,7 @@ public:
     void exec() override ;
     QueryResult execQuery() override ;
 
+    sqlite3_stmt *handle() const { return handle_ ; }
 private:
 
     sqlite3_stmt *handle_ ;
