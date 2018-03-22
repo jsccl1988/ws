@@ -8,6 +8,13 @@ namespace wspp { namespace db {
 
 class ConnectionHandle ;
 
+// The PostgreSQL driver
+//
+// The connections string is of the form pgsql:<; delimited option list>
+//
+// for available options see:
+// https://www.postgresql.org/docs/9.4/static/libpq-connect.html
+
 class PQDriver {
 
 public:
