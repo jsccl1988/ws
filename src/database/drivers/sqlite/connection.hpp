@@ -15,9 +15,17 @@ public:
 
     StatementHandlePtr createStatement(const std::string &sql) ;
 
+
+    void begin() override ;
+    void commit() override ;
+    void rollback() override ;
+
 private:
 
+    void exec(const std::string &sql...);
+
     sqlite3 *handle_ ;
+
 };
 
 

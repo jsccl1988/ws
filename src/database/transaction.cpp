@@ -1,39 +1,21 @@
-#include <wspp/util/sqlite/transaction.hpp>
+#include <wspp/database/transaction.hpp>
 
 using namespace std ;
 
-namespace wspp { namespace util { namespace sqlite {
+namespace wspp { namespace db {
 
-Transaction::Transaction(Connection &con): con_(con) {
-    char *err_msg ;
-
-    if ( sqlite3_exec (con_.handle(), "BEGIN", NULL, NULL, &err_msg) != SQLITE_OK ) {
-        throw Exception(err_msg);
-        sqlite3_free (err_msg);
-    }
+Transaction::Transaction(Connection &con): con_(con.handle()) {
+    con_->begin() ;
 }
 
-void Transaction::commit()
-{
-    char *err_msg ;
-
-    if ( sqlite3_exec (con_.handle(), "COMMIT", NULL, NULL, &err_msg) != SQLITE_OK ) {
-        throw Exception(err_msg);
-        sqlite3_free (err_msg);
-    }
+void Transaction::commit() {
+    con_->commit() ;
 }
 
-void Transaction::rollback()
-{
-    char *err_msg ;
+void Transaction::rollback() {
+    con_->rollback() ;
 
-    if ( sqlite3_exec (con_.handle(), "ROLLBACK", NULL, NULL, &err_msg) != SQLITE_OK ) {
-        throw Exception(err_msg);
-        sqlite3_free (err_msg);
-    }
 }
 
-
-} // namespace sqlite
-} // namespace util
+} // namespace db
 } // namespace wspp

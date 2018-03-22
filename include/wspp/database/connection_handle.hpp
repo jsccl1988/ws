@@ -14,6 +14,10 @@ public:
     virtual ~ConnectionHandle() {}
     virtual void close() = 0 ;
     virtual StatementHandlePtr createStatement(const std::string &sql) = 0;
+
+    virtual void begin() = 0 ;
+    virtual void commit() = 0 ;
+    virtual void rollback() = 0 ;
 } ;
 
 typedef std::shared_ptr<ConnectionHandle> ConnectionHandlePtr ;
