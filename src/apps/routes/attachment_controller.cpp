@@ -77,10 +77,10 @@ void AttachmentUpdateForm::onGet(const Request &request)
 }
 
 
-class AttachmentTableView: public SQLiteTableView {
+class AttachmentTableView: public SQLTableView {
 public:
     AttachmentTableView(Connection &con, const std::string &route_id, const Dictionary &amap):
-        SQLiteTableView(con, "attachments_list_view"), attachments_map_(amap) {
+        SQLTableView(con, "attachments_list_view"), attachments_map_(amap) {
 
         setTitle("Attachments") ;
 

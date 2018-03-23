@@ -68,9 +68,9 @@ void RouteUpdateForm::onGet(const Request &request) {
     init({{"title", title}, {"mountain", mountain}}) ;
 }
 
-class RouteTableView: public SQLiteTableView {
+class RouteTableView: public SQLTableView {
 public:
-    RouteTableView(Connection &con): SQLiteTableView(con, "routes_list_view")  {
+    RouteTableView(Connection &con): SQLTableView(con, "routes_list_view")  {
 
         setTitle("Routes") ;
 

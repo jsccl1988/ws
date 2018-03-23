@@ -188,6 +188,8 @@ int main(int argc, char *argv[]) {
 
     wspp::db::Connection con("uri:file:///home/malasiot/source/ws/data/routes/pg.dsn") ;
 
+    cout << con.query("SELECT count(*) FROM wpts WHERE route=$1", 5000).getOne()[0].as<uint>() << endl ;
+
     for( auto && r: con.query("SELECT *, ST_AsBinary(geom) as geom from wpts WHERE route=$1", 5000) ) {
         int id, route ;
         double ele ;
@@ -196,6 +198,17 @@ int main(int argc, char *argv[]) {
         r.into(id, ele, route, geom) ;
             cout << "1" << endl ;
     }
+
+    Transaction tr = con.transaction() ;
+
+    Statement st(con, "insert into auth_tokens ( userid, expires) values ($1, $2);") ;
+
+    for( uint i=0 ; i<5 ; i++) {
+        st(i, i+1) ;
+        st.clear() ;
+    }
+
+    tr.commit() ;
 
 
     // example of seting up translation with boost::locale

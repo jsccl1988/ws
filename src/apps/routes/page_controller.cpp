@@ -21,7 +21,7 @@ PageCreateForm::PageCreateForm(Connection &con): con_(con) {
         .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
         .addValidator([&] (const string &val, const FormField &f) {
 
-            bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val)[0].as<int>() ;
+            bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val).getOne()[0].as<int>() ;
             if ( error )
                 throw FormFieldValidationError("A page with this slug already exists") ;
     }) ;
@@ -42,7 +42,7 @@ PageUpdateForm::PageUpdateForm(Connection &con, const string &id): con_(con), id
         .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
         .addValidator([&] (const string &val, const FormField &f) {
 
-            bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_)[0].as<int>() ;
+            bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ? AND id != ?", val, id_).getOne()[0].as<int>() ;
             if ( error )
                 throw FormFieldValidationError("A page with this slug already exists") ;
     }) ;
@@ -67,9 +67,9 @@ void PageUpdateForm::onGet(const Request &request) {
 }
 
 
-class PageTableView: public SQLiteTableView {
+class PageTableView: public SQLTableView {
 public:
-    PageTableView(Connection &con): SQLiteTableView(con, "pages_list_view" )  {
+    PageTableView(Connection &con): SQLTableView(con, "pages_list_view" )  {
 
         setTitle("Pages") ;
 

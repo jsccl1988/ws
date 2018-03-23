@@ -73,9 +73,8 @@ public:
         return get<T>(idx) ;
     }
 
-    Column operator [] (const std::string &name);
-
-    Column operator [] (int idx);
+    // advanve cursor and get the row pointed by
+    Row getOne() ;
 
     template<class T>
     void read(int idx, T &val) const {
@@ -171,17 +170,6 @@ private:
     int idx_ ;
 };
 
-
-
-
-inline Column QueryResult::operator [](const std::string &name) {
-    return Column(*this, name) ;
-}
-
-inline Column QueryResult::operator [](int idx) {
-    return Column(*this, idx) ;
-}
-
 class ColumnAccessor ;
 
 class Row {
@@ -233,6 +221,11 @@ private:
 
     QueryResult &qres_ ;
 };
+
+inline Row QueryResult::getOne()  {
+        next() ;
+        return Row(*this) ;
+}
 
 class ColumnAccessor {
 public:

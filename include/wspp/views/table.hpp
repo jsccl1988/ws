@@ -68,18 +68,18 @@ protected:
 
 // Table view based on an SQlite database table
 
-class SQLiteTableView: public TableView {
+class SQLTableView: public TableView {
 public:
 
     // Each row is populated by performing a select on the table, recovering the column names and associates values
     // For complex tables (e.g. with joins) or you want to rename the column names, subclass and create an SQLite view in the constructor, passing the name of
     // the view to the base class instead of the original table. Note that the id should always be returned.
-    SQLiteTableView(Connection &con, const std::string &table, const std::string &id_column = "id");
+    SQLTableView(Connection &con, const std::string &table, const std::string &id_column = "id");
 
     Variant rows(uint offset, uint count) override;
 
     uint count() override {
-        return con_.query("SELECT count(*) FROM " + table_)[0].as<uint>() ;
+        return con_.query("SELECT count(*) FROM " + table_).getOne()[0].as<uint>() ;
     }
 
 protected:

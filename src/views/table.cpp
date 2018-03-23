@@ -89,11 +89,11 @@ void TableView::render(const server::Request &request, server::Response &respons
     response.write(engine.render("table-view", data )) ;
 }
 
-SQLiteTableView::SQLiteTableView(Connection &con, const string &table, const string &id_column):
+SQLTableView::SQLTableView(Connection &con, const string &table, const string &id_column):
     TableView(), con_(con), table_(table), id_column_(id_column) {
 }
 
-Variant SQLiteTableView::rows(uint offset, uint count)  {
+Variant SQLTableView::rows(uint offset, uint count)  {
 
     ostringstream sql ;
     sql << "SELECT * FROM " << '"' <<  table_ << '"' << " LIMIT ?, ?" ;

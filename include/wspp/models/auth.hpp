@@ -75,12 +75,6 @@ public:
 
     virtual Dictionary getRoles() const = 0 ;
     virtual std::vector<std::string> getPermissions(const std::string &role) const = 0 ;
-
-/*    virtual std::string roleId(const std::string &role) const = 0 ;
-    virtual std::string getPermission(const std::string &id) const = 0 ;
-    virtual void addRole(const std::string &role_name) = 0 ;
-    virtual void addPermissionToRole(const std::string &role_id, const std::string &permission) = 0;
-*/
 };
 
 class DefaultAuthorizationModel: public AuthorizationModel {

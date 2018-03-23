@@ -33,11 +33,12 @@ void PGSQLStatementHandle::prepare()
 }
 
 void PGSQLStatementHandle::clear() {
-
+    params_.clear() ;
 }
 
 void PGSQLStatementHandle::finalize()
 {
+
 }
 
 
@@ -139,7 +140,7 @@ StatementHandle &PGSQLStatementHandle::bind(int idx, const char *v){
 }
 
 int PGSQLStatementHandle::placeholderNameToIndex(const std::string &name) {
-
+    return boost::lexical_cast<int>(name.c_str()+1) ;
 }
 
 void PGSQLStatementHandle::exec()

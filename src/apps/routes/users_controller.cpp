@@ -118,9 +118,9 @@ static void memoryMapDict(Connection &con, const Dictionary &dict, const string 
     t.commit() ;
 }
 
-class UsersTableView: public SQLiteTableView {
+class UsersTableView: public SQLTableView {
 public:
-    UsersTableView(Connection &con, const Dictionary &roles): SQLiteTableView(con, "users_list_view"), roles_(roles)  {
+    UsersTableView(Connection &con, const Dictionary &roles): SQLTableView(con, "users_list_view"), roles_(roles)  {
 
         setTitle("Users") ;
 

@@ -49,6 +49,13 @@ public:
 
     int size() const { return entries_.size() ; }
 
+    void clear() {
+        entries_.clear() ;
+        values_.clear() ;
+        blobs_.clear() ;
+        max_idx_ = 0 ;
+    }
+
 private:
 
     enum class Type { Blob, Null, String } ;

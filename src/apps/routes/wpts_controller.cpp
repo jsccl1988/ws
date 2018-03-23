@@ -47,10 +47,10 @@ private:
 };
 
 
-class WaypointTableView: public SQLiteTableView {
+class WaypointTableView: public SQLTableView {
 public:
     WaypointTableView(Connection &con, const std::string &route_id):
-        SQLiteTableView(con, "wpt_list_view") {
+        SQLTableView(con, "wpt_list_view") {
 
         setTitle("Waypoints") ;
         string sql("CREATE TEMPORARY VIEW wpt_list_view AS SELECT id, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat, ele FROM wpts WHERE route = ") ;
