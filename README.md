@@ -10,5 +10,5 @@
 - [Content rendering using an extension of Mustache](src/util/Renderer.md)
 - [Form builder](src/views/Forms.md)
 - [Table builder](src/views/Tables.md)
-- SQlite wrapper
-- Password based authentication
+- Database wrapper supporting different drivers (currently SQLite and PostgresSQL)
+
