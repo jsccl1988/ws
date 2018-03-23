@@ -4,7 +4,10 @@
 
 #include <cstring>
 
+#include <wspp/util/crypto.hpp>
+
 using namespace std ;
+using namespace wspp::util ;
 
 namespace wspp { namespace db {
 
@@ -12,6 +15,21 @@ namespace wspp { namespace db {
 void PGSQLStatementHandle::check() const {
     if ( !handle_ )
         throw Exception("Statement has not been compiled.");
+}
+
+void PGSQLStatementHandle::prepare()
+{
+    if ( name_.empty() ) {
+        name_ = binToHex(randomBytes(16)) ;
+
+        PGresult *r = PQprepare(handle_, name_.c_str(), sql_.c_str(), 0, nullptr) ;
+
+        if ( !checkResult(r) ) {
+            PQclear(r) ;
+            throw PGSQLException(handle_) ;
+        }
+    }
+
 }
 
 void PGSQLStatementHandle::clear() {
@@ -126,21 +144,62 @@ int PGSQLStatementHandle::placeholderNameToIndex(const std::string &name) {
 
 void PGSQLStatementHandle::exec()
 {
+    doExec() ;
+}
 
-        check() ;
+PGresult *PGSQLStatementHandle::doExec()
+{
+    prepare() ;
 
-        vector<const char *> values ;
-        vector<int> lengths, binaries ;
-        params_.marshall(values, lengths, binaries) ;
-  //      sqlite3_step(handle_) ;
+    vector<const char *> values ;
+    vector<int> lengths, binaries ;
+    params_.marshall(values, lengths, binaries) ;
 
+    PGresult *res ;
+
+    if ( !name_.empty() ) {
+        res = PQexecPrepared(handle_, name_.c_str(), int(params_.size()),
+                             &values[0],  &lengths[0], &binaries[0], 0);
+    }
+    else {
+        res = PQexecParams(handle_, sql_.c_str(), int(values.size()), nullptr,
+                           &values[0],  &lengths[0], &binaries[0], 0);
+    }
+
+    if ( !checkResult(res) ) {
+        PQclear(res) ;
+        throw PGSQLException(handle_) ;
+    }
+
+    return res ;
+}
+
+bool PGSQLStatementHandle::checkResult(PGresult *r) const
+{
+    switch ( PQresultStatus(r) )
+    {
+    case PGRES_EMPTY_QUERY: // The string sent to the backend was empty.
+    case PGRES_COMMAND_OK: // Successful completion of a command returning no data
+    case PGRES_TUPLES_OK: // The query successfully executed
+    case PGRES_COPY_OUT: // Copy Out (from server) data transfer started
+    case PGRES_COPY_IN: // Copy In (to server) data transfer started
+        return true;
+    case PGRES_BAD_RESPONSE: // The server's response was not understood
+    case PGRES_NONFATAL_ERROR:
+    case PGRES_FATAL_ERROR:
+        return false ;
+
+    default:
+        return false ;
+    }
+    return false;
 }
 
 QueryResult PGSQLStatementHandle::execQuery()
 {
 
-    //return QueryResult(QueryResultHandlePtr(new SQLiteQueryResultHandle(shared_from_this()))) ;
+    return QueryResult(QueryResultHandlePtr(new PGSQLQueryResultHandle(doExec()))) ;
 }
 
 } // namespace db
-} // namespace wspp
+               } // namespace wspp

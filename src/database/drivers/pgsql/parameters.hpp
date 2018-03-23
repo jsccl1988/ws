@@ -47,6 +47,8 @@ public:
             std::vector<int> &lengths,
             std::vector<int> &binaries) const;
 
+    int size() const { return entries_.size() ; }
+
 private:
 
     enum class Type { Blob, Null, String } ;

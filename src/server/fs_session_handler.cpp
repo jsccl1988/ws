@@ -21,14 +21,14 @@ FileSystemSessionHandler::FileSystemSessionHandler(const std::string &db_file) {
 
     if ( db_file.empty() ) {
         fs::path tmp = fs::temp_directory_path() / "wsx_session.sqlite" ;
-        db_.open("sqlite:" + tmp.native()/*, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX*/ ) ;
+        db_.open("sqlite:db=" + tmp.native() + ";mode=rc;mutex=full") ;
     }
     else {
         fs::path p(db_file) ;
         if ( !fs::exists(p) ) {
             boost::system::error_code ec ;
             fs::create_directories(p.parent_path(), ec) ;
-            db_.open("sqlite:" + p.native()/*, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX*/ ) ;
+            db_.open("sqlite:" + p.native() + ";mode=rc;mutex=full" ) ;
         }
     }
 

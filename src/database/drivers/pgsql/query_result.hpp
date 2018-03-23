@@ -6,17 +6,21 @@
 
 #include "statement.hpp"
 
+#include <memory>
+
 namespace wspp {
 namespace db {
 
+using PGResultPtr = std::unique_ptr<PGresult, decltype(&PQclear)> ;
+
 class PGSQLQueryResultHandle: public QueryResultHandle {
 public:
-    PGSQLQueryResultHandle(const std::shared_ptr<PGSQLStatementHandle> &stmt);
+    PGSQLQueryResultHandle(PGresult *r);
 
     ~PGSQLQueryResultHandle() {}
 
     int at() const override {
-        return pos_ ;
+        return row_ ;
     }
 
     bool next() override ;
@@ -50,8 +54,8 @@ private:
 
     void check_has_row() const ;
 
-    std::shared_ptr<PGSQLStatementHandle> stmt_ ;
-    int pos_ = -1, num_rows ;
+    PGResultPtr result_ ;
+    int row_ = -1, num_rows_ = 0 ;
 } ;
 
 }

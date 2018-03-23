@@ -13,7 +13,7 @@ void PGSQLConnectionHandle::close() {
 
 StatementHandlePtr PGSQLConnectionHandle::createStatement(const std::string &sql)
 {
-    return StatementHandlePtr(new PGSQLStatementHandle(handle_)) ;
+    return StatementHandlePtr(new PGSQLStatementHandle(sql, handle_)) ;
 
 }
 

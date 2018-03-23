@@ -11,7 +11,7 @@ namespace wspp { namespace db {
 
 class PGSQLStatementHandle final: public StatementHandle, public std::enable_shared_from_this<PGSQLStatementHandle> {
 public:
-    PGSQLStatementHandle(PGconn *handle): handle_(handle) {}
+    PGSQLStatementHandle(const std::string &sql, PGconn *handle): sql_(sql), handle_(handle) {}
 
     ~PGSQLStatementHandle() {
         finalize() ;
@@ -50,8 +50,12 @@ private:
     PGconn *handle_ ;
 
     void check() const;
+    void prepare() ;
+    PGresult *doExec() ;
+    bool checkResult(PGresult *) const ;
 
     PreparedStatementParameters params_ ;
+    std::string sql_, name_ ;
 };
 
 

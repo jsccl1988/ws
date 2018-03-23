@@ -187,14 +187,14 @@ private:
 int main(int argc, char *argv[]) {
 
     wspp::db::Connection con("uri:file:///home/malasiot/source/ws/data/routes/pg.dsn") ;
-    wspp::db::Query q(con, "SELECT * from playground WHERE equip_id=$1 AND color=$2", 1, "blue") ;
-    wspp::db::QueryResult res = q.exec() ;
 
-    for( auto && r: con.query("SELECT * from routes") ) {
-        string x, y, z ;
-        boost::optional<int> d ;
-        r.into(x, y, z, d) ;
-            cout << x << endl ;
+    for( auto && r: con.query("SELECT *, ST_AsBinary(geom) as geom from wpts WHERE route=$1", 5000) ) {
+        int id, route ;
+        double ele ;
+        Blob geom ;
+
+        r.into(id, ele, route, geom) ;
+            cout << "1" << endl ;
     }
 
 

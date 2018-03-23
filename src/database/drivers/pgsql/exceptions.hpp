@@ -10,6 +10,9 @@ namespace wspp { namespace db {
 class PGSQLException: public Exception {
 public:
     PGSQLException(PGconn *handle): Exception(PQerrorMessage(handle)) {}
+    PGSQLException(PGresult *handle): Exception(PQresultErrorMessage(handle)) {
+        PQclear(handle) ;
+    }
 };
 
 } // namespace db
