@@ -1,14 +1,14 @@
 # Tables
 
-The class `TableView` is an abstract interface for managing rendering of tables with paging functionality. Most usefull is `SQLiteTableView` which implements the interface for an SQLite table. 
+The class `TableView` is an abstract interface for managing rendering of tables with paging functionality. Most usefull is `SQLTableView` which implements the interface for an SQL table. 
 
 For example consider a table `attachments` that stores links to files attached to a page. The table has the fields: id, page_id, name, url, type. The type field is an integer that can take one of three possible values. When we want to show the page attachments, we should have a table with two columns, file name rendered as a link, and type renderer as a string from the closed set (i.e. "Image", "PDF file", "Video"). This can be implemented with the following code.
 
 ```C++
-class AttachmentTableView: public SQLiteTableView {
+class AttachmentTableView: public SQLTableView {
 public:
     AttachmentTableView(Connection &con, const std::string &page_id, const Dictionary &amap):
-        SQLiteTableView(con, "attachments_list_view"), attachments_map_(amap) {
+        SQLTableView(con, "attachments_list_view"), attachments_map_(amap) {
 
         setTitle("Attachments") ;
 
@@ -33,7 +33,7 @@ private:
     Dictionary attachments_map_ ;
 };
 ```
-Note that we created a view to request only the attachments of a specific page. An SQLite view is also usefull when we need joins with other tables. Internally the query will be further limited by appending `LIMIT` to achieve paging.
+Note that we created a view to request only the attachments of a specific page. An SQL view is also usefull when we need joins with other tables. Internally the query will be further limited by appending `LIMIT` to achieve paging.
 
 The `transform` function offers a hook to alter the data before being send to the template renderer. In the above case a dictionary is used to map a `type` identifier to a corresponding label but other complex transformations may be performed and also returning complex data models. 
 
