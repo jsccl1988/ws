@@ -82,7 +82,6 @@ public:
         a_ = new Array(value);
     }
 
-    /// constructor for rvalue arrays
     Variant(Array&& value): tag_(Tag::Array) {
         a_ = new Array(std::move(value));
     }
@@ -336,7 +335,7 @@ public:
     }
 
 
-
+    // iterates dictionaries or arrays
 
     class iterator {
     public:
@@ -416,7 +415,6 @@ public:
         }
 
         std::string key() const {
-
             if ( obj_.isObject() ) return o_it_->first ;
             else return std::string() ;
         }
