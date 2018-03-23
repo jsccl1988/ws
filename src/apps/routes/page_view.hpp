@@ -4,9 +4,8 @@
 #include <wspp/views/menu.hpp>
 #include <wspp/util/variant.hpp>
 
-#include <wspp/models/auth.hpp>
+#include "auth.hpp"
 
-using wspp::web::User ;
 using wspp::util::Variant ;
 
 // Helper for global page layout

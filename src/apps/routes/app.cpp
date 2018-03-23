@@ -21,7 +21,7 @@
 
 #include <iostream>
 
-#include <wspp/controllers/login.hpp>
+#include "login.hpp"
 
 #include "page_controller.hpp"
 #include "users_controller.hpp"

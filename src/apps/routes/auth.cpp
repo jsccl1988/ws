@@ -1,4 +1,4 @@
-#include <wspp/models/auth.hpp>
+#include "auth.hpp"
 #include <wspp/util/crypto.hpp>
 
 #include <boost/algorithm/string.hpp>
@@ -7,8 +7,6 @@
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::db ;
-
-namespace wspp { namespace web {
 
 void User::persist(const std::string &user_name, const std::string &user_id, const std::string &user_role, bool remember_me)
 {
@@ -304,6 +302,3 @@ Dictionary DefaultAuthorizationModel::getRoles() const {
     }
     return roles ;
 }
-
-} // namespace web
-} // namespace wspp

@@ -9,7 +9,7 @@
 #include <wspp/views/forms.hpp>
 #include <wspp/views/renderer.hpp>
 
-#include <wspp/models/auth.hpp>
+#include "auth.hpp"
 #include "page_view.hpp"
 
 using wspp::db::Connection ;
@@ -19,8 +19,6 @@ using wspp::server::Request ;
 using wspp::server::Session ;
 using std::string ;
 using wspp::web::TemplateRenderer ;
-using wspp::web::User ;
-
 
 class UsersController {
 public:

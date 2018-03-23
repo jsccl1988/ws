@@ -60,9 +60,9 @@ SET ( WEB_SOURCES
     ${SRC_ROOT}/views/menu.cpp
     ${SRC_ROOT}/views/validators.cpp
 
-    ${SRC_ROOT}/controllers/login.cpp
+ #   ${SRC_ROOT}/controllers/login.cpp
 
-    ${SRC_ROOT}/models/auth.cpp
+ #   ${SRC_ROOT}/models/auth.cpp
 
     ${INCLUDE_ROOT}/views/renderer.hpp
 
@@ -71,9 +71,9 @@ SET ( WEB_SOURCES
     ${INCLUDE_ROOT}/views/menu.hpp
     ${INCLUDE_ROOT}/views/validators.hpp
 
-    ${INCLUDE_ROOT}/controllers/login.hpp
+#    ${INCLUDE_ROOT}/controllers/login.hpp
 
-    ${INCLUDE_ROOT}/models/auth.hpp
+#    ${INCLUDE_ROOT}/models/auth.hpp
 )
 
 SET ( SERVER_SOURCES

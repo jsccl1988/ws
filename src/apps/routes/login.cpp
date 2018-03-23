@@ -1,4 +1,4 @@
-#include <wspp/controllers/login.hpp>
+#include "login.hpp"
 
 #include <wspp/util/crypto.hpp>
 #include <wspp/util/variant.hpp>
@@ -15,10 +15,9 @@
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::server ;
+using namespace wspp::web ;
 
-namespace wspp { namespace web {
-
-class LoginForm: public wspp::web::Form {
+class LoginForm: public Form {
 public:
     LoginForm(User &auth) ;
 
@@ -104,8 +103,3 @@ void LoginController::logout()
     user_.forget() ;
     response_.writeJSON("{}");
 }
-
-
-
-} // namespace web
-} // namespace wspp

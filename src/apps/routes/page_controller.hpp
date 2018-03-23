@@ -9,7 +9,7 @@
 #include <wspp/views/forms.hpp>
 #include <wspp/views/renderer.hpp>
 
-#include <wspp/controllers/login.hpp>
+#include "login.hpp"
 #include "page_view.hpp"
 
 using wspp::db::Connection ;

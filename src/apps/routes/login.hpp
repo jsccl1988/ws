@@ -7,17 +7,14 @@
 #include <wspp/database/connection.hpp>
 #include <wspp/views/renderer.hpp>
 
-#include <wspp/models/auth.hpp>
+#include "auth.hpp"
 
 using wspp::server::Response ;
 using wspp::server::Request ;
 using wspp::server::Session ;
+using wspp::web::TemplateRenderer ;
 
 using std::string ;
-
-namespace wspp {
-namespace web {
-
 
 class LoginController {
 public:
@@ -27,7 +24,6 @@ public:
     bool dispatch() ;
     void login() ;
     void logout() ;
-
 
 protected:
     // sanitize and verify username/password
@@ -42,6 +38,4 @@ private:
     TemplateRenderer &engine_ ;
 };
 
-} // namespace web
-} // namespace wspp
 #endif

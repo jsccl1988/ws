@@ -10,9 +10,8 @@
 #include <wspp/views/renderer.hpp>
 #include <wspp/util/variant.hpp>
 
-#include <wspp/models/auth.hpp>
+#include "auth.hpp"
 
-using wspp::web::User ;
 using wspp::util::Variant ;
 
 #include "route_model.hpp"

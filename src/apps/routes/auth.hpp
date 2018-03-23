@@ -5,8 +5,6 @@
 #include <wspp/server/session.hpp>
 #include <wspp/server/response.hpp>
 
-namespace wspp { namespace web {
-
 using wspp::db::Connection ;
 using wspp::server::Session ;
 using wspp::server::Request ;
@@ -98,8 +96,4 @@ private:
 
     std::map<std::string, Role> role_map_ ;
 };
-
-
-} // namespace web
-} // namespace user
 #endif
