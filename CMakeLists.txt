@@ -15,6 +15,8 @@ FIND_PACKAGE(PostgreSQL)
 FIND_PACKAGE(Boost 1.49 REQUIRED COMPONENTS 
         regex filesystem system coroutine context program_options thread locale )
 
+
+MESSAGE(${CMAKE_CURRENT_BINARY_DIR})
 INCLUDE_DIRECTORIES(
         include
         ${SQLITE3_INCLUDE_DIR}

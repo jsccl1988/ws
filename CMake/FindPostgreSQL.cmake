@@ -120,7 +120,7 @@ find_path(PostgreSQL_TYPE_INCLUDE_DIR
    ${PostgreSQL_ROOT_DIRECTORIES}
   PATH_SUFFIXES
     postgresql
-postgresql/9.3/server
+    postgresql/9.3/server
     pgsql/server
     postgresql/server
     include/server

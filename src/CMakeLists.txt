@@ -117,6 +117,34 @@ SET ( SERVER_SOURCES
     ${SRC_ROOT}/server/filters/gzip_filter.cpp
 )
 
+FIND_PACKAGE(BISON REQUIRED)
+FIND_PACKAGE(FLEX REQUIRED)
+
+FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/template_parser/)
+
+FLEX_TARGET(TEMPLATE_SCANNER ${SRC_ROOT}/template/template.l  ${CMAKE_CURRENT_BINARY_DIR}/template_parser/flex_scanner.cpp)
+BISON_TARGET(TEMPLATE_PARSER ${SRC_ROOT}/template/template.y  ${CMAKE_CURRENT_BINARY_DIR}/template_parser/bison_parser.cpp)
+
+ADD_FLEX_BISON_DEPENDENCY(TEMPLATE_SCANNER TEMPLATE_PARSER COMPILE_FLAGS "-Wconflicts-sr")
+
+LIST(APPEND WEB_SOURCES ${FLEX_TEMPLATE_SCANNER_OUTPUTS} ${BISON_TEMPLATE_PARSER_OUTPUTS}
+#    ${SRC_ROOT}/template/template_eval_context.cpp
+#    ${SRC_ROOT}/template/template_eval_context.hpp
+
+    ${SRC_ROOT}/template/parser.hpp
+    ${SRC_ROOT}/template/parser.cpp
+
+    ${SRC_ROOT}/template/scanner.hpp
+
+    ${SRC_ROOT}/template/template_ast.hpp
+    ${SRC_ROOT}/template/template_ast.cpp
+)
+
+INCLUDE_DIRECTORIES(
+        ${CMAKE_CURRENT_BINARY_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/template/
+)
+
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_util ${Boost_LIBRARIES} ${SQLITE3_LIBRARY} ${CRYPTOPP_LIBRARIES} ${PostgreSQL_LIBRARIES} dl z pthread )
 
@@ -125,6 +153,9 @@ TARGET_LINK_LIBRARIES(wspp_web wspp_util ${Boost_LIBRARIES} )
 
 ADD_LIBRARY(wspp_http_server SHARED ${SERVER_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_http_server wspp_util ${Boost_LIBRARIES} dl z pthread )
+
+ADD_EXECUTABLE(test_parser ${SRC_ROOT}/template/test_parser.cpp)
+TARGET_LINK_LIBRARIES(test_parser wspp_util wspp_web wspp_http_server ${Boost_LIBRARIES} dl z pthread )
 
 ADD_SUBDIRECTORY(apps)
 ADD_SUBDIRECTORY(tools)
