@@ -13,12 +13,18 @@ TemplateParser::TemplateParser(std::istream &strm) :
 {}
 
 bool TemplateParser::parse() {
-       parser_.set_debug_level(2);
+   //    parser_.set_debug_level(14);
 
+       stack_.push_back(std::shared_ptr<ast::ContainerNode>(new ast::DocumentNode()));
     loc_.initialize() ;
     int res = parser_.parse();
 
     return ( res == 0 ) ;
+}
+
+wspp::util::Variant TemplateParser::eval(ast::TemplateEvalContext &ctx)
+{
+    //return root_->eval(ctx) ;
 }
 
 void TemplateParser::error(const yy::Parser::location_type &loc, const std::string& m)

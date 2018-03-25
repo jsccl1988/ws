@@ -1,65 +1,15 @@
 #include "template_ast.hpp"
 
 #include <boost/format.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std ;
+using namespace wspp::util ;
 
 namespace ast {
 
-Literal::Literal(const std::string &val, bool auto_conv)
-{
-    if ( auto_conv ) {
-        char * e;
-        double x = std::strtod(val.c_str(), &e);
 
-        if (*e != 0 ||  errno != 0 )  {
-            type_ = String ;
-            string_val_ = val ;
-        }
-        else
-        {
-            type_ = Number ;
-            number_val_ = x ;
-        }
-    }
-    else {
-        type_ = String ;
-        string_val_ = val ;
-    }
-
-}
-
-bool Literal::toBoolean() const {
-
-    switch ( type_ ) {
-    case Null: return false ;
-    case Boolean: return boolean_val_ ;
-    case Number: return number_val_ != 0.0 ;
-    case String: return ( !string_val_.empty()) ;
-    }
-}
-
-double Literal::toNumber() const {
-
-    switch ( type_ ) {
-    case Null: return 0 ;
-    case Boolean: return (double)boolean_val_ ;
-    case Number: return number_val_ ;
-    case String: return atof(string_val_.c_str()) ;
-    }
-}
-
-string Literal::toString() const {
-    switch ( type_ ) {
-    case Null: return "" ;
-    case Boolean: ( boolean_val_ ) ? "TRUE" : "FALSE" ;
-    case Number: return str(boost::format("%f") % number_val_) ;
-    case String: return string_val_ ;
-    }
-}
-
-
-Literal BooleanOperator::eval(TemplateEvalContext &ctx)
+Variant BooleanOperator::eval(TemplateEvalContext &ctx)
 {
     switch ( op_ ) {
     case And:
@@ -71,24 +21,24 @@ Literal BooleanOperator::eval(TemplateEvalContext &ctx)
     }
 }
 
-Literal ComparisonPredicate::eval(TemplateEvalContext &ctx)
+Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 {
-    Literal lhs = lhs_->eval(ctx) ;
-    Literal rhs = rhs_->eval(ctx) ;
+    Variant lhs = lhs_->eval(ctx) ;
+    Variant rhs = rhs_->eval(ctx) ;
 
     if ( lhs.isNull() || rhs.isNull() ) return false ;
 
     switch ( op_ ) {
     case Equal:
     {
-        if ( lhs.type_ == Literal::String && lhs.type_ == Literal::String )
-            return Literal(lhs.string_val_ == rhs.string_val_) ;
-        else return Literal(lhs.toNumber() == rhs.toNumber()) ;
+        if ( lhs.isString() && rhs.isString() )
+            return Variant(lhs.toString() == rhs.toString()) ;
+        else return Variant(lhs.toNumber() == rhs.toNumber()) ;
     }
     case NotEqual:
-        if ( lhs.type_ == Literal::String && lhs.type_ == Literal::String )
-            return Literal(lhs.string_val_ != rhs.string_val_) ;
-        else return Literal(lhs.toNumber() != rhs.toNumber()) ;
+        if ( lhs.isString() && rhs.isString() )
+            return Variant(lhs.toString() != rhs.toString()) ;
+        else return Variant(lhs.toNumber() != rhs.toNumber()) ;
     case Less:
         return lhs.toNumber() < rhs.toNumber() ;
     case Greater:
@@ -99,191 +49,34 @@ Literal ComparisonPredicate::eval(TemplateEvalContext &ctx)
         return lhs.toNumber() >= rhs.toNumber() ;
     }
 
-    return Literal() ;
-}
-static string globToRegex(const char *pat)
-{
-    // Convert pattern
-    string rx = "(?i)^", be ;
-
-    int i = 0;
-    const char *pc = pat ;
-    int clen = strlen(pat) ;
-    bool inCharClass = false ;
-
-    while (i < clen)
-    {
-        char c = pc[i++];
-
-        switch (c)
-        {
-        case '*':
-            rx += "[^\\\\/]*" ;
-            break;
-        case '?':
-            rx += "[^\\\\/]" ;
-            break;
-        case '$':  //Regex special characters
-        case '(':
-        case ')':
-        case '+':
-        case '.':
-        case '|':
-            rx += '\\';
-            rx += c;
-            break;
-        case '\\':
-            if ( pc[i] == '*' ) rx += "\\*" ;
-            else if ( pc[i] == '?' )  rx += "\\?" ;
-            ++i ;
-            break ;
-        case '[':
-        {
-            if ( inCharClass )  rx += "\\[";
-            else {
-                inCharClass = true ;
-                be += c ;
-            }
-            break ;
-        }
-        case ']':
-        {
-            if ( inCharClass ) {
-                inCharClass = false ;
-                rx += be ;
-                rx += c ;
-                rx += "{1}" ;
-                be.clear() ;
-            }
-            else rx += "\\]" ;
-
-            break ;
-        }
-        case '%':
-        {
-            boost::regex rd("(0\\d)?d") ;
-            boost::smatch what;
-
-            if ( boost::regex_match(std::string(pat + i), what, rd,  boost::match_extra) )
-            {
-
-                rx += "[[:digit:]]" ;
-
-                if ( what.size() == 2 )
-                {
-                    rx +=  "{" ;
-                    rx += what[1] ;
-                    rx += "}" ;
-                }
-                else
-                    rx += "+" ;
-
-                i += what.size() ;
-            }
-            else
-            {
-                if ( inCharClass ) be += c ;
-                else rx += c;
-            }
-            break ;
-
-        }
-        default:
-            if ( inCharClass ) be += c ;
-            else rx += c;
-        }
-    }
-
-    rx += "$" ;
-    return rx ;
-}
-
-LikeTextPredicate::LikeTextPredicate(ExpressionNodePtr op, const std::string &pattern, bool is_pos):
-    exp_(op), is_pos_(is_pos)
-{
-    if ( !pattern.empty() )
-        pattern_ = boost::regex(globToRegex(pattern.c_str())) ;
-
-}
-
-
-Literal LikeTextPredicate::eval(TemplateEvalContext &ctx)
-{
-    Literal op = exp_->eval(ctx) ;
-
-    return boost::regex_match(op.toString(), pattern_) ;
-
-}
-
-ListPredicate::ListPredicate(const string &id, const std::deque<ExpressionNodePtr> &op, bool is_pos):
-    id_(id), children_(op.begin(), op.end()), is_pos_(is_pos)
-{
-    TemplateEvalContext ctx ;
-
-    for(int i=0 ; i<children_.size() ; i++)
-    {
-        string lval = children_[i]->eval(ctx).toString() ;
-        lvals_.push_back(lval) ;
-    }
-
-}
-
-
-Literal ListPredicate::eval(TemplateEvalContext &ctx)
-{
- /*   if ( !ctx.has_tag(id_) ) return Literal() ;
-
-    string val = ctx.value(id_) ;
-
-    for(int i=0 ; i<lvals_.size() ; i++)
-        if ( val == lvals_[i] ) return is_pos_ ;
-
-    return !is_pos_ ;
-    */
-}
-
-/*
-Literal IsTypePredicate::eval(TemplateEvalContext &ctx)
-{
-    if ( keyword_ == "node")
-    {
-        return ctx.type() == TemplateEvalContext::Node ;
-    }
-    else if ( keyword_ == "way" )
-    {
-        return ctx.type() == TemplateEvalContext::Way ;
-    }
-
-}
-*/
-
-Literal Attribute::eval(TemplateEvalContext &ctx)
-{
-    /*
-    if ( !ctx.has_tag(name_) ) return Literal() ;
-
-    return ctx.value(name_) ;
-    */
+    return Variant() ;
 }
 
 
 
-Literal BinaryOperator::eval(TemplateEvalContext &ctx)
+Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
-    Literal op1 = lhs_->eval(ctx) ;
-    Literal op2 = rhs_->eval(ctx) ;
+    auto it = ctx.vals_.find(name_) ;
+    if ( it == ctx.vals_.end() ) return Variant::null() ;
+    else return it->second ;
+}
+
+
+
+Variant BinaryOperator::eval(TemplateEvalContext &ctx)
+{
+    Variant op1 = lhs_->eval(ctx) ;
+    Variant op2 = rhs_->eval(ctx) ;
 
     if ( op_ == '+' )
     {
-        if ( op1.type_ == Literal::String && op2.type_ == Literal::String )
-            return op1.toString() + op2.toString() ;
-        else return op1.toNumber() + op2.toNumber() ;
+        return op1.toNumber() + op2.toNumber() ;
     }
     else if ( op_ == '-' )
     {
         return op1.toNumber() + op2.toNumber() ;
     }
-    else if ( op_ == '.' )
+    else if ( op_ == '~' )
     {
         return op1.toString() + op2.toString() ;
     }
@@ -292,38 +85,110 @@ Literal BinaryOperator::eval(TemplateEvalContext &ctx)
         return op1.toNumber() + op2.toNumber() ;
     }
     else if ( op_ == '/' ) {
-        if ( op2.toNumber() == 0.0 ) return Literal() ;
+        if ( op2.toNumber() == 0.0 ) return Variant::null() ;
         else return op1.toNumber()/op2.toNumber() ;
     }
-
 }
 
-Literal UnaryPredicate::eval(TemplateEvalContext &ctx)
+Variant UnaryPredicate::eval(TemplateEvalContext &ctx)
 {
     return exp_->eval(ctx).toBoolean() ;
 }
 
 
-
-Literal Function::eval(TemplateEvalContext &ctx)
+Variant ArrayNode::eval(TemplateEvalContext &ctx)
 {
-    /*
-    if ( name_ == "is_poi" ) {
-        return ( ctx.type() == TemplateEvalContext::Node )  ;
+    Variant::Array a ;
+
+    for ( ExpressionNodePtr e: elements_->children() ) {
+        a.push_back(e->eval(ctx)) ;
     }
-    else if ( name_ == "is_way" ) {
-        return ctx.type() == TemplateEvalContext::Way ;
-    }
-    else if ( name_ == "is_relation" ) {
-        return ctx.type() == TemplateEvalContext::Relation ;
-    }
-    else {
-        vector<Literal> vals ;
-        for(uint i=0 ; i<args_.size() ; i++)
-            vals.push_back(args_[i]->eval(ctx)) ;
-        return lua_->call(name_, vals) ;
-    }
-*/
+
+    return a ;
 }
+
+Variant DictionaryNode::eval(TemplateEvalContext &ctx)
+{
+    Variant::Object o ;
+
+    for ( KeyValNodePtr kv: elements_->children() ) {
+        o.insert({kv->key_, kv->val_->eval(ctx)}) ;
+    }
+
+    return o ;
+}
+
+Variant SubscriptIndexingNode::eval(TemplateEvalContext &ctx)
+{
+    Variant index = index_->eval(ctx) ;
+    Variant a = array_->eval(ctx) ;
+
+    if ( index.isString() )
+        return a.at(index.toString()) ;
+    else
+        return a.at(index.toNumber()) ;
+}
+
+Variant AttributeIndexingNode::eval(TemplateEvalContext &ctx)
+{
+    Variant o = dict_->eval(ctx) ;
+    return o.at(key_) ;
+}
+
+Variant ApplyFilterNode::eval(TemplateEvalContext &ctx)
+{
+    Variant target = target_->eval(ctx) ;
+
+    return filter_->eval(target, ctx) ;
+}
+
+
+
+Variant FilterNode::eval(const Variant &target, TemplateEvalContext &ctx)
+{
+    Variant::Array args ;
+    args.push_back(target) ;
+    evalArgs(args, ctx) ;
+    return dispatch(name_, args) ;
+}
+
+void FilterNode::evalArgs(Variant::Array &args, TemplateEvalContext &ctx) const
+{
+    if ( !args_ ) return ;
+
+    for ( auto &&e: args_->children() )
+        args.push_back(e->eval(ctx)) ;
+}
+
+Variant FilterNode::dispatch(const string &fname, const Variant::Array &args)
+{
+    if ( fname == "join" ) {
+        string sep = ( args.size() > 1 ) ? args[1].toString() : "" ;
+        string key = ( args.size() == 3 ) ? args[2].toString() : "" ;
+
+        bool is_first = true ;
+        string res ;
+        for( auto &i: args[0] ) {
+            if ( !is_first ) res.append(sep) ;
+            if ( !key.empty() )
+                res.append(i.at(key).toString()) ;
+            else
+                res.append(i.toString()) ;
+            is_first = false ;
+        }
+        return res ;
+    } else if ( fname == "lower" ) {
+        return boost::to_lower_copy(args[0].toString()) ;
+    } else if ( fname == "upper" ) {
+         return boost::to_upper_copy(args[0].toString()) ;
+    }
+
+}
+
+void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+
+}
+
 }
 

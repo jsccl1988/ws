@@ -6,41 +6,36 @@
 #include <vector>
 #include <boost/regex.hpp>
 
+#include <wspp/util/variant.hpp>
+
+using wspp::util::Variant ;
+
 namespace ast {
 
-struct TemplateEvalContext {};
+struct TemplateEvalContext {
+
+    Variant::Object vals_ ;
+};
 
 class ExpressionNode ;
 
 typedef std::shared_ptr<ExpressionNode> ExpressionNodePtr ;
 
-struct Literal {
-public:
-    enum Type { String, Number, Boolean, Null } ;
-
-    Literal(): type_(Null) {}
-    Literal(const std::string &val, bool auto_conv = true) ;
-    Literal(const double val): type_(Number), number_val_(val) {}
-    Literal(const bool val): type_(Boolean), boolean_val_(val) {}
-
-    bool isNull() const { return type_ == Null ; }
-    bool toBoolean() const ;
-    std::string toString() const ;
-    double toNumber() const ;
-
-    Type type_ ;
-    std::string string_val_ ;
-    double number_val_ ;
-    bool boolean_val_ ;
-};
-
-
 class ExpressionNode {
 public:
-
     ExpressionNode() {}
 
-    virtual Literal eval(TemplateEvalContext &ctx) { return false ; }
+    virtual Variant eval(TemplateEvalContext &ctx) = 0 ;
+};
+
+class LiteralNode: public ExpressionNode {
+public:
+
+    LiteralNode(const Variant &v): val_(v) {}
+
+    virtual Variant eval(TemplateEvalContext &ctx) { return val_ ; }
+
+    Variant val_;
 };
 
 class ExpressionList {
@@ -56,48 +51,116 @@ private:
     std::deque<ExpressionNodePtr> children_ ;
 };
 
+
 typedef std::shared_ptr<ExpressionList> ExpressionListPtr ;
 
-
-class LiteralExpressionNode: public ExpressionNode {
+class KeyValNode {
 public:
+    KeyValNode(const std::string &key, ExpressionNodePtr val): key_(key), val_(val) {}
 
-    LiteralExpressionNode(const Literal &l): val_(l) {}
-
-    Literal eval(TemplateEvalContext &ctx) { return val_ ; }
-
-    Literal val_ ;
+    std::string key_;
+    ExpressionNodePtr val_ ;
 };
 
-class Attribute: public ExpressionNode {
-public:
-    Attribute(const std::string name): name_(name) {}
+typedef std::shared_ptr<KeyValNode> KeyValNodePtr ;
 
-    Literal eval(TemplateEvalContext &ctx) ;
+class KeyValList {
+public:
+    KeyValList() {}
+
+    void append(KeyValNodePtr node) { children_.push_back(node) ; }
+    void prepend(KeyValNodePtr node) { children_.push_front(node) ; }
+
+    const std::deque<KeyValNodePtr> &children() const { return children_ ; }
+
+private:
+    std::deque<KeyValNodePtr> children_ ;
+};
+
+typedef std::shared_ptr<KeyValList> KeyValListPtr ;
+
+class IdentifierList {
+public:
+    IdentifierList() {}
+
+    void append(const std::string &item) { children_.push_back(item) ; }
+    void prepend(const std::string &item) { children_.push_front(item) ; }
+
+    const std::deque<std::string> &children() const { return children_ ; }
+
+private:
+    std::deque<std::string> children_ ;
+};
+
+typedef std::shared_ptr<IdentifierList> IdentifierListPtr ;
+
+
+class ValueNode: public ExpressionNode {
+public:
+
+    ValueNode(ExpressionNodePtr &l): val_(l) {}
+
+    Variant eval(TemplateEvalContext &ctx) { return val_->eval(ctx) ; }
+
+    ExpressionNodePtr val_ ;
+};
+
+class IdentifierNode: public ExpressionNode {
+public:
+    IdentifierNode(const std::string name): name_(name) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
 
 private:
     std::string name_ ;
 };
 
-
-class Function: public ExpressionNode {
+class ArrayNode: public ExpressionNode {
 public:
-    Function(const std::string &name): name_(name) {}
-    Function(const std::string &name, const std::deque<ExpressionNodePtr> &args): name_(name), args_(args) {}
+    ArrayNode(ExpressionListPtr elements): elements_(elements) {}
 
-    Literal eval(TemplateEvalContext &ctx) ;
+    Variant eval(TemplateEvalContext &ctx) ;
 
 private:
-    std::string name_ ;
-    std::deque<ExpressionNodePtr> args_ ;
+    ExpressionListPtr elements_ ;
 };
 
+class DictionaryNode: public ExpressionNode {
+public:
+    DictionaryNode(KeyValListPtr elements): elements_(elements) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+private:
+    KeyValListPtr elements_ ;
+};
+
+class SubscriptIndexingNode: public ExpressionNode {
+public:
+    SubscriptIndexingNode(ExpressionNodePtr array, ExpressionNodePtr index): array_(array), index_(index) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+private:
+    ExpressionNodePtr array_, index_ ;
+};
+
+class AttributeIndexingNode: public ExpressionNode {
+public:
+    AttributeIndexingNode(ExpressionNodePtr dict, const std::string &key): dict_(dict), key_(key) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+private:
+    ExpressionNodePtr dict_ ;
+    std::string key_ ;
+};
 
 class BinaryOperator: public ExpressionNode {
 public:
     BinaryOperator(int op, ExpressionNodePtr lhs, ExpressionNodePtr rhs): op_(op), lhs_(lhs), rhs_(rhs) {}
 
-    Literal eval(TemplateEvalContext &ctx) ;
+    Variant eval(TemplateEvalContext &ctx) ;
 
 private:
     int op_ ;
@@ -111,7 +174,7 @@ public:
 
     BooleanOperator(Type op, ExpressionNodePtr lhs, ExpressionNodePtr rhs): op_(op), lhs_(lhs), rhs_(rhs) {}
 
-    Literal eval(TemplateEvalContext &ctx) ;
+    Variant eval(TemplateEvalContext &ctx) ;
 private:
     Type op_ ;
     ExpressionNodePtr lhs_, rhs_ ;
@@ -122,7 +185,7 @@ public:
 
     UnaryPredicate(ExpressionNodePtr exp): exp_(exp) {}
 
-    Literal eval(TemplateEvalContext &ctx) ;
+    Variant eval(TemplateEvalContext &ctx) ;
 
     ExpressionNodePtr exp_ ;
 };
@@ -134,39 +197,96 @@ public:
     ComparisonPredicate(Type op, ExpressionNodePtr lhs, ExpressionNodePtr rhs): op_(op), lhs_(lhs), rhs_(rhs) {}
 
 
-    Literal eval(TemplateEvalContext &ctx) ;
+    Variant eval(TemplateEvalContext &ctx) ;
 
 private:
     Type op_ ;
     ExpressionNodePtr lhs_, rhs_ ;
 };
 
-class LikeTextPredicate: public ExpressionNode {
+class FilterNode {
 public:
+    FilterNode(const std::string &name, ExpressionListPtr args): name_(name), args_(args) {}
+    FilterNode(const std::string &name): name_(name) {}
 
-    LikeTextPredicate(ExpressionNodePtr op, const std::string &pattern_, bool is_pos) ;
+    Variant eval(const Variant &target, TemplateEvalContext &ctx) ;
 
-    Literal eval(TemplateEvalContext &ctx) ;
-private:
-    ExpressionNodePtr exp_ ;
-    boost::regex pattern_ ;
-    bool is_pos_ ;
-};
-
-class ListPredicate: public ExpressionNode {
-public:
-
-    ListPredicate(const std::string &identifier, const std::deque<ExpressionNodePtr> &op, bool is_pos) ;
-
-    Literal eval(TemplateEvalContext &ctx) ;
+    void evalArgs(Variant::Array &args, TemplateEvalContext &ctx) const ;
+    static Variant dispatch(const std::string &, const Variant::Array &args) ;
 
 private:
-    std::vector<ExpressionNodePtr> children_ ;
-    std::string id_ ;
-    std::vector<std::string> lvals_ ;
-    bool is_pos_ ;
+    std::string name_ ;
+    ExpressionListPtr args_ ;
+};
+
+typedef std::shared_ptr<FilterNode> FilterNodePtr ;
+
+class ApplyFilterNode: public ExpressionNode {
+public:
+    ApplyFilterNode(ExpressionNodePtr target, FilterNodePtr filter): target_(target), filter_(filter) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+
+private:
+    ExpressionNodePtr target_ ;
+    FilterNodePtr filter_ ;
+};
+
+class ContentNode {
+public:
+    // evalute a node using input context and put result in res
+    virtual void eval(TemplateEvalContext &ctx, std::string &res) const = 0 ;
+
+    static std::string escape(const std::string &src) ;
+};
+
+typedef std::shared_ptr<ContentNode> ContentNodePtr ;
+
+class ContainerNode: public ContentNode {
+public:
+
+    std::vector<ContentNodePtr> children_ ;
+};
+
+typedef std::shared_ptr<ContainerNode> ContainerNodePtr ;
+
+class ForLoopBlockNode: public ContainerNode {
+public:
+
+    ForLoopBlockNode(IdentifierListPtr ids, ExpressionNodePtr target): ids_(std::move(ids->children())), target_(target) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    uint else_child_start_ = 0 ;
+
+    std::deque<std::string> ids_ ;
+    ExpressionNodePtr target_ ;
+};
+
+class RawTextNode: public ContentNode {
+public:
+    RawTextNode(const std::string &text): text_(text) {
+        std::cout << text << std::endl ;
+    }
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override {
+        res.append(text_) ;
+    }
+
+    std::string text_ ;
+};
+
+class DocumentNode: public ContainerNode {
+public:
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override {
+        for( auto &&e: children_ )
+            e->eval(ctx, res) ;
+    }
 
 };
+
 
 } // namespace template_ast
 

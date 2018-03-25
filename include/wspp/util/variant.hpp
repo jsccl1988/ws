@@ -166,6 +166,13 @@ public:
     bool isArray() const { return tag_ == Tag::Array ; }
     bool isNull() const { return tag_ == Tag::Null ; }
 
+    bool isString() const { return tag_ == Tag::String ; }
+    bool isNumber() const {
+        return ( tag_ == Tag::SInteger ) ||
+               ( tag_ == Tag::UInteger ) ||
+               ( tag_ == Tag::Float ) ;
+    }
+
     // check if variant stores simple type string, number, integer or boolean
     bool isPrimitive() const {
         return ( tag_ == Tag::String ||
@@ -204,6 +211,43 @@ public:
         default:
             return std::string();
         }
+    }
+
+    double toNumber() const {
+        switch (tag_)
+        {
+        case Tag::String:
+            return std::stod(*s_);
+        case Tag::Boolean:
+            return (double)b_ ;
+        case Tag::SInteger:
+            return (double)si_ ;
+        case Tag::UInteger:
+            return (double)ui_ ;
+        case Tag::Float:
+            return (double)f_ ;
+        default:
+            return 0.0;
+        }
+    }
+
+    bool toBoolean() const {
+        switch (tag_)
+        {
+        case Tag::String:
+            return !(s_->empty()) ;
+        case Tag::Boolean:
+            return b_ ;
+        case Tag::SInteger:
+            return (bool)si_ ;
+        case Tag::UInteger:
+            return (bool)ui_ ;
+        case Tag::Float:
+            return f_ != 0 ;
+        default:
+            return false;
+        }
+
     }
 
     // Return the keys of an Object otherwise an empty list
