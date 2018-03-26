@@ -14,25 +14,14 @@ namespace ast {
 
 struct TemplateEvalContext {
 
-    Variant::Object &push() {
-        if ( stack_.empty() )
-            stack_.push(Variant::Object()) ;
-        else
-            stack_.push(stack_.top()) ;
-        return top() ;
+    Variant::Object &data() {
+        return data_ ;
     }
 
-    void pop() {
-        if ( !stack_.empty())
-            stack_.pop() ;
-    }
-
-    Variant::Object &top() {
-        return stack_.top() ;
-    }
-
-    std::stack<Variant::Object> stack_ ;
+    Variant::Object data_ ;
 };
+
+enum class WhiteSpace { TrimNone, TrimBoth, TrimLeft, TrimRight } ;
 
 class ExpressionNode ;
 
@@ -262,12 +251,16 @@ private:
 
 class ContentNode {
 public:
+    ContentNode(WhiteSpace ws = WhiteSpace::TrimNone): ws_(ws) {}
+    virtual ~ContentNode() {}
     // evalute a node using input context and put result in res
     virtual void eval(TemplateEvalContext &ctx, std::string &res) const = 0 ;
 
-
+    std::string trim(const std::string &src) const;
 
     static std::string escape(const std::string &src) ;
+
+    WhiteSpace ws_ ;
 };
 
 typedef std::shared_ptr<ContentNode> ContentNodePtr ;
@@ -327,6 +320,32 @@ public:
 
 };
 
+class AssignmentBlockNode: public ContainerNode {
+public:
+
+    AssignmentBlockNode(const std::string &id, ExpressionNodePtr val): id_(id), val_(val) { }
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    virtual std::string endContainerTag() const { return "endset" ; }
+
+    ExpressionNodePtr val_ ;
+    std::string id_ ;
+
+};
+
+class FilterBlockNode: public ContainerNode {
+public:
+
+    FilterBlockNode(FilterNodePtr filter): filter_(filter) { }
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    virtual std::string endContainerTag() const { return "endfilter" ; }
+
+    FilterNodePtr filter_ ;
+};
+
 class RawTextNode: public ContentNode {
 public:
     RawTextNode(const std::string &text): text_(text) {}
@@ -340,10 +359,11 @@ public:
 
 class SubTextNode: public ContentNode {
 public:
-    SubTextNode(ExpressionNodePtr expr): expr_(expr) {}
+    SubTextNode(ExpressionNodePtr expr, WhiteSpace ws = WhiteSpace::TrimNone): expr_(expr), ContentNode(ws) {}
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override {
-        res.append(expr_->eval(ctx).toString()) ;
+        std::string contents = expr_->eval(ctx).toString() ;
+        res.append(trim(contents)) ;
     }
 
     ExpressionNodePtr expr_ ;

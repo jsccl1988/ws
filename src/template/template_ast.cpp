@@ -56,8 +56,8 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
-    auto it = ctx.top().find(name_) ;
-    if ( it == ctx.top().end() ) return Variant::null() ;
+    auto it = ctx.data().find(name_) ;
+    if ( it == ctx.data().end() ) return Variant::null() ;
     else return it->second ;
 }
 
@@ -191,9 +191,9 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     int asize = target.length() ;
 
     if ( asize > 0 ) {
-        int child_count = ( else_child_start_ < 0 ) ? asize : else_child_start_ ;
+        int child_count = ( else_child_start_ < 0 ) ? children_.size() : else_child_start_ ;
         for ( auto it = target.begin() ; it != target.end() ; ++it, counter++  ) {
-            auto &&t = ctx.push() ;
+            TemplateEvalContext tctx(ctx) ;
 
             Variant::Object loop{ {"index0", counter},
                                   {"index", counter+1},
@@ -203,26 +203,22 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
                                   {"last", counter == asize-1},
                                   {"length", asize}
                                 } ;
-            t["loop"] = loop ;
+            tctx.data()["loop"] = loop ;
 
             uint i = 0 ;
             for( auto &&c: children_ ) {
                 if ( ++i > child_count ) break ;
                 if ( ids_.size() == 1 ) {
-                    auto &&t = ctx.push() ;
-                    t[ids_[0]] = *it ;
-                    c->eval(ctx, res) ;
-                    ctx.pop() ;
+                    TemplateEvalContext cctx(tctx) ;
+                    cctx.data()[ids_[0]] = *it ;
+                    c->eval(cctx, res) ;
                 } else if ( ids_.size() == 2 ) {
-                    auto &&t = ctx.push() ;
-                    t[ids_[0]] =  it.key() ;
-                    t[ids_[1]] =  it.value() ;
-                    c->eval(ctx, res) ;
-                    ctx.pop() ;
+                    TemplateEvalContext cctx(tctx) ;
+                    cctx.data()[ids_[0]] =  it.key() ;
+                    cctx.data()[ids_[1]] =  it.value() ;
+                    c->eval(cctx, res) ;
                 }
             }
-
-            ctx.pop() ;
         }
     } else if ( else_child_start_ >= 0 ) {
 
@@ -252,6 +248,36 @@ Variant TernaryExpressionNode::eval(TemplateEvalContext &ctx)
     if ( condition_->eval(ctx).toBoolean() )
         return positive_->eval(ctx) ;
     else return negative_ ? negative_->eval(ctx) : Variant::null() ;
+}
+
+void AssignmentBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    Variant val = val_->eval(ctx) ;
+    TemplateEvalContext ectx(ctx) ;
+    ectx.data()[id_] = val ;
+    for( auto &&c: children_ )
+        c->eval(ectx, res) ;
+}
+
+void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    string block_res ;
+    for( auto &&c: children_ )
+        c->eval(ctx, block_res) ;
+    string result = filter_->eval(block_res, ctx).toString() ;
+    res.append(std::move(result)) ;
+}
+
+string ContentNode::trim(const string &src) const
+{
+    if ( ws_ == WhiteSpace::TrimLeft )
+        return boost::trim_left_copy(src) ;
+    else if ( ws_ == WhiteSpace::TrimRight )
+        return boost::trim_right_copy(src) ;
+    else if ( ws_ == WhiteSpace::TrimBoth )
+        return boost::trim_copy(src) ;
+    else
+        return std::move(src) ;
 }
 
 }

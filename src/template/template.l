@@ -13,11 +13,14 @@ void comment() ;
 %option debug
 %option case-insensitive
 
-%x COMMENT TAG SUBS
+%x COMMENT TAG SUBS TCOMMENT
 
 %{
 # define YY_USER_ACTION  yylloc->columns (yyleng);
-        using namespace std ;
+using namespace std ;
+
+#define TOKEN(name) yy::Parser::make_##name(*yylloc)
+
 %}
 %%
 
@@ -26,75 +29,77 @@ void comment() ;
 %}
 
 <TAG>{
-  "block" return yy::Parser::make_BEGIN_BLOCK(*yylloc) ;
-  "endblock" return yy::Parser::make_END_BLOCK(*yylloc) ;
-  "for"     return yy::Parser::make_FOR(*yylloc) ;
-  "endfor"  return yy::Parser::make_END_FOR(*yylloc) ;
-  "elif"    return yy::Parser::make_ELSE_IF(*yylloc) ;
-  "endif"    return yy::Parser::make_END_IF(*yylloc) ;
-
-  "in"	    return yy::Parser::make_IN(*yylloc);
-  "%}" { BEGIN(INITIAL) ;  return yy::Parser::make_END_BLOCK_TAG(*yylloc) ; }
+  "block"       return TOKEN(T_BEGIN_BLOCK) ;
+  "endblock"    return TOKEN(T_END_BLOCK) ;
+  "for"         return TOKEN(T_FOR) ;
+  "endfor"      return TOKEN(T_END_FOR) ;
+  "elif"        return TOKEN(T_ELSE_IF) ;
+  "endif"       return TOKEN(T_END_IF) ;
+  "set"         return TOKEN(T_SET) ;
+  "endset"      return TOKEN(T_END_SET) ;
+  "filter"      return TOKEN(T_FILTER) ;
+  "endfilter"   return TOKEN(T_END_FILTER) ;
+  "in"          return TOKEN(T_IN);
+  "%}"          { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG) ; }
+  "-%}"         { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG_TRIM) ; }
 }
 
 <TAG,SUBS>{
 
-"if"    return yy::Parser::make_IF(*yylloc) ;
-"else"    return yy::Parser::make_ELSE(*yylloc) ;
-"and"   return yy::Parser::make_AND(*yylloc);
-"&&"    return yy::Parser::make_AND(*yylloc);
-"or"    return yy::Parser::make_OR(*yylloc);
-"||"    return yy::Parser::make_OR(*yylloc);
-"not"	return yy::Parser::make_NOT(*yylloc);
+"if"    return TOKEN(T_IF) ;
+"else"  return TOKEN(T_ELSE) ;
+"and"   return TOKEN(T_AND);
+"&&"    return TOKEN(T_AND);
+"or"    return TOKEN(T_OR);
+"||"    return TOKEN(T_OR);
+"not"	return TOKEN(T_NOT);
 
-"true"  return yy::Parser::make_TRUEX(*yylloc);
-"false" return yy::Parser::make_FALSEX(*yylloc);
-"null"  return yy::Parser::make_NULLX(*yylloc);
+"true"  return TOKEN(T_TRUE);
+"false" return TOKEN(T_FALSE);
+"null"  return TOKEN(T_NULL);
 
-"="     return yy::Parser::make_ASSIGN(*yylloc) ;
-"=="    return yy::Parser::make_EQUAL(*yylloc) ;
-"<>"    return yy::Parser::make_NOT_EQUAL(*yylloc) ;
-"!="    return yy::Parser::make_NOT_EQUAL(*yylloc) ;
-"<"     return yy::Parser::make_LESS_THAN(*yylloc) ;
-">"     return yy::Parser::make_GREATER_THAN(*yylloc) ;
-"<="	return yy::Parser::make_LESS_THAN_OR_EQUAL(*yylloc) ;
-">="	return yy::Parser::make_GREATER_THAN_OR_EQUAL(*yylloc) ;
-"~"     return yy::Parser::make_TILDE(*yylloc) ;
-"!~"    return yy::Parser::make_NOT_MATCHES(*yylloc) ;
-"!"     return yy::Parser::make_NOT(*yylloc) ;
-"^"		return yy::Parser::make_EXISTS(*yylloc) ;
-"("     return yy::Parser::make_LPAR(*yylloc) ;
-")"     return yy::Parser::make_RPAR(*yylloc) ;
-"+"     return yy::Parser::make_PLUS(*yylloc) ;
-"-"     return yy::Parser::make_MINUS(*yylloc) ;
-"*"     return yy::Parser::make_STAR(*yylloc) ;
-"/"     return yy::Parser::make_DIV(*yylloc) ;
-","     return yy::Parser::make_COMMA(*yylloc) ;
-"{"		return yy::Parser::make_LEFT_BRACE(*yylloc) ;
-"}"		return yy::Parser::make_RIGHT_BRACE(*yylloc) ;
-"."     return yy::Parser::make_PERIOD(*yylloc) ;
-"]"		return yy::Parser::make_RIGHT_BRACKET(*yylloc) ;
-"["	    return yy::Parser::make_LEFT_BRACKET(*yylloc) ;
-":"	    return yy::Parser::make_COLON(*yylloc) ;
-"|"	    return yy::Parser::make_BAR(*yylloc) ;
-
+"="     return TOKEN(T_ASSIGN) ;
+"=="    return TOKEN(T_EQUAL) ;
+"<>"    return TOKEN(T_NOT_EQUAL) ;
+"!="    return TOKEN(T_NOT_EQUAL) ;
+"<"     return TOKEN(T_LESS_THAN) ;
+">"     return TOKEN(T_GREATER_THAN) ;
+"<="	return TOKEN(T_LESS_THAN_OR_EQUAL) ;
+">="	return TOKEN(T_GREATER_THAN_OR_EQUAL) ;
+"~"     return TOKEN(T_TILDE) ;
+"!~"    return TOKEN(T_NOT_MATCHES) ;
+"!"     return TOKEN(T_NOT) ;
+"("     return TOKEN(T_LPAR) ;
+")"     return TOKEN(T_RPAR) ;
+"+"     return TOKEN(T_PLUS) ;
+"-"     return TOKEN(T_MINUS) ;
+"*"     return TOKEN(T_STAR) ;
+"/"     return TOKEN(T_DIV) ;
+","     return TOKEN(T_COMMA) ;
+"{"		return TOKEN(T_LEFT_BRACE) ;
+"}"		return TOKEN(T_RIGHT_BRACE) ;
+"."     return TOKEN(T_PERIOD) ;
+"]"		return TOKEN(T_RIGHT_BRACKET) ;
+"["	    return TOKEN(T_LEFT_BRACKET) ;
+":"	    return TOKEN(T_COLON) ;
+"|"	    return TOKEN(T_BAR) ;
 
 [a-zA-Z][a-zA-Z0-9_]* {
-            return yy::Parser::make_IDENTIFIER(yytext, *yylloc);
+    return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
 }
 
-[+-]?[0-9]+	  return yy::Parser::make_INTEGER(atof(yytext), *yylloc) ;
+[+-]?[0-9]+	  return yy::Parser::make_T_INTEGER(atof(yytext), *yylloc) ;
 
 [+-]?[0-9]+"."[0-9]*    |
 [+-]?"."[0-9]*	|
 [+-]?[0-9]+[eE][+-]?[0-9]+	|
 [+-]?[0-9]+"."[0-9]*[eE][+-]?[0-9]+ |
 [+-]?"."[0-9]*[eE][+-]?[0-9]+ {
-        return yy::Parser::make_FLOAT(atof(yytext), *yylloc) ;
+    return yy::Parser::make_T_FLOAT(atof(yytext), *yylloc) ;
 }
 
-\"[^\"]*\" { return yy::Parser::make_STRING(std::string(yytext+1, yyleng-2), *yylloc) ; }
-\'[^\']*\' { return yy::Parser::make_STRING(std::string(yytext+1, yyleng-2), *yylloc) ; }
+\"[^\"]*\" { return yy::Parser::make_T_STRING(std::string(yytext+1, yyleng-2), *yylloc) ; }
+\'[^\']*\' { return yy::Parser::make_T_STRING(std::string(yytext+1, yyleng-2), *yylloc) ; }
 
 "#"[^\n]*\n { yylloc->step();}
 
@@ -103,7 +108,8 @@ void comment() ;
 }
 
 <SUBS>{
-"}}"    { BEGIN(INITIAL) ; return yy::Parser::make_DOUBLE_RIGHT_BRACE(*yylloc) ; }
+"}}"    { BEGIN(INITIAL) ; return TOKEN(T_DOUBLE_RIGHT_BRACE) ; }
+"-}}"    { BEGIN(INITIAL) ; return TOKEN(T_DOUBLE_RIGHT_BRACE_TRIM) ; }
 }
 
 [\n]+   yylloc->lines (yyleng); yylloc->step ();
@@ -114,15 +120,22 @@ void comment() ;
 <COMMENT>"*/" { BEGIN(TAG) ; }
 <COMMENT>.  { yylloc->step (); }
 
+<TCOMMENT>\n { yylloc->lines (); yylloc->step ();}
+<TCOMMENT>"*}" { BEGIN(INITIAL) ; }
+<TCOMMENT>.  { yylloc->step (); }
 
-"{{"    { BEGIN(SUBS) ; return yy::Parser::make_DOUBLE_LEFT_BRACE(*yylloc) ; }
-"{%" { BEGIN(TAG); return yy::Parser::make_START_BLOCK_TAG(*yylloc) ; }
+
+"{{"    { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE) ; }
+"{{-"   { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE_TRIM) ; }
+"{%" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG) ; }
+"{%-" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG_TRIM) ; }
+"{#" { BEGIN(TCOMMENT) ; }
 "{"|[^{]* {
 /* this introduces a costly copy */
-           return yy::Parser::make_RAW_CHARACTERS(std::string(yytext, yyleng), *yylloc) ;
+    return yy::Parser::make_T_RAW_CHARACTERS(std::string(yytext, yyleng), *yylloc) ;
 }
 
-<<EOF>>    return yy::Parser::make_END(*yylloc);
+<<EOF>>  return TOKEN(T_END);
 %%
 
 
