@@ -1,9 +1,6 @@
 %{
-
 #include "parser.hpp"
-
 #include "bison_parser.hpp"
-
 
 #include <string.h>
 
@@ -26,7 +23,6 @@ void comment() ;
 
 %{
    yylloc->step();
-
 %}
 
 <TAG>{
@@ -34,13 +30,17 @@ void comment() ;
   "endblock" return yy::Parser::make_END_BLOCK(*yylloc) ;
   "for"     return yy::Parser::make_FOR(*yylloc) ;
   "endfor"  return yy::Parser::make_END_FOR(*yylloc) ;
-  "else"    return yy::Parser::make_ELSE(*yylloc) ;
+  "elif"    return yy::Parser::make_ELSE_IF(*yylloc) ;
+  "endif"    return yy::Parser::make_END_IF(*yylloc) ;
+
   "in"	    return yy::Parser::make_IN(*yylloc);
   "%}" { BEGIN(INITIAL) ;  return yy::Parser::make_END_BLOCK_TAG(*yylloc) ; }
 }
 
 <TAG,SUBS>{
 
+"if"    return yy::Parser::make_IF(*yylloc) ;
+"else"    return yy::Parser::make_ELSE(*yylloc) ;
 "and"   return yy::Parser::make_AND(*yylloc);
 "&&"    return yy::Parser::make_AND(*yylloc);
 "or"    return yy::Parser::make_OR(*yylloc);
@@ -118,6 +118,7 @@ void comment() ;
 "{{"    { BEGIN(SUBS) ; return yy::Parser::make_DOUBLE_LEFT_BRACE(*yylloc) ; }
 "{%" { BEGIN(TAG); return yy::Parser::make_START_BLOCK_TAG(*yylloc) ; }
 "{"|[^{]* {
+/* this introduces a costly copy */
            return yy::Parser::make_RAW_CHARACTERS(std::string(yytext, yyleng), *yylloc) ;
 }
 

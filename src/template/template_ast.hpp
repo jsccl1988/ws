@@ -14,7 +14,24 @@ namespace ast {
 
 struct TemplateEvalContext {
 
-    Variant::Object vals_ ;
+    Variant::Object &push() {
+        if ( stack_.empty() )
+            stack_.push(Variant::Object()) ;
+        else
+            stack_.push(stack_.top()) ;
+        return top() ;
+    }
+
+    void pop() {
+        if ( !stack_.empty())
+            stack_.pop() ;
+    }
+
+    Variant::Object &top() {
+        return stack_.top() ;
+    }
+
+    std::stack<Variant::Object> stack_ ;
 };
 
 class ExpressionNode ;
@@ -204,6 +221,16 @@ private:
     ExpressionNodePtr lhs_, rhs_ ;
 };
 
+class TernaryExpressionNode: public ExpressionNode {
+public:
+    TernaryExpressionNode(ExpressionNodePtr cond, ExpressionNodePtr t, ExpressionNodePtr f): condition_(cond), positive_(t), negative_(f) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+private:
+    ExpressionNodePtr condition_, positive_, negative_ ;
+};
+
+
 class FilterNode {
 public:
     FilterNode(const std::string &name, ExpressionListPtr args): name_(name), args_(args) {}
@@ -238,6 +265,8 @@ public:
     // evalute a node using input context and put result in res
     virtual void eval(TemplateEvalContext &ctx, std::string &res) const = 0 ;
 
+
+
     static std::string escape(const std::string &src) ;
 };
 
@@ -246,6 +275,7 @@ typedef std::shared_ptr<ContentNode> ContentNodePtr ;
 class ContainerNode: public ContentNode {
 public:
 
+    virtual std::string endContainerTag() const { return {} ; }
     std::vector<ContentNodePtr> children_ ;
 };
 
@@ -258,24 +288,67 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    uint else_child_start_ = 0 ;
+    virtual std::string endContainerTag() const { return "endfor" ; }
+
+    void startElseBlock() {
+        else_child_start_ = children_.size() ;
+    }
+
+    int else_child_start_ = -1 ;
 
     std::deque<std::string> ids_ ;
     ExpressionNodePtr target_ ;
 };
 
-class RawTextNode: public ContentNode {
+
+class IfBlockNode: public ContainerNode {
 public:
-    RawTextNode(const std::string &text): text_(text) {
-        std::cout << text << std::endl ;
+
+    IfBlockNode(ExpressionNodePtr target) { addBlock(target) ; }
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    virtual std::string endContainerTag() const { return "endif" ; }
+
+    void addBlock(ExpressionNodePtr ptr) {
+        if ( !blocks_.empty() ) {
+            blocks_.back().cstop_ = children_.size() ;
+        }
+        int cstart = blocks_.empty() ? 0 : blocks_.back().cstop_ ;
+        blocks_.push_back({cstart, -1, ptr}) ;
     }
 
-    void eval(TemplateEvalContext &ctx, std::string &res) const override {
+    struct Block {
+        int cstart_, cstop_ ;
+        ExpressionNodePtr condition_ ;
+    } ;
+
+    std::vector<Block> blocks_ ;
+
+};
+
+class RawTextNode: public ContentNode {
+public:
+    RawTextNode(const std::string &text): text_(text) {}
+
+    void eval(TemplateEvalContext &, std::string &res) const override {
         res.append(text_) ;
     }
 
     std::string text_ ;
 };
+
+class SubTextNode: public ContentNode {
+public:
+    SubTextNode(ExpressionNodePtr expr): expr_(expr) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override {
+        res.append(expr_->eval(ctx).toString()) ;
+    }
+
+    ExpressionNodePtr expr_ ;
+};
+
 
 class DocumentNode: public ContainerNode {
 public:

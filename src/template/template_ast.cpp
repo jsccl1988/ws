@@ -56,8 +56,8 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
-    auto it = ctx.vals_.find(name_) ;
-    if ( it == ctx.vals_.end() ) return Variant::null() ;
+    auto it = ctx.top().find(name_) ;
+    if ( it == ctx.top().end() ) return Variant::null() ;
     else return it->second ;
 }
 
@@ -180,14 +180,78 @@ Variant FilterNode::dispatch(const string &fname, const Variant::Array &args)
     } else if ( fname == "lower" ) {
         return boost::to_lower_copy(args[0].toString()) ;
     } else if ( fname == "upper" ) {
-         return boost::to_upper_copy(args[0].toString()) ;
+        return boost::to_upper_copy(args[0].toString()) ;
     }
-
 }
 
 void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
+    uint counter = 0 ;
+    Variant target = target_->eval(ctx) ;
+    int asize = target.length() ;
 
+    if ( asize > 0 ) {
+        int child_count = ( else_child_start_ < 0 ) ? asize : else_child_start_ ;
+        for ( auto it = target.begin() ; it != target.end() ; ++it, counter++  ) {
+            auto &&t = ctx.push() ;
+
+            Variant::Object loop{ {"index0", counter},
+                                  {"index", counter+1},
+                                  {"revindex0", asize - counter - 1},
+                                  {"revindex1", asize - counter},
+                                  {"first", counter == 0},
+                                  {"last", counter == asize-1},
+                                  {"length", asize}
+                                } ;
+            t["loop"] = loop ;
+
+            uint i = 0 ;
+            for( auto &&c: children_ ) {
+                if ( ++i > child_count ) break ;
+                if ( ids_.size() == 1 ) {
+                    auto &&t = ctx.push() ;
+                    t[ids_[0]] = *it ;
+                    c->eval(ctx, res) ;
+                    ctx.pop() ;
+                } else if ( ids_.size() == 2 ) {
+                    auto &&t = ctx.push() ;
+                    t[ids_[0]] =  it.key() ;
+                    t[ids_[1]] =  it.value() ;
+                    c->eval(ctx, res) ;
+                    ctx.pop() ;
+                }
+            }
+
+            ctx.pop() ;
+        }
+    } else if ( else_child_start_ >= 0 ) {
+
+        for( uint count = else_child_start_ ; count < children_.size() ; count ++ ) {
+                children_[count]->eval(ctx, res) ;
+        }
+    }
+}
+
+void IfBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    for( const Block &b: blocks_ ) {
+        int c_start = b.cstart_ ;
+        int c_stop = ( b.cstop_ == -1 ) ? children_.size() : b.cstop_ ;
+        if (  !b.condition_ || b.condition_->eval(ctx).toBoolean() ) {
+            for( int c = c_start ; c < c_stop ; c++ ) {
+                children_[c]->eval(ctx, res) ;
+            }
+            return ;
+        }
+    }
+
+}
+
+Variant TernaryExpressionNode::eval(TemplateEvalContext &ctx)
+{
+    if ( condition_->eval(ctx).toBoolean() )
+        return positive_->eval(ctx) ;
+    else return negative_ ? negative_->eval(ctx) : Variant::null() ;
 }
 
 }

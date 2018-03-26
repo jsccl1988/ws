@@ -60,6 +60,9 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token FOR "for"
 %token END_FOR "endfor"
 %token ELSE "else"
+%token ELSE_IF "elif"
+%token END_IF "endif"
+%token IF "if"
 %token SET_CMD "set tag"
 %token DELETE_CMD "delete tag"
 %token WRITE_CMD "write"
@@ -68,7 +71,6 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token IN "in"
 %token START_BLOCK_TAG "<%"
 %token END_BLOCK_TAG "%>"
-%token RAW_CHARACTERS "raw characters";
 %token BEGIN_BLOCK "block"
 %token END_BLOCK "endblock"
 %token DOUBLE_LEFT_BRACE "{{"
@@ -77,7 +79,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token BAR "|"
 
 %token <std::string> IDENTIFIER "identifier";
-%token <std::string> RAW_CHARACTERS "identifier";
+%token <std::string> RAW_CHARACTERS "raw characters";
 %token <int64_t> INTEGER "integer";
 %token <double> FLOAT "float";
 %token <std::string> STRING "string literal";
@@ -86,7 +88,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 %type <ast::ExpressionNodePtr> boolean_value_expression boolean_term boolean_factor boolean_primary predicate comparison_predicate
 %type <ast::ExpressionNodePtr> expression term factor primary_expression value array object
-%type <ast::ExpressionNodePtr> unary_predicate
+%type <ast::ExpressionNodePtr> unary_predicate ternary
 %type <ast::ExpressionListPtr> expression_list filter_argument_list
 %type <ast::KeyValListPtr> key_val_list
 %type <ast::KeyValNodePtr> key_val
@@ -96,12 +98,16 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 /*operators */
 
+
+%right IF ELSE
 %left OR
 %left AND
 %left LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL NOT_EQUAL
 %left PLUS MINUS TILDE
 %left STAR DIV
+
 %nonassoc UMINUS EXISTS
+
 
 %start document
 
@@ -117,17 +123,18 @@ mixed_tag_chars_list:
 
 
 tag_or_chars:
-    block_tag        { $$ = $1 ; }
-    | sub_tag        { $$ = $1 ; }
+    block_tag
+    | sub_tag
     | RAW_CHARACTERS {
-    driver.addNode(std::make_shared<ast::RawTextNode>($1)) ;
+        driver.addNode(std::make_shared<ast::RawTextNode>($1)) ;
     }
 
 block_tag:
-    START_BLOCK_TAG tag_declaration END_BLOCK_TAG ;
+START_BLOCK_TAG tag_declaration END_BLOCK_TAG
+;
 
 sub_tag:
-    DOUBLE_LEFT_BRACE expression DOUBLE_RIGHT_BRACE { driver.root_ = $2 ; }
+    DOUBLE_LEFT_BRACE expression DOUBLE_RIGHT_BRACE { driver.addNode(std::make_shared<ast::SubTextNode>($2)) ; }
 
 tag_declaration:
     block_declaration
@@ -135,6 +142,10 @@ tag_declaration:
    | for_loop_declaration
    | else_declaration
    | end_for_declaration
+   | if_declaration
+   | else_if_declaration
+   | end_if_declaration
+  ;
 
 block_declaration:
     BEGIN_BLOCK IDENTIFIER
@@ -153,7 +164,28 @@ end_for_declaration:
     END_FOR { driver.popBlock() ; }
 
 else_declaration:
-    ELSE
+    ELSE {
+        if ( ast::ForLoopBlockNode *p = dynamic_cast<ast::ForLoopBlockNode *>(driver.stack_.back().get()) )
+            p->startElseBlock() ;
+        else if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stack_.back().get()) )
+            p->addBlock(nullptr) ;
+    }
+
+if_declaration:
+   IF boolean_value_expression {
+        auto node = std::make_shared<ast::IfBlockNode>($2) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node);
+   }
+
+else_if_declaration:
+    ELSE_IF boolean_value_expression {
+        if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stack_.back().get()) )
+            p->addBlock($2) ;
+    }
+
+end_if_declaration:
+    END_IF { driver.popBlock() ; }
 
 identifier_list:
     IDENTIFIER                          { $$ = std::make_shared<ast::IdentifierList>() ; $$->append($1) ; }
@@ -176,7 +208,7 @@ boolean_factor:
 	;
 
 boolean_primary:
-        predicate				{ $$ = $1 ; }
+      predicate				{ $$ = $1 ; }
 	| LPAR boolean_value_expression RPAR	{ $$ = $2 ; }
 	;
 
@@ -217,13 +249,23 @@ term:
 primary_expression
                         : IDENTIFIER            { $$ = std::make_shared<ast::IdentifierNode>($1) ; }
                         | value                 { $$ = std::make_shared<ast::ValueNode>($1) ; }
+                        | ternary               { $$ = $1 ; }
                         |  LPAR expression RPAR { $$ = $2 ; }
+;
+
+ternary:
+  primary_expression IF boolean_value_expression ELSE primary_expression    {  $$ = std::make_shared<ast::TernaryExpressionNode>($3, $1, $5) ; }
+ |   primary_expression IF boolean_value_expression                            {  $$ = std::make_shared<ast::TernaryExpressionNode>($3, $1, nullptr) ; }
+
+
 
 factor
         : primary_expression                                { $$ = $1 ; }
         | factor  LEFT_BRACKET expression RIGHT_BRACKET     { $$ = std::make_shared<ast::SubscriptIndexingNode>($1, $3) ; }
         | factor BAR filter                                 { $$ = std::make_shared<ast::ApplyFilterNode>($1, $3) ; }
         | factor PERIOD IDENTIFIER                          { $$ = std::make_shared<ast::AttributeIndexingNode>($1, $3) ; }
+
+;
 
 
 filter:
@@ -270,6 +312,7 @@ key_val_list:
 key_val:
     STRING COLON expression { $$ = std::make_shared<ast::KeyValNode>($1, $3) ; }
     | IDENTIFIER COLON expression { $$ = std::make_shared<ast::KeyValNode>($1, $3) ; }
+
 
 %%
 #define YYDEBUG 1

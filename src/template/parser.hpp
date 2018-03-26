@@ -43,6 +43,7 @@ public:
         stack_.pop_back() ;
     }
 
+    void eval(ast::TemplateEvalContext &ct, std::string &s);
 
     TemplateScanner scanner_;
     yy::Parser parser_;
@@ -52,6 +53,7 @@ public:
 
     ast::ExpressionNodePtr root_ ;
     std::deque<ast::ContainerNodePtr> stack_ ;
- } ;
+
+} ;
 
 #endif

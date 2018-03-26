@@ -2,9 +2,7 @@
 #include "template_ast.hpp"
 using namespace std ;
 string data = R"(-----
-----{% for x, y, z in points %}
-  Point: {{ x }}, {{ y }}, {{ z }}
-{% endfor %}----
+             {{ (1 + 2) IF name.k1 == 'v1' ELSE 5 }}
  ----       )";
 
 int main(int argc, char *argv[]) {
@@ -18,8 +16,19 @@ int main(int argc, char *argv[]) {
 
     ast::TemplateEvalContext ctx ;
 
-    ctx.vals_ = Variant::Object{{"name", Variant::Object{{"k1", "v1"}, {"k2", Variant::Array{{"a", "b"}}}}}, {"vals", Variant::Array{{1, 2, 3, 4}} }} ;
+    auto &&t = ctx.push() ;
 
+    t["name"] = Variant::Object{{"k1", "v1"}, {"k2", Variant::Array{{"a", "b"}}}} ;
+    t["vals"] = Variant::Array{{1, 2, 3, 4}}  ;
 
-    cout << parser.eval(ctx).toJSON()  << endl ;
+    t["food"] = Variant::Object{{"ketchup", "5 tbsp"}, {"mustard", "1 tbsp"}, {"pickle", "0 tbsp"}} ;
+
+    t["items"] = Variant::Array{{ Variant::Object{{ "title", "foo"}, {"id", 1 }}, Variant::Object{{ "title", "bar" }, {"id", "2"}} }};
+
+    t["hunsgry"] = true ;
+    t["tired"] = true ;
+
+    string res ;
+    parser.eval(ctx, res) ;
+    cout << res << endl ;
 }

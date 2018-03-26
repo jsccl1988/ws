@@ -22,9 +22,9 @@ bool TemplateParser::parse() {
     return ( res == 0 ) ;
 }
 
-wspp::util::Variant TemplateParser::eval(ast::TemplateEvalContext &ctx)
+void TemplateParser::eval(ast::TemplateEvalContext &ctx, std::string &s)
 {
-    //return root_->eval(ctx) ;
+    stack_.back()->eval(ctx, s) ;
 }
 
 void TemplateParser::error(const yy::Parser::location_type &loc, const std::string& m)
