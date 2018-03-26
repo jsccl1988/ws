@@ -13,7 +13,7 @@ TemplateParser::TemplateParser(std::istream &strm) :
 {}
 
 bool TemplateParser::parse() {
-      parser_.set_debug_level(14);
+    //  parser_.set_debug_level(14);
 
        stack_.push_back(std::shared_ptr<ast::ContainerNode>(new ast::DocumentNode()));
     loc_.initialize() ;

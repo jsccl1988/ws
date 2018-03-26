@@ -43,6 +43,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token T_TRUE "true"
 %token T_FALSE "false"
 %token T_NULL "null"
+%token T_QUESTION_MARK "?"
 %token T_PLUS "+"
 %token T_MINUS "-"
 %token T_STAR "*"
@@ -90,26 +91,24 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 %token T_END  0  "end of file";
 
-%type <ast::ExpressionNodePtr> boolean_value_expression boolean_term boolean_factor boolean_primary predicate comparison_predicate
-%type <ast::ExpressionNodePtr> expression term factor primary_expression value array object
-%type <ast::ExpressionNodePtr> unary_predicate ternary
+%type <ast::ExpressionNodePtr> expression value array object
 %type <ast::ExpressionListPtr> expression_list filter_argument_list
 %type <ast::KeyValListPtr> key_val_list
 %type <ast::KeyValNodePtr> key_val
-%type <ast::FilterNodePtr> filter
+%type <ast::FilterNodePtr> filter function
 %type <ast::IdentifierListPtr> identifier_list
 %type <ast::ContentNodePtr> for_loop_declaration block_declaration block_tag sub_tag tag_or_chars
 
 /*operators */
 
-%right IF ELSE
-%left OR
-%left AND
-%left LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL GREATER_THAN_OR_EQUAL EQUAL NOT_EQUAL
-%left PLUS MINUS TILDE
-%left STAR DIV
-
-%nonassoc UMINUS EXISTS
+%right T_QUESTION_MARK T_COLON
+%left T_OR
+%left T_AND
+%nonassoc T_LESS_THAN T_GREATER_THAN T_LESS_THAN_OR_EQUAL T_GREATER_THAN_OR_EQUAL T_EQUAL T_NOT_EQUAL
+%left T_PLUS T_MINUS T_TILDE T_PERIOD
+%left T_STAR T_DIV
+%right T_NOT
+%right T_LEFT_BRACKET
 
 %start document
 
@@ -192,14 +191,14 @@ else_declaration:
     }
 
 if_declaration:
-   T_IF boolean_value_expression {
+   T_IF expression {
         auto node = std::make_shared<ast::IfBlockNode>($2) ;
         driver.addNode(node) ;
         driver.pushBlock(node);
    }
 
 else_if_declaration:
-    T_ELSE_IF boolean_value_expression {
+    T_ELSE_IF expression {
         if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stack_.back().get()) )
             p->addBlock($2) ;
     }
@@ -231,86 +230,37 @@ identifier_list:
     T_IDENTIFIER                          { $$ = std::make_shared<ast::IdentifierList>() ; $$->append($1) ; }
     | T_IDENTIFIER T_COMMA identifier_list  { $$ = $3 ; $3->prepend($1) ; }
 
-
-boolean_value_expression:
-        boolean_term					{ $$ = $1 ; }
-        | boolean_value_expression T_OR boolean_term 	{ $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::Or, $1, $3) ; }
-	;
-
-boolean_term:
-        boolean_factor				{ $$ = $1 ; }
-        | boolean_term T_AND boolean_factor	{ $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::And, $1, $3) ; }
-	;
-
-boolean_factor:
-        boolean_primary		{ $$ = $1 ; }
-        | T_NOT boolean_primary	{ $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::Not, $2, nullptr) ; }
-	;
-
-boolean_primary:
-      predicate				{ $$ = $1 ; }
-    | T_LPAR boolean_value_expression T_RPAR	{ $$ = $2 ; }
-	;
-
-predicate:
-	unary_predicate { $$ = $1 ; }
-	|  comparison_predicate	{ $$ = $1 ; }
-/*	| like_text_predicate	{ $$ = $1 ; }
-        | list_predicate        { $$ = $1 ; }
-        */
-	;
-
-unary_predicate:
-        expression { $$ = std::make_shared<ast::UnaryPredicate>( $1 ) ;}
-
-comparison_predicate:
-        expression T_EQUAL expression			{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::Equal, $1, $3 ) ; }
+expression:
+          expression T_OR expression      { $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::Or, $1, $3) ; }
+        | expression T_AND expression     { $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::And, $1, $3) ; }
+        | expression T_EQUAL expression			{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::Equal, $1, $3 ) ; }
         | expression T_NOT_EQUAL expression		{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::NotEqual, $1, $3 ) ; }
         | expression T_LESS_THAN expression		{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::Less, $1, $3 ) ; }
         | expression T_GREATER_THAN expression		{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::Greater, $1, $3 ) ; }
         | expression T_LESS_THAN_OR_EQUAL expression	{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::LessOrEqual, $1, $3 ) ; }
         | expression T_GREATER_THAN_OR_EQUAL expression	{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::GreaterOrEqual, $1, $3 ) ; }
-	 ;
-
-
-expression:
-                  term			{ $$ = $1 ; }
-                | term T_PLUS expression	{ $$ = std::make_shared<ast::BinaryOperator>('+',$1, $3) ; }
-                | term T_TILDE expression	{ $$ = std::make_shared<ast::BinaryOperator>('~',$1, $3) ; }
-                | term T_MINUS expression	{ $$ = std::make_shared<ast::BinaryOperator>('-',$1, $3) ; }
-	  ;
-
-term:
-                factor				{ $$ = $1 ; }
-                | factor T_STAR term		{ $$ = std::make_shared<ast::BinaryOperator>('*', $1, $3) ; }
-                | factor T_DIV term		{ $$ = std::make_shared<ast::BinaryOperator>('/', $1, $3) ; }
-		;
-
-primary_expression
-                        : T_IDENTIFIER            { $$ = std::make_shared<ast::IdentifierNode>($1) ; }
-                        | value                 { $$ = std::make_shared<ast::ValueNode>($1) ; }
-                        | ternary               { $$ = $1 ; }
-                        |  T_LPAR expression T_RPAR { $$ = $2 ; }
-;
-
-ternary:
-  primary_expression T_IF boolean_value_expression T_ELSE primary_expression    {  $$ = std::make_shared<ast::TernaryExpressionNode>($3, $1, $5) ; }
- |   primary_expression T_IF boolean_value_expression                            {  $$ = std::make_shared<ast::TernaryExpressionNode>($3, $1, nullptr) ; }
-
-
-
-factor
-        : primary_expression                                { $$ = $1 ; }
-        | factor  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = std::make_shared<ast::SubscriptIndexingNode>($1, $3) ; }
-        | factor T_BAR filter                                 { $$ = std::make_shared<ast::ApplyFilterNode>($1, $3) ; }
-        | factor T_PERIOD T_IDENTIFIER                          { $$ = std::make_shared<ast::AttributeIndexingNode>($1, $3) ; }
-
-;
-
+        | expression T_PLUS expression		{ $$ = std::make_shared<ast::BinaryOperator>('+', $1, $3) ; }
+        | expression T_MINUS expression		{ $$ = std::make_shared<ast::BinaryOperator>('-', $1, $3) ; }
+        | expression T_PERIOD expression	{ $$ = std::make_shared<ast::BinaryOperator>('.', $1, $3) ; }
+        | expression T_STAR expression		{ $$ = std::make_shared<ast::BinaryOperator>('*', $1, $3) ; }
+        | expression T_DIV expression		{ $$ = std::make_shared<ast::BinaryOperator>('/', $1, $3) ; }
+        | T_PLUS expression  { $$ = std::make_shared<ast::UnaryOperator>('+', $2) ; }
+        | T_MINUS expression  { $$ = std::make_shared<ast::UnaryOperator>('-', $2) ; }
+        | T_LPAR expression T_RPAR { $$ = $2; }
+        | expression T_QUESTION_MARK expression T_COLON expression { $$ = std::make_shared<ast::TernaryExpressionNode>($1, $3, $5) ; }
+        | expression  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = std::make_shared<ast::SubscriptIndexingNode>($1, $3) ; }
+        | expression T_BAR filter                                 { $$ = std::make_shared<ast::ApplyFilterNode>($1, $3) ; }
+        | expression T_PERIOD T_IDENTIFIER                          { $$ = std::make_shared<ast::AttributeIndexingNode>($1, $3) ; }
+        | function  { $$ = std::make_shared<ast::ApplyFilterNode>(nullptr, $1) ; }
+        | value { $$ = $1 ; }
+        | T_IDENTIFIER { $$ = std::make_shared<ast::IdentifierNode>($1) ; }
 
 filter:
                 T_IDENTIFIER	{ $$ = std::make_shared<ast::FilterNode>($1) ; }
-                 | T_IDENTIFIER T_LPAR filter_argument_list T_RPAR {
+                | function     { $$ = $1 ; }
+
+function:
+                 T_IDENTIFIER T_LPAR filter_argument_list T_RPAR {
                         $$ = std::make_shared<ast::FilterNode>($1, $3) ;
 		 }
 	;

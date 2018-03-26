@@ -76,13 +76,13 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     {
         return op1.toNumber() + op2.toNumber() ;
     }
-    else if ( op_ == '~' )
+    else if ( op_ == '.' )
     {
         return op1.toString() + op2.toString() ;
     }
     else if ( op_ == '*' )
     {
-        return op1.toNumber() + op2.toNumber() ;
+        return op1.toNumber() * op2.toNumber() ;
     }
     else if ( op_ == '/' ) {
         if ( op2.toNumber() == 0.0 ) return Variant::null() ;
@@ -90,9 +90,16 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     }
 }
 
-Variant UnaryPredicate::eval(TemplateEvalContext &ctx)
+
+Variant UnaryOperator::eval(TemplateEvalContext &ctx)
 {
-    return exp_->eval(ctx).toBoolean() ;
+     Variant val = rhs_->eval(ctx) ;
+
+     if ( op_ == '-' ) {
+         return -val.toNumber() ;
+     }
+     else return val ;
+
 }
 
 
@@ -279,6 +286,7 @@ string ContentNode::trim(const string &src) const
     else
         return std::move(src) ;
 }
+
 
 }
 

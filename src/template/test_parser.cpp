@@ -2,11 +2,12 @@
 #include "template_ast.hpp"
 using namespace std ;
 string data = R"(-----
+{{ name.k2[0] . (3>2)}}
        {% filter upper %}
             {% for user in users %}
                     {{- user.name -}} is {{ foo.foo }}
         {% endfor %}
-        {% end filter %}
+        {% endfilter %}
         {{ foo.foo }}
  ----       )";
 

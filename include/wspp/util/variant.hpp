@@ -169,8 +169,8 @@ public:
     bool isString() const { return tag_ == Tag::String ; }
     bool isNumber() const {
         return ( tag_ == Tag::SInteger ) ||
-               ( tag_ == Tag::UInteger ) ||
-               ( tag_ == Tag::Float ) ;
+                ( tag_ == Tag::UInteger ) ||
+                ( tag_ == Tag::Float ) ;
     }
 
     // check if variant stores simple type string, number, integer or boolean
@@ -217,7 +217,13 @@ public:
         switch (tag_)
         {
         case Tag::String:
+            try {
             return std::stod(*s_);
+        }
+            catch ( ... ) {
+            return 0.0 ;
+        }
+
         case Tag::Boolean:
             return (double)b_ ;
         case Tag::SInteger:
@@ -465,7 +471,7 @@ public:
 
         const Variant &value() const {
             return operator*();
-      }
+        }
 
     private:
         const Variant &obj_ ;

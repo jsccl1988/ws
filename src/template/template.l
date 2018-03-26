@@ -83,6 +83,7 @@ using namespace std ;
 "["	    return TOKEN(T_LEFT_BRACKET) ;
 ":"	    return TOKEN(T_COLON) ;
 "|"	    return TOKEN(T_BAR) ;
+"?"	    return TOKEN(T_QUESTION_MARK) ;
 
 [a-zA-Z][a-zA-Z0-9_]* {
     return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);

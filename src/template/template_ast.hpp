@@ -186,15 +186,17 @@ private:
     ExpressionNodePtr lhs_, rhs_ ;
 };
 
-class UnaryPredicate: public ExpressionNode {
+class UnaryOperator: public ExpressionNode {
 public:
 
-    UnaryPredicate(ExpressionNodePtr exp): exp_(exp) {}
+    UnaryOperator(char op, ExpressionNodePtr rhs): op_(op), rhs_(rhs) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
-
-    ExpressionNodePtr exp_ ;
+private:
+    char op_ ;
+    ExpressionNodePtr rhs_ ;
 };
+
 
 class ComparisonPredicate: public ExpressionNode {
 public:
