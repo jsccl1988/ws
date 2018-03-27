@@ -105,8 +105,8 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 
 %right T_QUESTION_MARK T_COLON
-%right T_ASSIGN
-%left T_COMMA
+
+
 %left T_OR
 %left T_AND
 %nonassoc T_LESS_THAN T_GREATER_THAN T_LESS_THAN_OR_EQUAL T_GREATER_THAN_OR_EQUAL T_EQUAL T_NOT_EQUAL
@@ -114,6 +114,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %left T_STAR T_DIV
 %right T_NOT
 %right T_LEFT_BRACKET T_PERIOD
+%right T_ASSIGN T_COMMA
 
 %start document
 

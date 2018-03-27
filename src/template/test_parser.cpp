@@ -1,8 +1,8 @@
 #include "parser.hpp"
 #include "template_ast.hpp"
 using namespace std ;
-string data = R"(-----
-{{ name.k1 | upper(1, name='34', val=5)}}
+string data = R"(
+-----{{ name.k1 | upper(1, name='34', val=1 + 5 )}}
 
  ----       )";
 

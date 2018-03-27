@@ -89,13 +89,13 @@ using namespace std ;
     return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
 }
 
-[+-]?[0-9]+	  return yy::Parser::make_T_INTEGER(atof(yytext), *yylloc) ;
+[0-9]+	  return yy::Parser::make_T_INTEGER(atof(yytext), *yylloc) ;
 
-[+-]?[0-9]+"."[0-9]*    |
-[+-]?"."[0-9]*	|
-[+-]?[0-9]+[eE][+-]?[0-9]+	|
-[+-]?[0-9]+"."[0-9]*[eE][+-]?[0-9]+ |
-[+-]?"."[0-9]*[eE][+-]?[0-9]+ {
+[0-9]+"."[0-9]*    |
+"."[0-9]*	|
+[0-9]+[eE][+-]?[0-9]+	|
+[0-9]+"."[0-9]*[eE][+-]?[0-9]+ |
+"."[0-9]*[eE][+-]?[0-9]+ {
     return yy::Parser::make_T_FLOAT(atof(yytext), *yylloc) ;
 }
 
