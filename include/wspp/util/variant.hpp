@@ -34,56 +34,66 @@ public:
     using float_t = double ;
     using string_t = std::string ;
     using boolean_t = bool ;
+    using function_t = std::function<Variant(const Variant &)> ;
 
+    enum class Type : uint8_t {
+        Null,  Object, Array, String, Boolean, SInteger, UInteger, Float, Function
+    };
     // constructors
 
-    Variant(): tag_(Tag::Null) {}
+    Variant(): tag_(Type::Null) {}
 
-    Variant(boolean_t v) noexcept : tag_(Tag::Boolean), b_(v) { }
+    Variant(boolean_t v) noexcept : tag_(Type::Boolean), b_(v) { }
 
     Variant(int v) noexcept: Variant((int64_t)v) {}
     Variant(unsigned int v) noexcept: Variant((uint64_t)v) {}
 
     Variant(int64_t v) noexcept {
         if ( v < 0 ) {
-            tag_ = Tag::SInteger ;
+            tag_ = Type::SInteger ;
             si_ = v ;
         } else {
-            tag_ = Tag::UInteger ;
+            tag_ = Type::UInteger ;
             ui_ = v ;
         }
     }
 
-    Variant(uint64_t v) noexcept: tag_(Tag::UInteger), ui_(v) {}
+    Variant(function_t v): tag_(Type::Function), fp_(new function_t(v)) {}
 
-    Variant(float_t v) noexcept: tag_(Tag::Float), f_(v) { }
+    Variant(uint64_t v) noexcept: tag_(Type::UInteger), ui_(v) {}
 
-    Variant(const char *value): tag_(Tag::String) {
+    Variant(float_t v) noexcept: tag_(Type::Float), f_(v) { }
+
+    Variant(const char *value): tag_(Type::String) {
         s_ = new std::string(value) ;
     }
 
-    Variant(const string_t& value): tag_(Tag::String) {
+    Variant(const string_t& value): tag_(Type::String) {
         s_ = new std::string(value) ;
     }
 
-    Variant(string_t&& value): tag_(Tag::String)  {
+    Variant(string_t&& value): tag_(Type::String)  {
         s_ = new std::string(std::move(value)) ;
     }
 
-    Variant(const Object& value): tag_(Tag::Object) {
+    Variant(const Object& value): tag_(Type::Object) {
         o_ = new Object(value);
     }
 
-    Variant(Object&& value): tag_(Tag::Object) {
+    Variant(Object&& value): tag_(Type::Object) {
         o_ = new Object(std::move(value));
     }
 
-    Variant(const Array& value): tag_(Tag::Array) {
+    Variant(const Array& value): tag_(Type::Array) {
         a_ = new Array(value);
     }
 
-    Variant(Array&& value): tag_(Tag::Array) {
+    Variant(Array&& value): tag_(Type::Array) {
         a_ = new Array(std::move(value));
+    }
+
+    Variant(function_t&& value): tag_(Type::Function) {
+        fp_ = new function_t(std::move(value));
     }
 
     ~Variant() {
@@ -105,31 +115,33 @@ public:
     Variant(Variant&& other): tag_(other.tag_) {
         switch (tag_)
         {
-        case Tag::Object:
+        case Type::Object:
             o_ = other.o_ ;
             break;
-        case Tag::Array:
+        case Type::Array:
             a_ = other.a_ ;
             break;
-        case Tag::String:
+        case Type::String:
             s_ = other.s_ ;
             break;
-        case Tag::Boolean:
+        case Type::Boolean:
             b_ = other.b_ ;
             break;
-        case Tag::SInteger:
+        case Type::SInteger:
             si_ = other.si_ ;
             break;
-        case Tag::UInteger:
+        case Type::UInteger:
             ui_ = other.ui_ ;
             break;
-        case Tag::Float:
+        case Type::Float:
             f_ = other.f_ ;
             break;
+        case Type::Function:
+            fp_ = other.fp_ ;
         default:
             break;
         }
-        other.tag_ = Tag::Null ;
+        other.tag_ = Type::Null ;
     }
 
     // make Object from a dictionary
@@ -162,32 +174,32 @@ public:
     static Variant fromJSONFile(const std::string &path, bool throw_exception = false) ;
 
     // check object type
-    bool isObject() const { return tag_ == Tag::Object ; }
-    bool isArray() const { return tag_ == Tag::Array ; }
-    bool isNull() const { return tag_ == Tag::Null ; }
+    bool isObject() const { return tag_ == Type::Object ; }
+    bool isArray() const { return tag_ == Type::Array ; }
+    bool isNull() const { return tag_ == Type::Null ; }
 
-    bool isString() const { return tag_ == Tag::String ; }
+    bool isString() const { return tag_ == Type::String ; }
     bool isNumber() const {
-        return ( tag_ == Tag::SInteger ) ||
-                ( tag_ == Tag::UInteger ) ||
-                ( tag_ == Tag::Float ) ;
+        return ( tag_ == Type::SInteger ) ||
+                ( tag_ == Type::UInteger ) ||
+                ( tag_ == Type::Float ) ;
     }
 
     // check if variant stores simple type string, number, integer or boolean
     bool isPrimitive() const {
-        return ( tag_ == Tag::String ||
-                 tag_ == Tag::SInteger ||
-                 tag_ == Tag::UInteger ||
-                 tag_ == Tag::Float ||
-                 tag_ == Tag::Boolean
+        return ( tag_ == Type::String ||
+                 tag_ == Type::SInteger ||
+                 tag_ == Type::UInteger ||
+                 tag_ == Type::Float ||
+                 tag_ == Type::Boolean
                  ) ;
     }
 
     // False are booleans with false values and empty arrays
     bool isFalse() const {
-        if ( tag_ == Tag::Boolean ) return !b_ ;
-        else if ( tag_ == Tag::Array ) return a_->size() == 0 ;
-        else if ( tag_ == Tag::Null ) return true ;
+        if ( tag_ == Type::Boolean ) return !b_ ;
+        else if ( tag_ == Type::Array ) return a_->size() == 0 ;
+        else if ( tag_ == Type::Null ) return true ;
         else return false ;
     }
 
@@ -195,18 +207,18 @@ public:
     std::string toString() const {
         switch (tag_)
         {
-        case Tag::String:
+        case Type::String:
             return *s_;
-        case Tag::Boolean: {
+        case Type::Boolean: {
             std::ostringstream strm ;
             strm << b_ ;
             return strm.str() ;
         }
-        case Tag::SInteger:
+        case Type::SInteger:
             return std::to_string(si_) ;
-        case Tag::UInteger:
+        case Type::UInteger:
             return std::to_string(ui_) ;
-        case Tag::Float:
+        case Type::Float:
             return std::to_string(f_) ;
         default:
             return std::string();
@@ -216,7 +228,7 @@ public:
     double toNumber() const {
         switch (tag_)
         {
-        case Tag::String:
+        case Type::String:
             try {
             return std::stod(*s_);
         }
@@ -224,13 +236,13 @@ public:
             return 0.0 ;
         }
 
-        case Tag::Boolean:
+        case Type::Boolean:
             return (double)b_ ;
-        case Tag::SInteger:
+        case Type::SInteger:
             return (double)si_ ;
-        case Tag::UInteger:
+        case Type::UInteger:
             return (double)ui_ ;
-        case Tag::Float:
+        case Type::Float:
             return (double)f_ ;
         default:
             return 0.0;
@@ -240,15 +252,15 @@ public:
     bool toBoolean() const {
         switch (tag_)
         {
-        case Tag::String:
+        case Type::String:
             return !(s_->empty()) ;
-        case Tag::Boolean:
+        case Type::Boolean:
             return b_ ;
-        case Tag::SInteger:
+        case Type::SInteger:
             return (bool)si_ ;
-        case Tag::UInteger:
+        case Type::UInteger:
             return (bool)ui_ ;
-        case Tag::Float:
+        case Type::Float:
             return f_ != 0 ;
         default:
             return false;
@@ -313,11 +325,13 @@ public:
         return fetchIndex(idx) ;
     }
 
+    Type type() const { return tag_ ; }
+
     // JSON encoder
     void toJSON(std::ostream &strm) const {
 
         switch ( tag_ ) {
-        case Tag::Object: {
+        case Type::Object: {
             strm << "{" ;
             auto it = o_->cbegin() ;
             if ( it != o_->cend() ) {
@@ -334,7 +348,7 @@ public:
             strm << "}" ;
             break ;
         }
-        case Tag::Array: {
+        case Type::Array: {
             strm << "[" ;
             auto it = a_->cbegin() ;
             if ( it != a_->cend() ) {
@@ -350,27 +364,27 @@ public:
             strm << "]" ;
             break ;
         }
-        case Tag::String: {
+        case Type::String: {
             strm << json_escape_string(*s_) ;
             break ;
         }
-        case Tag::Boolean: {
+        case Type::Boolean: {
             strm << ( b_ ? "true" : "false") ;
             break ;
         }
-        case Tag::Null: {
+        case Type::Null: {
             strm << "null" ;
             break ;
         }
-        case Tag::Float: {
+        case Type::Float: {
             strm << f_ ;
             break ;
         }
-        case Tag::SInteger: {
+        case Type::SInteger: {
             strm << si_ ;
             break ;
         }
-        case Tag::UInteger: {
+        case Type::UInteger: {
             strm << ui_ ;
             break ;
         }
@@ -493,6 +507,11 @@ public:
         return null_value ;
     }
 
+    Variant invoke(const Variant &args) {
+        if ( tag_ != Type::Function ) return nullptr ;
+        else return (*fp_)(args) ;
+    }
+
 private:
 
 
@@ -553,14 +572,17 @@ private:
 
     void destroy() {
         switch (tag_) {
-        case Tag::Object:
+        case Type::Object:
             delete o_ ;
             break ;
-        case Tag::Array:
+        case Type::Array:
             delete a_ ;
             break ;
-        case Tag::String:
+        case Type::String:
             delete s_ ;
+            break ;
+        case Type::Function:
+            delete fp_ ;
             break ;
         }
     }
@@ -570,25 +592,28 @@ private:
         tag_ = other.tag_ ;
         switch (tag_)
         {
-        case Tag::Object:
+        case Type::Object:
             o_ = new Object(*other.o_) ;
             break;
-        case Tag::Array:
+        case Type::Array:
             a_ = new Array(*other.a_) ;
             break;
-        case Tag::String:
+        case Type::String:
             s_ = new string_t(*other.s_) ;
             break;
-        case Tag::Boolean:
+        case Type::Function:
+            fp_ = new function_t(*other.fp_) ;
+            break;
+        case Type::Boolean:
             b_ = other.b_ ;
             break;
-        case Tag::SInteger:
+        case Type::SInteger:
             si_ = other.si_ ;
             break;
-        case Tag::UInteger:
+        case Type::UInteger:
             ui_ = other.ui_ ;
             break;
-        case Tag::Float:
+        case Type::Float:
             f_ = other.f_ ;
             break;
         default:
@@ -597,10 +622,10 @@ private:
 
     }
 
+
+
 private:
-    enum class Tag : uint8_t {
-        Null,  Object, Array, String, Boolean, SInteger, UInteger, Float
-    };
+
 
     union {
         Object    *o_;
@@ -610,10 +635,10 @@ private:
         signed_integer_t   si_ ;
         unsigned_integer_t ui_ ;
         float_t     f_ ;
-        const Variant *r_ ;
+        function_t *fp_ ;
     } ;
 
-    Tag tag_ ;
+    Type tag_ ;
 
 
 };

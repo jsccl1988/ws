@@ -91,32 +91,37 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 %token T_END  0  "end of file";
 
-%type <ast::ExpressionNodePtr> expression value array object
-%type <ast::ExpressionListPtr> expression_list filter_argument_list
+%type <ast::ExpressionNodePtr> expression value array object function_call
+%type <ast::ExpressionListPtr> expression_list pos_func_args
 %type <ast::KeyValListPtr> key_val_list
 %type <ast::KeyValNodePtr> key_val
 %type <ast::FilterNodePtr> filter function
+%type <ast::FunctionArgumentsPtr> func_args
+%type <ast::FunctionArgPtr> func_arg
 %type <ast::IdentifierListPtr> identifier_list
 %type <ast::ContentNodePtr> for_loop_declaration block_declaration block_tag sub_tag tag_or_chars
 
 /*operators */
 
+
 %right T_QUESTION_MARK T_COLON
+%right T_ASSIGN
+%left T_COMMA
 %left T_OR
 %left T_AND
 %nonassoc T_LESS_THAN T_GREATER_THAN T_LESS_THAN_OR_EQUAL T_GREATER_THAN_OR_EQUAL T_EQUAL T_NOT_EQUAL
-%left T_PLUS T_MINUS T_TILDE T_PERIOD
+%left T_PLUS T_MINUS T_TILDE
 %left T_STAR T_DIV
 %right T_NOT
-%right T_LEFT_BRACKET
+%right T_LEFT_BRACKET T_PERIOD
 
 %start document
 
 %%
 
 document:
-|
-mixed_tag_chars_list
+%empty
+| mixed_tag_chars_list
 
 mixed_tag_chars_list:
     tag_or_chars
@@ -230,6 +235,7 @@ identifier_list:
     T_IDENTIFIER                          { $$ = std::make_shared<ast::IdentifierList>() ; $$->append($1) ; }
     | T_IDENTIFIER T_COMMA identifier_list  { $$ = $3 ; $3->prepend($1) ; }
 
+
 expression:
           expression T_OR expression      { $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::Or, $1, $3) ; }
         | expression T_AND expression     { $$ = std::make_shared<ast::BooleanOperator>( ast::BooleanOperator::And, $1, $3) ; }
@@ -241,7 +247,7 @@ expression:
         | expression T_GREATER_THAN_OR_EQUAL expression	{ $$ = std::make_shared<ast::ComparisonPredicate>( ast::ComparisonPredicate::GreaterOrEqual, $1, $3 ) ; }
         | expression T_PLUS expression		{ $$ = std::make_shared<ast::BinaryOperator>('+', $1, $3) ; }
         | expression T_MINUS expression		{ $$ = std::make_shared<ast::BinaryOperator>('-', $1, $3) ; }
-        | expression T_PERIOD expression	{ $$ = std::make_shared<ast::BinaryOperator>('.', $1, $3) ; }
+        | expression T_TILDE expression	{ $$ = std::make_shared<ast::BinaryOperator>('~', $1, $3) ; }
         | expression T_STAR expression		{ $$ = std::make_shared<ast::BinaryOperator>('*', $1, $3) ; }
         | expression T_DIV expression		{ $$ = std::make_shared<ast::BinaryOperator>('/', $1, $3) ; }
         | T_PLUS expression  { $$ = std::make_shared<ast::UnaryOperator>('+', $2) ; }
@@ -249,24 +255,37 @@ expression:
         | T_LPAR expression T_RPAR { $$ = $2; }
         | expression T_QUESTION_MARK expression T_COLON expression { $$ = std::make_shared<ast::TernaryExpressionNode>($1, $3, $5) ; }
         | expression  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = std::make_shared<ast::SubscriptIndexingNode>($1, $3) ; }
-        | expression T_BAR filter                                 { $$ = std::make_shared<ast::ApplyFilterNode>($1, $3) ; }
+        | expression T_BAR filter                                 { $$ = std::make_shared<ast::InvokeFilterNode>($1, $3) ; }
         | expression T_PERIOD T_IDENTIFIER                          { $$ = std::make_shared<ast::AttributeIndexingNode>($1, $3) ; }
-        | function  { $$ = std::make_shared<ast::ApplyFilterNode>(nullptr, $1) ; }
+        | function_call  { $$ = $1 ; }
         | value { $$ = $1 ; }
         | T_IDENTIFIER { $$ = std::make_shared<ast::IdentifierNode>($1) ; }
 
 filter:
-                T_IDENTIFIER	{ $$ = std::make_shared<ast::FilterNode>($1) ; }
-                | function     { $$ = $1 ; }
+                T_IDENTIFIER	{
+                    $$ = std::make_shared<ast::FilterNode>($1, nullptr) ;
+                }
+                | T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = std::make_shared<ast::FilterNode>($1, $3) ; }
 
-function:
-                 T_IDENTIFIER T_LPAR filter_argument_list T_RPAR {
-                        $$ = std::make_shared<ast::FilterNode>($1, $3) ;
+function_call:
+                 expression T_LPAR T_RPAR {
+                        $$ = std::make_shared<ast::InvokeFunctionNode>($1, nullptr) ;
 		 }
+                 | expression T_LPAR func_args T_RPAR {
+                        $$ = std::make_shared<ast::InvokeFunctionNode>($1, $3) ;
+                 }
 	;
 
-filter_argument_list:
-    expression_list { $$ = $1 ; }
+func_args:
+    func_arg { $$ = std::make_shared<ast::FunctionArguments>() ;
+        $$->append($1) ;
+    }
+    | func_arg T_COMMA func_args { $$ = $3 ;  $3->prepend($1) ; }
+
+
+func_arg:
+    expression          { $$ = std::make_shared<ast::FunctionArg>($1) ; }
+    | T_IDENTIFIER T_ASSIGN expression { $$ = std::make_shared<ast::FunctionArg>($3, $1) ; }
 
 value:
     T_STRING          { $$ = std::make_shared<ast::LiteralNode>($1) ; }
@@ -285,12 +304,10 @@ object:
     T_LEFT_BRACE key_val_list T_RIGHT_BRACE { $$ = std::make_shared<ast::DictionaryNode>($2) ; }
 
 expression_list:
-    expression                          {  $$ = std::make_shared<ast::ExpressionList>() ;
-                                           $$->append($1) ;
-                                        }
-    | expression T_COMMA expression_list  {  $$ = $3 ;
-    $3->prepend($1) ;
-                                        }
+    expression {  $$ = std::make_shared<ast::ExpressionList>() ;
+                   $$->append($1) ;
+                }
+    | expression T_COMMA expression_list  {  $$ = $3 ;  $3->prepend($1) ; }
 
 key_val_list:
     key_val                             {   $$ = std::make_shared<ast::KeyValList>() ;

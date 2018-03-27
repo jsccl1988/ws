@@ -76,7 +76,7 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     {
         return op1.toNumber() + op2.toNumber() ;
     }
-    else if ( op_ == '.' )
+    else if ( op_ == '~' )
     {
         return op1.toString() + op2.toString() ;
     }
@@ -142,7 +142,7 @@ Variant AttributeIndexingNode::eval(TemplateEvalContext &ctx)
     return o.at(key_) ;
 }
 
-Variant ApplyFilterNode::eval(TemplateEvalContext &ctx)
+Variant InvokeFilterNode::eval(TemplateEvalContext &ctx)
 {
     Variant target = target_->eval(ctx) ;
 
@@ -153,23 +153,38 @@ Variant ApplyFilterNode::eval(TemplateEvalContext &ctx)
 
 Variant FilterNode::eval(const Variant &target, TemplateEvalContext &ctx)
 {
-    Variant::Array args ;
-    args.push_back(target) ;
-    evalArgs(args, ctx) ;
+
+    Variant args ;
+    evalArgs(target, args, ctx) ;
     return dispatch(name_, args) ;
 }
 
-void FilterNode::evalArgs(Variant::Array &args, TemplateEvalContext &ctx) const
+void FilterNode::evalArgs(const Variant &target, Variant &args, TemplateEvalContext &ctx) const
 {
-    if ( !args_ ) return ;
+    Variant::Array pos_args ;
+    pos_args.push_back(target) ;
 
-    for ( auto &&e: args_->children() )
-        args.push_back(e->eval(ctx)) ;
+
+    Variant::Object kv_args ;
+
+
+    if ( args_ ) {
+
+        for ( auto &&e: args_->children() ) {
+            if ( e->name_.empty() )
+                pos_args.push_back(e->val_->eval(ctx)) ;
+            else
+                kv_args.insert({e->name_, e->val_->eval(ctx)}) ;
+        }
+    }
+
+    args = Variant::Object{{"args", pos_args}, {"kv", kv_args}} ;
 }
 
-Variant FilterNode::dispatch(const string &fname, const Variant::Array &args)
+Variant FilterNode::dispatch(const string &fname, const Variant &args)
 {
     if ( fname == "join" ) {
+        /*
         string sep = ( args.size() > 1 ) ? args[1].toString() : "" ;
         string key = ( args.size() == 3 ) ? args[2].toString() : "" ;
 
@@ -184,10 +199,11 @@ Variant FilterNode::dispatch(const string &fname, const Variant::Array &args)
             is_first = false ;
         }
         return res ;
+        */
     } else if ( fname == "lower" ) {
-        return boost::to_lower_copy(args[0].toString()) ;
+        return boost::to_lower_copy(args.at("args").at(0).toString()) ;
     } else if ( fname == "upper" ) {
-        return boost::to_upper_copy(args[0].toString()) ;
+        return boost::to_upper_copy(args.at("args").at(0).toString()) ;
     }
 }
 
@@ -285,6 +301,15 @@ string ContentNode::trim(const string &src) const
         return boost::trim_copy(src) ;
     else
         return std::move(src) ;
+}
+
+Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
+{
+    Variant f = callable_->eval(ctx) ;
+    if ( f.type() != Variant::Type::Function )
+        return nullptr ;
+
+
 }
 
 

@@ -221,27 +221,54 @@ private:
     ExpressionNodePtr condition_, positive_, negative_ ;
 };
 
+class FunctionArg {
+public:
+    FunctionArg(ExpressionNodePtr val, const std::string &name = std::string()): name_(name), val_(val) {}
+
+    ExpressionNodePtr val_ ;
+    std::string name_ ;
+};
+
+typedef std::shared_ptr<FunctionArg> FunctionArgPtr ;
+
+
+class FunctionArguments {
+public:
+    FunctionArguments() {}
+
+    void append(FunctionArgPtr node) { children_.push_back(node) ; }
+    void prepend(FunctionArgPtr node) { children_.push_front(node) ; }
+
+    const std::deque<FunctionArgPtr> &children() const { return children_ ; }
+
+private:
+    std::deque<FunctionArgPtr> children_ ;
+
+};
+
+typedef std::shared_ptr<FunctionArguments> FunctionArgumentsPtr ;
+
 
 class FilterNode {
 public:
-    FilterNode(const std::string &name, ExpressionListPtr args): name_(name), args_(args) {}
+    FilterNode(const std::string &name, FunctionArgumentsPtr args): name_(name), args_(args) {}
     FilterNode(const std::string &name): name_(name) {}
 
     Variant eval(const Variant &target, TemplateEvalContext &ctx) ;
 
-    void evalArgs(Variant::Array &args, TemplateEvalContext &ctx) const ;
-    static Variant dispatch(const std::string &, const Variant::Array &args) ;
+    void evalArgs(const Variant &target, Variant &args, TemplateEvalContext &ctx) const ;
+    static Variant dispatch(const std::string &, const Variant &args) ;
 
 private:
     std::string name_ ;
-    ExpressionListPtr args_ ;
+    FunctionArgumentsPtr args_ ;
 };
 
 typedef std::shared_ptr<FilterNode> FilterNodePtr ;
 
-class ApplyFilterNode: public ExpressionNode {
+class InvokeFilterNode: public ExpressionNode {
 public:
-    ApplyFilterNode(ExpressionNodePtr target, FilterNodePtr filter): target_(target), filter_(filter) {}
+    InvokeFilterNode(ExpressionNodePtr target, FilterNodePtr filter): target_(target), filter_(filter) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 
@@ -249,6 +276,18 @@ public:
 private:
     ExpressionNodePtr target_ ;
     FilterNodePtr filter_ ;
+};
+
+class InvokeFunctionNode: public ExpressionNode {
+public:
+    InvokeFunctionNode(ExpressionNodePtr callable, FunctionArgumentsPtr args): callable_(callable), args_(args) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+
+private:
+    ExpressionNodePtr callable_ ;
+    FunctionArgumentsPtr args_ ;
 };
 
 class ContentNode {
