@@ -2,7 +2,7 @@
 #include "template_ast.hpp"
 using namespace std ;
 string data = R"(
------{{ name.k1 | upper(1, name='34', val=1 + 5 )}}
+-----{{ vals | join(sep='--') | upper }}
 
  ----       )";
 
@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     auto &&t = ctx.data() ;
 
     t["name"] = Variant::Object{{"k1", "v1"}, {"k2", Variant::Array{{"a", "b"}}}} ;
-    t["vals"] = Variant::Array{{1, 2, 3, 4}}  ;
+    t["vals"] = Variant::Array{{1, 2, 3, 4, "a"}}  ;
 
     t["food"] = Variant::Object{{"ketchup", "5 tbsp"}, {"mustard", "1 tbsp"}, {"pickle", "0 tbsp"}} ;
 
