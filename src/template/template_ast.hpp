@@ -5,20 +5,35 @@
 #include <deque>
 #include <vector>
 #include <boost/regex.hpp>
+#include <boost/optional.hpp>
 
 #include <wspp/util/variant.hpp>
 
 using wspp::util::Variant ;
 
+class TemplateRenderer ;
+
 namespace ast {
+
+class NamedBlockNode ;
+typedef std::shared_ptr<NamedBlockNode> NamedBlockNodePtr ;
+
+class DocumentNode ;
+typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
 
 struct TemplateEvalContext {
 
+    TemplateEvalContext() = default ;
     Variant::Object &data() {
         return data_ ;
     }
 
+    void addBlock(NamedBlockNodePtr node) ;
+
     Variant::Object data_ ;
+    std::map<std::string, NamedBlockNodePtr> blocks_ ;
+    DocumentNodePtr doc_ ;
+    TemplateRenderer *rdr_ ;
 };
 
 enum class WhiteSpace { TrimNone, TrimBoth, TrimLeft, TrimRight } ;
@@ -236,6 +251,8 @@ class FunctionArguments {
 public:
     FunctionArguments() {}
 
+    void eval(Variant &args, TemplateEvalContext &ctx, const boost::optional<Variant> &extra) const ;
+
     void append(FunctionArgPtr node) { children_.push_back(node) ; }
     void prepend(FunctionArgPtr node) { children_.push_front(node) ; }
 
@@ -256,7 +273,7 @@ public:
 
     Variant eval(const Variant &target, TemplateEvalContext &ctx) ;
 
-    void evalArgs(const Variant &target, Variant &args, TemplateEvalContext &ctx) const ;
+   // void evalArgs(const Variant &target, Variant &args, TemplateEvalContext &ctx) const ;
     static Variant dispatch(const std::string &, const Variant &args) ;
 
 private:
@@ -290,6 +307,8 @@ private:
     FunctionArgumentsPtr args_ ;
 };
 
+class DocumentNode ;
+
 class ContentNode {
 public:
     ContentNode(WhiteSpace ws = WhiteSpace::TrimNone): ws_(ws) {}
@@ -301,13 +320,29 @@ public:
 
     static std::string escape(const std::string &src) ;
 
+    const DocumentNode *root() const {
+        const ContentNode *node = this ;
+        while ( node->parent_ ) {
+            node = node->parent_ ;
+        }
+
+        return reinterpret_cast<const DocumentNode *>(node) ;
+    }
+
     WhiteSpace ws_ ;
+
+    ContentNode *parent_ = nullptr ;
 };
 
 typedef std::shared_ptr<ContentNode> ContentNodePtr ;
 
 class ContainerNode: public ContentNode {
 public:
+
+    void addChild(ContentNodePtr child) {
+        children_.push_back(child) ;
+        child->parent_ = this ;
+    }
 
     virtual std::string endContainerTag() const { return {} ; }
     std::vector<ContentNodePtr> children_ ;
@@ -332,6 +367,33 @@ public:
 
     std::deque<std::string> ids_ ;
     ExpressionNodePtr target_ ;
+};
+
+
+class NamedBlockNode: public ContainerNode {
+public:
+
+    NamedBlockNode(const std::string &name): name_(name) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    virtual std::string endContainerTag() const { return "endblock" ; }
+
+    std::string name_ ;
+};
+
+typedef std::shared_ptr<NamedBlockNode> NamedBlockNodePtr ;
+
+class ExtensionBlockNode: public ContainerNode {
+public:
+
+    ExtensionBlockNode(ExpressionNodePtr src): parent_resource_(src) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    virtual std::string endContainerTag() const { return "endextends" ; }
+
+    ExpressionNodePtr parent_resource_ ;
 };
 
 
@@ -387,6 +449,38 @@ public:
     FilterNodePtr filter_ ;
 };
 
+class MacroBlockNode: public ContainerNode {
+public:
+
+    MacroBlockNode(const std::string &name, IdentifierListPtr args): name_(name), args_(std::move(args->children())) { }
+    MacroBlockNode(const std::string &name): name_(name) { }
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    void mapArguments(const Variant &args, Variant::Object &ctx, Variant::Array &arg_list) ;
+
+    virtual std::string endContainerTag() const { return "endmacro" ; }
+
+    std::string name_ ;
+    std::deque<std::string> args_ ;
+
+};
+
+class ImportBlockNode: public ContainerNode {
+public:
+
+    ImportBlockNode(ExpressionNodePtr source, const std::string &ns): source_(source), ns_(ns) { }
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    void addMacroClosureToContext(TemplateEvalContext &ctx, MacroBlockNode &n) const;
+
+    virtual std::string endContainerTag() const { return "endimport" ; }
+
+    std::string ns_ ;
+    ExpressionNodePtr source_ ;
+};
+
 class RawTextNode: public ContentNode {
 public:
     RawTextNode(const std::string &text): text_(text) {}
@@ -419,8 +513,10 @@ public:
             e->eval(ctx, res) ;
     }
 
+    std::map<std::string, ast::ContentNodePtr> macro_blocks_ ;
 };
 
+typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
 
 } // namespace template_ast
 

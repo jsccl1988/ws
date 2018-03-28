@@ -1,0 +1,8 @@
+{% extends "base" %}
+{% if posts %}
+    {% block head %}
+        {{ parent() }}
+
+        <meta name="robots" content="noindex, follow">
+    {% endblock head %}
+{% endif %}

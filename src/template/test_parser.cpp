@@ -1,21 +1,19 @@
 #include "parser.hpp"
-#include "template_ast.hpp"
-using namespace std ;
-string data = R"(
------{{ vals | join(sep='--') | upper }}
+#include "template_renderer.hpp"
 
- ----       )";
+#include <memory>
+
+using namespace std ;
 
 int main(int argc, char *argv[]) {
 
-    istringstream strm(data) ;
 
-
-    TemplateParser parser(strm) ;
-
-    parser.parse();
+    std::shared_ptr<TemplateLoader> loader(new FileSystemTemplateLoader({"/home/malasiot/source/ws/data/test"})) ;
+    TemplateRenderer rdr(loader) ;
+    rdr.setDebug() ;
 
     ast::TemplateEvalContext ctx ;
+    ctx.rdr_ = &rdr ;
 
     auto &&t = ctx.data() ;
 
@@ -29,7 +27,14 @@ int main(int argc, char *argv[]) {
     t["users"] = Variant::Array{{ Variant::Object{{ "name", "john"}, {"hidden", true }}, Variant::Object{{ "name", "tom" }, {"hidden", false}} }};
     t["tired"] = true ;
 
+    t["posts"] = Variant::Array{{ Variant::Object{{ "title", "xxx"}, {"body", "yyy"}, {"text", "bb"}},
+            Variant::Object{{ "title", "aaa"}, {"body", "bbb"}, {"text", "ccc"}}
+    } };
+
     string res ;
-    parser.eval(ctx, res) ;
+
+    ast::DocumentNodePtr c = rdr.compile("index") ;
+    c->eval(ctx, res) ;
+    cout.flush() ;
     cout << res << endl ;
 }

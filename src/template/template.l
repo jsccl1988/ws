@@ -39,6 +39,12 @@ using namespace std ;
   "endset"      return TOKEN(T_END_SET) ;
   "filter"      return TOKEN(T_FILTER) ;
   "endfilter"   return TOKEN(T_END_FILTER) ;
+  "extends"     return TOKEN(T_EXTENDS) ;
+  "macro"       return TOKEN(T_MACRO) ;
+  "endmacro"    return TOKEN(T_END_MACRO) ;
+  "import"      return TOKEN(T_IMPORT) ;
+  "as"          return TOKEN(T_AS) ;
+  "_self"       return TOKEN(T_SELF) ;
   "in"          return TOKEN(T_IN);
   "%}"          { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG) ; }
   "-%}"         { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG_TRIM) ; }
@@ -122,7 +128,7 @@ using namespace std ;
 <COMMENT>.  { yylloc->step (); }
 
 <TCOMMENT>\n { yylloc->lines (); yylloc->step ();}
-<TCOMMENT>"*}" { BEGIN(INITIAL) ; }
+<TCOMMENT>"#}" { BEGIN(INITIAL) ; }
 <TCOMMENT>.  { yylloc->step (); }
 
 

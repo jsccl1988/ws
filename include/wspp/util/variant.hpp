@@ -92,10 +92,10 @@ public:
         a_ = new Array(std::move(value));
     }
 
-    Variant(function_t&& value): tag_(Type::Function) {
+/*    Variant(function_t&& value): tag_(Type::Function) {
         fp_ = new function_t(std::move(value));
     }
-
+*/
     ~Variant() {
         destroy() ;
     }

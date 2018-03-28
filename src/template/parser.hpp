@@ -14,6 +14,7 @@
 #include <template_parser/bison_parser.hpp>
 #include "scanner.hpp"
 #include "template_ast.hpp"
+#include "template_loader.hpp"
 
 namespace yy {
 class Parser ;
@@ -25,14 +26,12 @@ public:
 
     TemplateParser(std::istream &strm)  ;
 
-    bool parse() ;
-
-    wspp::util::Variant eval(ast::TemplateEvalContext &ctx) ;
+    bool parse(ast::DocumentNodePtr root) ;
 
     void error(const yy::Parser::location_type &loc,  const std::string& m) ;
 
     void addNode(ast::ContentNodePtr node) {
-        stack_.back()->children_.push_back(node) ;
+        stack_.back()->addChild(node) ;
     }
 
     void pushBlock(ast::ContainerNodePtr node) {
@@ -43,7 +42,19 @@ public:
         stack_.pop_back() ;
     }
 
-    void eval(ast::TemplateEvalContext &ct, std::string &s);
+
+    void addMacroBlock(const std::string &name, ast::ContentNodePtr node) {
+        root_->macro_blocks_.insert({name, node}) ;
+    }
+
+    ast::ContainerNodePtr stackTop() const { return stack_.back() ; }
+
+    const std::string getErrorString() const { return error_string_ ; }
+
+    TemplateScanner &scanner() { return scanner_ ; }
+
+private:
+    friend class yy::Parser ;
 
     TemplateScanner scanner_;
     yy::Parser parser_;
@@ -51,8 +62,9 @@ public:
     std::string error_string_, script_ ;
     yy::Parser::location_type loc_ ;
 
-    ast::ExpressionNodePtr root_ ;
+    ast::DocumentNodePtr root_ ;
     std::deque<ast::ContainerNodePtr> stack_ ;
+
 
 } ;
 

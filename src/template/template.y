@@ -70,6 +70,12 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token T_END_SET "endset"
 %token T_FILTER "filter"
 %token T_END_FILTER "endfilter"
+%token T_EXTENDS "extends"
+%token T_MACRO "macro"
+%token T_END_MACRO "end macro"
+%token T_SELF "_self"
+%token T_AS "as"
+%token T_IMPORT "import"
 %token T_ASSIGN "="
 %token T_IN "in"
 %token T_START_BLOCK_TAG "{%"
@@ -103,10 +109,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 /*operators */
 
-
 %right T_QUESTION_MARK T_COLON
-
-
 %left T_OR
 %left T_AND
 %nonassoc T_LESS_THAN T_GREATER_THAN T_LESS_THAN_OR_EQUAL T_GREATER_THAN_OR_EQUAL T_EQUAL T_NOT_EQUAL
@@ -157,7 +160,7 @@ sub_tag:
 
 tag_declaration:
     block_declaration
-   | endblock_declaration
+   | end_block_declaration
    | for_loop_declaration
    | else_declaration
    | end_for_declaration
@@ -168,14 +171,28 @@ tag_declaration:
    | end_set_declaration
    | filter_declaration
    | end_filter_declaration
+   | extends_declaration
+   | macro_declaration
+   | end_macro_declaration
+   | import_declaration
   ;
 
 block_declaration:
-    T_BEGIN_BLOCK T_IDENTIFIER
+    T_BEGIN_BLOCK T_IDENTIFIER {
+        auto node = std::make_shared<ast::NamedBlockNode>($2) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node);
+    }
+    | T_BEGIN_BLOCK T_IDENTIFIER expression {
+        auto node = std::make_shared<ast::NamedBlockNode>($2) ;
+        driver.addNode(node) ;
+        node->addChild(std::make_shared<SubTextNode>($3)) ;
+    }
     ;
 
-endblock_declaration:
-    T_END_BLOCK
+end_block_declaration:
+    T_END_BLOCK { driver.popBlock() ; }
+    | T_END_BLOCK T_IDENTIFIER { driver.popBlock() ; }
     ;
 
 for_loop_declaration:
@@ -190,9 +207,9 @@ end_for_declaration:
 
 else_declaration:
     T_ELSE {
-        if ( ast::ForLoopBlockNode *p = dynamic_cast<ast::ForLoopBlockNode *>(driver.stack_.back().get()) )
+        if ( ast::ForLoopBlockNode *p = dynamic_cast<ast::ForLoopBlockNode *>(driver.stackTop().get()) )
             p->startElseBlock() ;
-        else if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stack_.back().get()) )
+        else if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stackTop().get()) )
             p->addBlock(nullptr) ;
     }
 
@@ -205,7 +222,7 @@ if_declaration:
 
 else_if_declaration:
     T_ELSE_IF expression {
-        if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stack_.back().get()) )
+        if ( ast::IfBlockNode *p = dynamic_cast<ast::IfBlockNode *>(driver.stackTop().get()) )
             p->addBlock($2) ;
     }
 
@@ -229,9 +246,44 @@ filter_declaration:
             driver.pushBlock(node);
     }
 
-end_filter_declaration:
-        T_END_FILTER { driver.popBlock() ; }
+extends_declaration:
+        T_EXTENDS expression  {
+            auto node = std::make_shared<ast::ExtensionBlockNode>($2) ;
+            driver.addNode(node) ;
+            driver.pushBlock(node);
+       }
 
+end_filter_declaration:
+    T_END_FILTER { driver.popBlock() ; }
+
+macro_declaration:
+    T_MACRO T_IDENTIFIER T_LPAR identifier_list T_RPAR  {
+        auto node = std::make_shared<ast::MacroBlockNode>($2, $4) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node);
+        driver.addMacroBlock($2, node) ;
+    }
+    | T_MACRO T_IDENTIFIER T_LPAR T_RPAR  {
+        auto node = std::make_shared<ast::MacroBlockNode>($2) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node);
+        driver.addMacroBlock($2, node) ;
+    }
+
+end_macro_declaration:
+    T_END_MACRO { driver.popBlock() ; }
+
+import_declaration:
+    T_IMPORT expression T_AS T_IDENTIFIER  {
+            auto node = std::make_shared<ast::ImportBlockNode>($2, $4) ;
+            driver.addNode(node) ;
+            driver.pushBlock(node);
+        }
+   | T_IMPORT T_SELF T_AS T_IDENTIFIER  {
+            auto node = std::make_shared<ast::ImportBlockNode>(nullptr, $4) ;
+            driver.addNode(node) ;
+            driver.pushBlock(node);
+        }
 identifier_list:
     T_IDENTIFIER                          { $$ = std::make_shared<ast::IdentifierList>() ; $$->append($1) ; }
     | T_IDENTIFIER T_COMMA identifier_list  { $$ = $3 ; $3->prepend($1) ; }
@@ -296,7 +348,7 @@ value:
     | array         { $$ = $1 ; }
     | T_TRUE         { $$ = std::make_shared<ast::LiteralNode>(true) ; }
     | T_FALSE        { $$ = std::make_shared<ast::LiteralNode>(false) ; }
-    | T_NULL         { $$ = std::make_shared<ast::LiteralNode>(nullptr) ; }
+    | T_NULL         { $$ = std::make_shared<ast::LiteralNode>(Variant::null()) ; }
 
 array:
     T_LEFT_BRACKET expression_list T_RIGHT_BRACKET { $$ = std::make_shared<ast::ArrayNode>($2) ; }
@@ -336,7 +388,7 @@ void yy::Parser::error(const yy::Parser::location_type &loc, const std::string &
 // the yylex function
 
 static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::location_type &loc) {
-	return  driver.scanner_.lex(&loc);
+    return  driver.scanner().lex(&loc);
 }
 
 

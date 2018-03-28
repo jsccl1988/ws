@@ -1,4 +1,5 @@
 #include "template_ast.hpp"
+#include "template_renderer.hpp"
 
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -93,12 +94,12 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
 
 Variant UnaryOperator::eval(TemplateEvalContext &ctx)
 {
-     Variant val = rhs_->eval(ctx) ;
+    Variant val = rhs_->eval(ctx) ;
 
-     if ( op_ == '-' ) {
-         return -val.toNumber() ;
-     }
-     else return val ;
+    if ( op_ == '-' ) {
+        return -val.toNumber() ;
+    }
+    else return val ;
 
 }
 
@@ -153,29 +154,31 @@ Variant InvokeFilterNode::eval(TemplateEvalContext &ctx)
 
 Variant FilterNode::eval(const Variant &target, TemplateEvalContext &ctx)
 {
-
     Variant args ;
-    evalArgs(target, args, ctx) ;
+    if ( args_ )
+        args_->eval(args, ctx, boost::optional<Variant>(target)) ;
+    else
+        args = Variant::Object{{"args", Variant::Array{{target}}}, { "kw", Variant::Object{{}}}} ;
+
     return dispatch(name_, args) ;
 }
 
-void FilterNode::evalArgs(const Variant &target, Variant &args, TemplateEvalContext &ctx) const
+
+void FunctionArguments::eval(Variant &args, TemplateEvalContext &ctx, const boost::optional<Variant> &extra) const
 {
     Variant::Array pos_args ;
-    pos_args.push_back(target) ;
 
+    if ( extra.is_initialized() )
+        pos_args.push_back(extra.get()) ;
 
     Variant::Object kv_args ;
 
+    for ( auto &&e: children() ) {
+        if ( e->name_.empty() )
+            pos_args.push_back(e->val_->eval(ctx)) ;
+        else
+            kv_args.insert({e->name_, e->val_->eval(ctx)}) ;
 
-    if ( args_ ) {
-
-        for ( auto &&e: args_->children() ) {
-            if ( e->name_.empty() )
-                pos_args.push_back(e->val_->eval(ctx)) ;
-            else
-                kv_args.insert({e->name_, e->val_->eval(ctx)}) ;
-        }
     }
 
     args = Variant::Object{{"args", pos_args}, {"kw", kv_args}} ;
@@ -195,8 +198,8 @@ static bool unpack_args(const Variant &args, const std::vector<pair<std::string,
     const Variant &pos_args = args["args"] ;
 
     for ( uint pos = 0 ; pos < n_args && pos < pos_args.length() ; pos ++ )  {
-            res[pos] = pos_args.at(pos) ;
-            provided[pos] = true ;
+        res[pos] = pos_args.at(pos) ;
+        provided[pos] = true ;
     }
 
     const Variant &kw_args = args["kw"] ;
@@ -206,10 +209,10 @@ static bool unpack_args(const Variant &args, const std::vector<pair<std::string,
         const Variant &val = it.value() ;
 
         for( uint k=0 ; k<named_args.size() ; k++ ) {
-           if ( key == named_args[k].first && !provided[k] ) {
-               res[k] = val ;
-               provided[k] = true ;
-           }
+            if ( key == named_args[k].first && !provided[k] ) {
+                res[k] = val ;
+                provided[k] = true ;
+            }
 
         }
     }
@@ -236,18 +239,26 @@ Variant FilterNode::dispatch(const string &fname, const Variant &args)
                     res.append(i.at(key).toString()) ;
                 else
                     res.append(i.toString()) ;
-             is_first = false ;
+                is_first = false ;
             }
             return res ;
         }
     } else if ( fname == "lower" ) {
         Variant::Array unpacked ;
         if ( unpack_args(args, { { "str", true }}, unpacked) )
-        return boost::to_lower_copy(unpacked[0].toString()) ;
+            return boost::to_lower_copy(unpacked[0].toString()) ;
     } else if ( fname == "upper" ) {
         Variant::Array unpacked ;
         if ( unpack_args(args, { { "str", true }}, unpacked) )
-        return boost::to_upper_copy(unpacked[0].toString()) ;
+            return boost::to_upper_copy(unpacked[0].toString()) ;
+    } else if ( fname == "default" ) {
+        Variant::Array unpacked ;
+        if ( unpack_args(args, { { "str", true }, {"default", true} }, unpacked) )
+            return unpacked[0].isNull() ? unpacked[1] : unpacked[0] ;
+    } else if ( fname == "e" ) {
+        Variant::Array unpacked ;
+        if ( unpack_args(args, { { "str", true }}, unpacked) )
+            return unpacked[0].toString() ;
     }
 
     return Variant::null() ;
@@ -292,7 +303,7 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     } else if ( else_child_start_ >= 0 ) {
 
         for( uint count = else_child_start_ ; count < children_.size() ; count ++ ) {
-                children_[count]->eval(ctx, res) ;
+            children_[count]->eval(ctx, res) ;
         }
     }
 }
@@ -354,9 +365,132 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
     Variant f = callable_->eval(ctx) ;
     if ( f.type() != Variant::Type::Function )
         return nullptr ;
+    else {
+        Variant args ;
+        if ( args_ )
+            args_->eval(args, ctx, boost::optional<Variant>()) ;
+        return f.invoke(args) ;
+    }
+}
 
+void NamedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    auto it = ctx.blocks_.find(name_) ;
+    if ( it != ctx.blocks_.end() ) {
+        TemplateEvalContext cctx(ctx) ;
+        cctx.data()["parent"] = Variant([&](const Variant &) -> Variant {
+            string pp ;
+            for( auto &&c: children_ ) {
+                c->eval(cctx, pp) ;
+            }
+            return Variant(pp) ;
+        }) ;
+
+        for( auto &&c: it->second->children_ ) {
+            c->eval(cctx, res) ;
+        }
+    }
+    else {
+        for( auto &&c: children_ ) {
+            c->eval(ctx, res) ;
+        }
+    }
+}
+
+void ExtensionBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    string resource = parent_resource_->eval(ctx).toString() ;
+
+    TemplateRenderer &rdr = *ctx.rdr_ ;
+
+    auto parent = rdr.compile(resource) ;
+
+    TemplateEvalContext pctx(ctx) ;
+
+    // fill context with block definitions
+
+    for( auto &&c: children_ ) {
+        NamedBlockNodePtr block = std::dynamic_pointer_cast<NamedBlockNode>(c) ;
+        if ( block )
+            pctx.addBlock(block) ;
+    }
+
+    parent->eval(pctx, res) ;
+}
+
+void TemplateEvalContext::addBlock(NamedBlockNodePtr node) {
+    blocks_.insert({node->name_, node}) ;
+}
+
+void MacroBlockNode::eval(TemplateEvalContext &, string &) const
+{
 
 }
+
+void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx, Variant::Array &arg_list)
+{
+    auto it = args.begin() ;
+    for( auto &&arg_name: args_ ) {
+        Variant val = Variant::null() ;
+        if ( it != args.end()  )
+            val = *it++ ;
+
+        ctx.insert({arg_name, val}) ;
+        arg_list.push_back(val) ;
+    }
+
+    while ( it != args.end() ) {
+        arg_list.push_back(*it++) ;
+    }
+}
+
+void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    DocumentNodePtr doc = ctx.doc_ ;
+
+    if ( source_ ) {
+        string resource = source_->eval(ctx).toString() ;
+
+        TemplateRenderer &rdr = *ctx.rdr_ ;
+
+        doc = rdr.compile(resource) ;
+
+    }
+
+    TemplateEvalContext pctx(ctx) ;
+
+    Variant::Object closures ;
+
+    for( auto &&m: doc->macro_blocks_ ) {
+
+        std::shared_ptr<MacroBlockNode> p_macro = std::dynamic_pointer_cast<MacroBlockNode>(m.second) ;
+        if ( p_macro ) {
+            auto macro_fn = [&, p_macro](const Variant &args) -> Variant {
+                TemplateEvalContext tctx(ctx) ;
+                Variant::Array arg_list ;
+                p_macro->mapArguments(args.at("args"), tctx.data(), arg_list) ;
+                tctx.data()["varargs"] = arg_list ;
+
+                string res ;
+                for( auto &&c: p_macro->children_ ) {
+                    c->eval(tctx, res) ;
+                }
+
+                return res ;
+            };
+
+            closures.insert({p_macro->name_, Variant::function_t(macro_fn)}) ;
+        }
+    }
+
+    pctx.data().insert({ns_, Variant(closures)}) ;
+
+    for( auto &&c: children_ ) {
+        c->eval(pctx, res) ;
+    }
+
+}
+
 
 
 }

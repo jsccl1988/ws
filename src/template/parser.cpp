@@ -12,20 +12,19 @@ TemplateParser::TemplateParser(std::istream &strm) :
     parser_(*this, loc_)
 {}
 
-bool TemplateParser::parse() {
-     parser_.set_debug_level(14);
+bool TemplateParser::parse(ast::DocumentNodePtr root) {
 
-       stack_.push_back(std::shared_ptr<ast::ContainerNode>(new ast::DocumentNode()));
+//    parser_.set_debug_level(14);
+
+    root_ = root ;
+    stack_.push_back(root);
+
     loc_.initialize() ;
     int res = parser_.parse();
 
     return ( res == 0 ) ;
 }
 
-void TemplateParser::eval(ast::TemplateEvalContext &ctx, std::string &s)
-{
-    stack_.back()->eval(ctx, s) ;
-}
 
 void TemplateParser::error(const yy::Parser::location_type &loc, const std::string& m)
 {
