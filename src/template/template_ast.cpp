@@ -446,7 +446,7 @@ void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx, Var
 
 void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
-    DocumentNodePtr doc = ctx.doc_ ;
+    DocumentNodePtr doc ;
 
     if ( source_ ) {
         string resource = source_->eval(ctx).toString() ;
@@ -454,14 +454,13 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
         TemplateRenderer &rdr = *ctx.rdr_ ;
 
         doc = rdr.compile(resource) ;
-
     }
 
     TemplateEvalContext pctx(ctx) ;
 
     Variant::Object closures ;
 
-    for( auto &&m: doc->macro_blocks_ ) {
+    for( auto &&m: (doc) ? doc->macro_blocks_ : root()->macro_blocks_ ) {
 
         std::shared_ptr<MacroBlockNode> p_macro = std::dynamic_pointer_cast<MacroBlockNode>(m.second) ;
         if ( p_macro ) {

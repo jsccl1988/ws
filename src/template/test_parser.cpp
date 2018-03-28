@@ -12,10 +12,8 @@ int main(int argc, char *argv[]) {
     TemplateRenderer rdr(loader) ;
     rdr.setDebug() ;
 
-    ast::TemplateEvalContext ctx ;
-    ctx.rdr_ = &rdr ;
 
-    auto &&t = ctx.data() ;
+    Variant::Object t ;
 
     t["name"] = Variant::Object{{"k1", "v1"}, {"k2", Variant::Array{{"a", "b"}}}} ;
     t["vals"] = Variant::Array{{1, 2, 3, 4, "a"}}  ;
@@ -31,10 +29,8 @@ int main(int argc, char *argv[]) {
             Variant::Object{{ "title", "aaa"}, {"body", "bbb"}, {"text", "ccc"}}
     } };
 
-    string res ;
 
-    ast::DocumentNodePtr c = rdr.compile("index") ;
-    c->eval(ctx, res) ;
-    cout.flush() ;
-    cout << res << endl ;
+   // cout.flush() ;
+    cout << rdr.render("index", t)<< endl ;
+
 }

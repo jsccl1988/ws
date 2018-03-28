@@ -144,6 +144,9 @@ LIST(APPEND WEB_SOURCES ${FLEX_TEMPLATE_SCANNER_OUTPUTS} ${BISON_TEMPLATE_PARSER
 
     ${SRC_ROOT}/template/template_renderer.hpp
     ${SRC_ROOT}/template/template_renderer.cpp
+
+    ${SRC_ROOT}/template/template_exceptions.hpp
+    ${SRC_ROOT}/template/template_exceptions.cpp
 )
 
 INCLUDE_DIRECTORIES(

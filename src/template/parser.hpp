@@ -15,10 +15,15 @@
 #include "scanner.hpp"
 #include "template_ast.hpp"
 #include "template_loader.hpp"
+#include "template_exceptions.hpp"
+
+#include <boost/thread/mutex.hpp>
 
 namespace yy {
 class Parser ;
 }
+
+
 
 class TemplateParser {
 
@@ -26,7 +31,7 @@ public:
 
     TemplateParser(std::istream &strm)  ;
 
-    bool parse(ast::DocumentNodePtr root) ;
+    void parse(ast::DocumentNodePtr root, const std::string &name) ;
 
     void error(const yy::Parser::location_type &loc,  const std::string& m) ;
 
@@ -49,9 +54,11 @@ public:
 
     ast::ContainerNodePtr stackTop() const { return stack_.back() ; }
 
-    const std::string getErrorString() const { return error_string_ ; }
 
     TemplateScanner &scanner() { return scanner_ ; }
+
+    static TemplateLocation convert_loc(yy::Parser::location_type yy_loc) ;
+
 
 private:
     friend class yy::Parser ;

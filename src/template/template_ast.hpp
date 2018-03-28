@@ -23,7 +23,11 @@ typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
 
 struct TemplateEvalContext {
 
-    TemplateEvalContext() = default ;
+    TemplateEvalContext(TemplateRenderer *rdr, const Variant::Object &data):
+        rdr_(rdr), data_(data) {}
+
+    TemplateEvalContext() = delete ;
+
     Variant::Object &data() {
         return data_ ;
     }
@@ -32,7 +36,6 @@ struct TemplateEvalContext {
 
     Variant::Object data_ ;
     std::map<std::string, NamedBlockNodePtr> blocks_ ;
-    DocumentNodePtr doc_ ;
     TemplateRenderer *rdr_ ;
 };
 
@@ -508,12 +511,15 @@ public:
 class DocumentNode: public ContainerNode {
 public:
 
+    DocumentNode(TemplateRenderer &rdr): renderer_(rdr) {}
+
     void eval(TemplateEvalContext &ctx, std::string &res) const override {
         for( auto &&e: children_ )
             e->eval(ctx, res) ;
     }
 
     std::map<std::string, ast::ContentNodePtr> macro_blocks_ ;
+    TemplateRenderer &renderer_ ;
 };
 
 typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
