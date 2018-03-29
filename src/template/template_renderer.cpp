@@ -3,11 +3,11 @@
 
 
 using namespace std ;
-using namespace ast ;
+using namespace detail ;
 
 string TemplateRenderer::render(const string &resource, const Variant::Object &ctx)
 {
-    TemplateEvalContext eval_ctx(this, ctx) ;
+    TemplateEvalContext eval_ctx(*this, ctx) ;
 
     auto ast = compile(resource) ;
     string res ;
@@ -17,7 +17,7 @@ string TemplateRenderer::render(const string &resource, const Variant::Object &c
 
 string TemplateRenderer::renderString(const string &str, const Variant::Object &ctx)
 {
-    TemplateEvalContext eval_ctx(this, ctx) ;
+    TemplateEvalContext eval_ctx(*this, ctx) ;
 
     auto ast = compileString(str) ;
     string res ;
@@ -25,7 +25,7 @@ string TemplateRenderer::renderString(const string &str, const Variant::Object &
     return res ;
 }
 
-ast::DocumentNodePtr TemplateRenderer::compile(const std::string &resource)
+detail::DocumentNodePtr TemplateRenderer::compile(const std::string &resource)
 {
     static Cache g_cache ;
 
@@ -42,7 +42,7 @@ ast::DocumentNodePtr TemplateRenderer::compile(const std::string &resource)
 
     TemplateParser parser(strm) ;
 
-    ast::DocumentNodePtr root(new ast::DocumentNode(*this)) ;
+    detail::DocumentNodePtr root(new detail::DocumentNode(*this)) ;
 
     parser.parse(root, resource) ;
 
@@ -51,13 +51,13 @@ ast::DocumentNodePtr TemplateRenderer::compile(const std::string &resource)
     return root ;
 }
 
-ast::DocumentNodePtr TemplateRenderer::compileString(const std::string &src)
+detail::DocumentNodePtr TemplateRenderer::compileString(const std::string &src)
 {
     istringstream strm(src) ;
 
     TemplateParser parser(strm) ;
 
-    ast::DocumentNodePtr root(new ast::DocumentNode(*this)) ;
+    detail::DocumentNodePtr root(new detail::DocumentNode(*this)) ;
 
     parser.parse(root, "--string--") ;
 

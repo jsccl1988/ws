@@ -25,7 +25,7 @@ class TemplateParser ;
 #include <parser.hpp>
 #include <template_ast.hpp>
 
-using namespace ast ;
+using namespace detail ;
 using namespace std ;
 
 static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::location_type &loc);
@@ -93,25 +93,25 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token T_DOUBLE_RIGHT_BRACE_TRIM "-}}"
 %token T_END  0  "end of file";
 
-%token <std::string> T_IDENTIFIER      "identifier";
+%token <std::string> T_IDENTIFIER       "identifier";
+%token <std::string> T_GLOBAL_FUNCTION  "global function name";
 %token <std::string> T_RAW_CHARACTERS  "raw characters";
 %token <int64_t>     T_INTEGER         "integer";
 %token <double>      T_FLOAT           "float";
 %token <std::string> T_STRING          "string literal";
 
-
-%type <ast::ExpressionNodePtr> expression value array object function_call
-%type <ast::ExpressionListPtr> expression_list
-%type <ast::KeyValListPtr> key_val_list
-%type <ast::KeyValNodePtr> key_val
-%type <ast::FilterNodePtr> filter
-%type <ast::FunctionArgumentsPtr> func_args
-%type <ast::FunctionArgPtr> func_arg
-%type <ast::IdentifierListPtr> identifier_list
-%type <ast::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
-%type <ast::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
-%type <ast::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
-%type <ast::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
+%type <detail::ExpressionNodePtr> expression value array object function_call
+%type <detail::ExpressionListPtr> expression_list
+%type <detail::KeyValListPtr> key_val_list
+%type <detail::KeyValNodePtr> key_val
+%type <detail::FilterNodePtr> filter
+%type <detail::FunctionArgumentsPtr> func_args
+%type <detail::FunctionArgPtr> func_arg
+%type <detail::IdentifierListPtr> identifier_list
+%type <detail::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
+%type <detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
+%type <detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
+%type <detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
 
 /*operators */
 
@@ -326,11 +326,13 @@ expression:
         | T_IDENTIFIER { $$ = make_shared<IdentifierNode>($1) ; }
 
 filter:
-    T_IDENTIFIER                          { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
-  | T_IDENTIFIER T_LPAR func_args T_RPAR  { $$ = make_shared<FilterNode>($1, $3) ; }
+    T_GLOBAL_FUNCTION                     { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
+  | T_GLOBAL_FUNCTION T_LPAR func_args T_RPAR  { $$ = make_shared<FilterNode>($1, $3) ; }
 
 function_call:
-    expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1, make_shared<FunctionArguments>()) ; }
+    T_GLOBAL_FUNCTION T_LPAR T_RPAR     { $$ = make_shared<InvokeGlobalFunctionNode>($1, make_shared<FunctionArguments>()) ; }
+  | T_GLOBAL_FUNCTION T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeGlobalFunctionNode>($1, $3) ; }
+  | expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1, make_shared<FunctionArguments>()) ; }
   | expression T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeFunctionNode>($1, $3) ; }
 	;
 

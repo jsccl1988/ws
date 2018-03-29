@@ -14,7 +14,7 @@ TemplateParser::TemplateParser(std::istream &strm) :
     parser_(*this, loc_)
 {}
 
-void TemplateParser::parse(ast::DocumentNodePtr root, const std::string &name) {
+void TemplateParser::parse(detail::DocumentNodePtr root, const std::string &name) {
 //    parser_.set_debug_level(14);
 
     root_ = root ;

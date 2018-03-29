@@ -1,7 +1,7 @@
 %{
 #include "parser.hpp"
 #include "bison_parser.hpp"
-
+#include "functions.hpp"
 #include <string.h>
 
 void comment() ;
@@ -93,7 +93,10 @@ using namespace std ;
 "?"	    return TOKEN(T_QUESTION_MARK) ;
 
 [a-zA-Z][a-zA-Z0-9_]* {
-    return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
+    if ( FunctionFactory::instance().hasFunction(yytext) )
+        return yy::Parser::make_T_GLOBAL_FUNCTION(yytext, *yylloc) ;
+    else
+        return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
 }
 
 [0-9]+	  return yy::Parser::make_T_INTEGER(atof(yytext), *yylloc) ;

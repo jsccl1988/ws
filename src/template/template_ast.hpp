@@ -9,35 +9,15 @@
 
 #include <wspp/util/variant.hpp>
 
+#include "context.hpp"
+
 using wspp::util::Variant ;
 
 class TemplateRenderer ;
 
-namespace ast {
+namespace detail {
 
-class NamedBlockNode ;
-typedef std::shared_ptr<NamedBlockNode> NamedBlockNodePtr ;
 
-class DocumentNode ;
-typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
-
-struct TemplateEvalContext {
-
-    TemplateEvalContext(TemplateRenderer *rdr, const Variant::Object &data):
-        rdr_(rdr), data_(data) {}
-
-    TemplateEvalContext() = delete ;
-
-    Variant::Object &data() {
-        return data_ ;
-    }
-
-    void addBlock(NamedBlockNodePtr node) ;
-
-    Variant::Object data_ ;
-    std::map<std::string, NamedBlockNodePtr> blocks_ ;
-    TemplateRenderer *rdr_ ;
-};
 
 enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
 
@@ -310,6 +290,18 @@ private:
     FunctionArgumentsPtr args_ ;
 };
 
+class InvokeGlobalFunctionNode: public ExpressionNode {
+public:
+    InvokeGlobalFunctionNode(const std::string &name, FunctionArgumentsPtr args): name_(name), args_(args) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+
+private:
+    std::string name_ ;
+    FunctionArgumentsPtr args_ ;
+};
+
 class DocumentNode ;
 
 class ContentNode {
@@ -522,7 +514,7 @@ public:
             e->eval(ctx, res) ;
     }
 
-    std::map<std::string, ast::ContentNodePtr> macro_blocks_ ;
+    std::map<std::string, detail::ContentNodePtr> macro_blocks_ ;
     TemplateRenderer &renderer_ ;
 };
 

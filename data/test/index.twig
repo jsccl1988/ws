@@ -4,6 +4,8 @@
 
 {% import 'forms' as forms %}
 
+{{ include('include') }}
+
 <p>{{ forms.input('username') }}</p>
 <p>{{ forms.input('password', null, 'password') }}</p>
     {%- for entry in posts -%}

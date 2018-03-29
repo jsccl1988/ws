@@ -1,5 +1,7 @@
 #include "template_ast.hpp"
 #include "template_renderer.hpp"
+#include "template_exceptions.hpp"
+#include "functions.hpp"
 
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -7,7 +9,9 @@
 using namespace std ;
 using namespace wspp::util ;
 
-namespace ast {
+
+
+namespace detail {
 
 
 Variant BooleanOperator::eval(TemplateEvalContext &ctx)
@@ -155,12 +159,8 @@ Variant InvokeFilterNode::eval(TemplateEvalContext &ctx)
 Variant FilterNode::eval(const Variant &target, TemplateEvalContext &ctx)
 {
     Variant args ;
-    if ( args_ )
-        args_->eval(args, ctx, boost::optional<Variant>(target)) ;
-    else
-        args = Variant::Object{{"args", Variant::Array{{target}}}, { "kw", Variant::Object{{}}}} ;
-
-    return dispatch(name_, args) ;
+    args_->eval(args, ctx, boost::optional<Variant>(target)) ;
+    FunctionFactory::instance().invoke(name_, args, ctx) ;
 }
 
 
@@ -184,85 +184,7 @@ void FunctionArguments::eval(Variant &args, TemplateEvalContext &ctx, const boos
     args = Variant::Object{{"args", pos_args}, {"kw", kv_args}} ;
 }
 
-// unpack passed arguments into an array checking if all required arguments have been passed
-// the known arguments are supplied by named_args map which provides the argument name and whether it is required or not
 
-static bool unpack_args(const Variant &args, const std::vector<pair<std::string, bool>> &named_args, Variant::Array &res) {
-
-    uint n_args = named_args.size() ;
-
-    res.resize(n_args, Variant::null()) ;
-
-    std::vector<bool> provided(n_args, false) ;
-
-    const Variant &pos_args = args["args"] ;
-
-    for ( uint pos = 0 ; pos < n_args && pos < pos_args.length() ; pos ++ )  {
-        res[pos] = pos_args.at(pos) ;
-        provided[pos] = true ;
-    }
-
-    const Variant &kw_args = args["kw"] ;
-
-    for ( auto it = kw_args.begin() ; it != kw_args.end() ; ++it ) {
-        string key = it.key() ;
-        const Variant &val = it.value() ;
-
-        for( uint k=0 ; k<named_args.size() ; k++ ) {
-            if ( key == named_args[k].first && !provided[k] ) {
-                res[k] = val ;
-                provided[k] = true ;
-            }
-
-        }
-    }
-
-    uint required = std::count_if(named_args.begin(), named_args.end(), [](const pair<string, bool> &b) { return b.second ;});
-
-    return std::count(provided.begin(), provided.end(), true) >= required ;
-}
-
-Variant FilterNode::dispatch(const string &fname, const Variant &args)
-{
-    if ( fname == "join" ) {
-        Variant::Array unpacked ;
-        if ( unpack_args(args, { { "str", true }, { "sep", false }, {"key", false } },  unpacked) ) {
-
-            string sep = ( unpacked[1].isNull() ) ? "" : unpacked[1].toString() ;
-            string key = ( unpacked[2].isNull() ) ? "" : unpacked[2].toString() ;
-
-            bool is_first = true ;
-            string res ;
-            for( auto &i: unpacked[0] ) {
-                if ( !is_first ) res.append(sep) ;
-                if ( !key.empty() )
-                    res.append(i.at(key).toString()) ;
-                else
-                    res.append(i.toString()) ;
-                is_first = false ;
-            }
-            return res ;
-        }
-    } else if ( fname == "lower" ) {
-        Variant::Array unpacked ;
-        if ( unpack_args(args, { { "str", true }}, unpacked) )
-            return boost::to_lower_copy(unpacked[0].toString()) ;
-    } else if ( fname == "upper" ) {
-        Variant::Array unpacked ;
-        if ( unpack_args(args, { { "str", true }}, unpacked) )
-            return boost::to_upper_copy(unpacked[0].toString()) ;
-    } else if ( fname == "default" ) {
-        Variant::Array unpacked ;
-        if ( unpack_args(args, { { "str", true }, {"default", true} }, unpacked) )
-            return unpacked[0].isNull() ? unpacked[1] : unpacked[0] ;
-    } else if ( fname == "e" ) {
-        Variant::Array unpacked ;
-        if ( unpack_args(args, { { "str", true }}, unpacked) )
-            return unpacked[0].toString() ;
-    }
-
-    return Variant::null() ;
-}
 
 void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
@@ -376,14 +298,21 @@ void ContentNode::trim(const string &src, string &out) const
 Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
 {
     Variant f = callable_->eval(ctx) ;
-    if ( f.type() != Variant::Type::Function )
-        return nullptr ;
-    else {
-        Variant args ;
-        if ( args_ )
-            args_->eval(args, ctx, boost::optional<Variant>()) ;
+
+    Variant args ;
+    args_->eval(args, ctx, boost::optional<Variant>()) ;
+
+    if ( f.type() == Variant::Type::Function ) {
         return f.invoke(args) ;
-    }
+    } else throw TemplateRuntimeException("function invocation of non-callable variable") ;
+}
+
+Variant InvokeGlobalFunctionNode::eval(TemplateEvalContext &ctx)
+{
+    Variant args ;
+    args_->eval(args, ctx, boost::optional<Variant>()) ;
+
+    return FunctionFactory::instance().invoke(name_, args, ctx) ;
 }
 
 void NamedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -417,7 +346,7 @@ void ExtensionBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
     string resource = parent_resource_->eval(ctx).toString() ;
 
-    TemplateRenderer &rdr = *ctx.rdr_ ;
+    TemplateRenderer &rdr = ctx.rdr_ ;
 
     auto parent = rdr.compile(resource) ;
 
@@ -434,9 +363,7 @@ void ExtensionBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     parent->eval(pctx, res) ;
 }
 
-void TemplateEvalContext::addBlock(NamedBlockNodePtr node) {
-    blocks_.insert({node->name_, node}) ;
-}
+
 
 void MacroBlockNode::eval(TemplateEvalContext &, string &) const
 {
@@ -469,7 +396,7 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     if ( source_ ) {
         string resource = source_->eval(ctx).toString() ;
 
-        TemplateRenderer &rdr = *ctx.rdr_ ;
+        TemplateRenderer &rdr = ctx.rdr_ ;
 
         doc = rdr.compile(resource) ;
     }
@@ -510,7 +437,10 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
 }
 
+}
+ // namespace detail
 
-
+void TemplateEvalContext::addBlock(detail::NamedBlockNodePtr node) {
+    blocks_.insert({node->name_, node}) ;
 }
 

@@ -31,15 +31,15 @@ public:
 
     TemplateParser(std::istream &strm)  ;
 
-    void parse(ast::DocumentNodePtr root, const std::string &name) ;
+    void parse(detail::DocumentNodePtr root, const std::string &name) ;
 
     void error(const yy::Parser::location_type &loc,  const std::string& m) ;
 
-    void addNode(ast::ContentNodePtr node) {
+    void addNode(detail::ContentNodePtr node) {
         stack_.back()->addChild(node) ;
     }
 
-    void pushBlock(ast::ContainerNodePtr node) {
+    void pushBlock(detail::ContainerNodePtr node) {
         stack_.push_back(node) ;
     }
 
@@ -48,11 +48,11 @@ public:
     }
 
 
-    void addMacroBlock(const std::string &name, ast::ContentNodePtr node) {
+    void addMacroBlock(const std::string &name, detail::ContentNodePtr node) {
         root_->macro_blocks_.insert({name, node}) ;
     }
 
-    ast::ContainerNodePtr stackTop() const { return stack_.back() ; }
+    detail::ContainerNodePtr stackTop() const { return stack_.back() ; }
 
 
     TemplateScanner &scanner() { return scanner_ ; }
@@ -68,8 +68,8 @@ private:
     std::string error_string_, script_ ;
     yy::Parser::location_type loc_ ;
 
-    ast::DocumentNodePtr root_ ;
-    std::deque<ast::ContainerNodePtr> stack_ ;
+    detail::DocumentNodePtr root_ ;
+    std::deque<detail::ContainerNodePtr> stack_ ;
 
 
 } ;

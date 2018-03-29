@@ -5,17 +5,20 @@
 
 #include "template_loader.hpp"
 #include "template_exceptions.hpp"
+#include "functions.hpp"
 
 #include <wspp/util/variant.hpp>
 #include <boost/thread/mutex.hpp>
 
-namespace ast {
+namespace detail {
     class DocumentNode ;
     class ExtensionBlockNode ;
     class ImportBlockNode ;
+
     typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
 }
 
+class FunctionFactory ;
 
 class TemplateRenderer {
 public:
@@ -32,12 +35,14 @@ public:
         caching_ = cache ;
     }
 
+    static FunctionFactory &getFunctionFactory() { return FunctionFactory::instance() ; }
+
 protected:
 
     class Cache {
     public:
 
-        using Entry = ast::DocumentNodePtr ;
+        using Entry = detail::DocumentNodePtr ;
 
         void add(const std::string &key, const Entry &val) {
             boost::mutex::scoped_lock lock(guard_);
@@ -57,11 +62,12 @@ protected:
 
     };
 
-    friend class ast::ExtensionBlockNode ;
-    friend class ast::ImportBlockNode ;
 
-    ast::DocumentNodePtr compile(const std::string &resource) ;
-    ast::DocumentNodePtr compileString(const std::string &resource) ;
+    friend class detail::ExtensionBlockNode ;
+    friend class detail::ImportBlockNode ;
+
+    detail::DocumentNodePtr compile(const std::string &resource) ;
+    detail::DocumentNodePtr compileString(const std::string &resource) ;
 
     bool debug_ = false, caching_ = true ;
     std::shared_ptr<TemplateLoader> loader_ ;
