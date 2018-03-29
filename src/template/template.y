@@ -4,6 +4,7 @@
 %defines
 %locations
 
+
 %define parser_class_name {Parser}
 %define api.token.constructor
 %define api.value.type variant
@@ -100,14 +101,17 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 
 
 %type <ast::ExpressionNodePtr> expression value array object function_call
-%type <ast::ExpressionListPtr> expression_list pos_func_args
+%type <ast::ExpressionListPtr> expression_list
 %type <ast::KeyValListPtr> key_val_list
 %type <ast::KeyValNodePtr> key_val
-%type <ast::FilterNodePtr> filter function
+%type <ast::FilterNodePtr> filter
 %type <ast::FunctionArgumentsPtr> func_args
 %type <ast::FunctionArgPtr> func_arg
 %type <ast::IdentifierListPtr> identifier_list
-%type <ast::ContentNodePtr> for_loop_declaration block_declaration block_tag sub_tag tag_or_chars
+%type <ast::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
+%type <ast::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
+%type <ast::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
+%type <ast::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
 
 /*operators */
 
@@ -142,7 +146,11 @@ tag_or_chars:
     }
 
 block_tag:
-T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG
+T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimNone) ; }
+| T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimLeft) ; }
+| T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG_TRIM { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimBoth) ; }
+| T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimRight) ; }
+
 ;
 
 sub_tag:
@@ -161,22 +169,22 @@ sub_tag:
 
 
 tag_declaration:
-    block_declaration
-   | end_block_declaration
-   | for_loop_declaration
-   | else_declaration
-   | end_for_declaration
-   | if_declaration
-   | else_if_declaration
-   | end_if_declaration
-   | set_declaration
-   | end_set_declaration
-   | filter_declaration
-   | end_filter_declaration
-   | extends_declaration
-   | macro_declaration
-   | end_macro_declaration
-   | import_declaration
+    block_declaration           { $$ = $1 ; }
+   | end_block_declaration      { $$ = $1 ; }
+   | for_loop_declaration       { $$ = $1 ; }
+   | else_declaration           { $$ = $1 ; }
+   | end_for_declaration        { $$ = $1 ; }
+   | if_declaration             { $$ = $1 ; }
+   | else_if_declaration        { $$ = $1 ; }
+   | end_if_declaration         { $$ = $1 ; }
+   | set_declaration            { $$ = $1 ; }
+   | end_set_declaration        { $$ = $1 ; }
+   | filter_declaration         { $$ = $1 ; }
+   | end_filter_declaration     { $$ = $1 ; }
+   | extends_declaration        { $$ = $1 ; }
+   | macro_declaration          { $$ = $1 ; }
+   | end_macro_declaration      { $$ = $1 ; }
+   | import_declaration         { $$ = $1 ; }
   ;
 
 block_declaration:
@@ -243,6 +251,7 @@ end_set_declaration:
 
 filter_declaration:
     T_FILTER filter  {
+
         auto node = make_shared<FilterBlockNode>($2) ;
             driver.addNode(node) ;
             driver.pushBlock(node);
@@ -317,7 +326,7 @@ expression:
         | T_IDENTIFIER { $$ = make_shared<IdentifierNode>($1) ; }
 
 filter:
-    T_IDENTIFIER                          { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ; }
+    T_IDENTIFIER                          { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
   | T_IDENTIFIER T_LPAR func_args T_RPAR  { $$ = make_shared<FilterNode>($1, $3) ; }
 
 function_call:
@@ -335,7 +344,7 @@ func_arg:
     | T_IDENTIFIER T_ASSIGN expression  { $$ = make_shared<FunctionArg>($3, $1) ; }
 
 value:
-    T_STRING         { $$ = make_shared<LiteralNode>($1) ; }
+    T_STRING         { $$ = make_shared<LiteralNode>($1) ;  }
     | T_INTEGER      { $$ = make_shared<LiteralNode>($1) ; }
     | T_FLOAT        { $$ = make_shared<LiteralNode>($1) ; }
     | object         { $$ = $1 ; }
@@ -369,7 +378,7 @@ key_val:
 
 
 %%
-#define YYDEBUG 1
+//#define YYDEBUG 1
 
 #include "scanner.hpp"
 
@@ -382,7 +391,7 @@ void yy::Parser::error(const yy::Parser::location_type &loc, const string &msg) 
 // the yylex function
 
 static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::location_type &loc) {
-    return  driver.scanner().lex(&loc);
+    return driver.scanner().lex(&loc);
 }
 
 

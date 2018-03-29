@@ -15,8 +15,6 @@ TemplateParser::TemplateParser(std::istream &strm) :
 {}
 
 void TemplateParser::parse(ast::DocumentNodePtr root, const std::string &name) {
-
-
 //    parser_.set_debug_level(14);
 
     root_ = root ;
@@ -24,19 +22,14 @@ void TemplateParser::parse(ast::DocumentNodePtr root, const std::string &name) {
 
     loc_.initialize() ;
     script_ = name ;
-    int res = parser_.parse();
+    parser_.parse();
 }
 
 
-void TemplateParser::error(const yy::Parser::location_type &loc, const std::string& m)
-{
-    throw TemplateCompileException(script_, m, convert_loc(loc)) ;
-
-}
-
-TemplateLocation TemplateParser::convert_loc(yy::Parser::location_type loc)
-{
-    return TemplateLocation(loc.begin.line, loc.begin.column, loc.end.line, loc.end.column);
+void TemplateParser::error(const yy::Parser::location_type &loc, const std::string& m) {
+    stringstream strm ;
+    strm << script_ << ": " << m << " near " << loc ;
+    throw TemplateCompileException(strm.str()) ;
 }
 
 

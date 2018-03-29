@@ -39,7 +39,7 @@ struct TemplateEvalContext {
     TemplateRenderer *rdr_ ;
 };
 
-enum class WhiteSpace { TrimNone, TrimBoth, TrimLeft, TrimRight } ;
+enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
 
 class ExpressionNode ;
 
@@ -319,7 +319,7 @@ public:
     // evalute a node using input context and put result in res
     virtual void eval(TemplateEvalContext &ctx, std::string &res) const = 0 ;
 
-    std::string trim(const std::string &src) const;
+    void trim(const std::string &src, std::string &out) const;
 
     static std::string escape(const std::string &src) ;
 
@@ -330,6 +330,10 @@ public:
         }
 
         return reinterpret_cast<const DocumentNode *>(node) ;
+    }
+
+    void setWhiteSpace(WhiteSpace ws) {
+        ws_ = ws ;
     }
 
     WhiteSpace ws_ ;
@@ -501,7 +505,7 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override {
         std::string contents = expr_->eval(ctx).toString() ;
-        res.append(trim(contents)) ;
+        trim(contents, res) ;
     }
 
     ExpressionNodePtr expr_ ;

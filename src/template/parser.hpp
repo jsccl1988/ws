@@ -57,7 +57,6 @@ public:
 
     TemplateScanner &scanner() { return scanner_ ; }
 
-    static TemplateLocation convert_loc(yy::Parser::location_type yy_loc) ;
 
 
 private:

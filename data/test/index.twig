@@ -2,12 +2,11 @@
 
 {% block content %}
 
-{% import "forms" as forms %}
+{% import 'forms' as forms %}
 
 <p>{{ forms.input('username') }}</p>
 <p>{{ forms.input('password', null, 'password') }}</p>
-
-    {% for entry in posts %}
+    {%- for entry in posts -%}
         <h2>{{ entry.title }}</h2>
         <p>{{ entry.body }}</p>
     {% endfor %}

@@ -1,9 +1,11 @@
 #include "template_loader.hpp"
+#include "template_exceptions.hpp"
 
 #include <fstream>
 #include <sstream>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 using namespace std ;
 
@@ -18,7 +20,8 @@ string FileSystemTemplateLoader::load(const string &key) {
     for ( const string &r: root_folders_ ) {
         path p(r) ;
 
-        p /= key + suffix_;
+        if ( boost::ends_with(key, suffix_) ) p /= key ;
+        else p /= key + suffix_;
 
         if ( !exists(p) ) continue ;
 
@@ -26,6 +29,8 @@ string FileSystemTemplateLoader::load(const string &key) {
 
         return static_cast<stringstream const&>(stringstream() << in.rdbuf()).str() ;
     }
+
+    throw TemplateLoadException("Cannot find template: " + key) ;
 
     return string() ;
 }

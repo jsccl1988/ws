@@ -26,6 +26,7 @@ using namespace std ;
 
 %{
    yylloc->step();
+
 %}
 
 <TAG>{
@@ -112,6 +113,8 @@ using namespace std ;
 
 "/*" { BEGIN(COMMENT); }
 
+
+
 }
 
 <SUBS>{
@@ -119,15 +122,20 @@ using namespace std ;
 "-}}"    { BEGIN(INITIAL) ; return TOKEN(T_DOUBLE_RIGHT_BRACE_TRIM) ; }
 }
 
-[\n]+   yylloc->lines (yyleng); yylloc->step ();
+<TAG,SUBS,TCOMMENT,COMMENT>{
+[\n]+  {
+    yylloc->lines (yyleng);
+    yylloc->step ();
+}
 
-[ \t]+   {yylloc->step ();}
+[ \r\t]+   {
+    yylloc->step ();
+}
+}
 
-<COMMENT>\n { yylloc->lines (); yylloc->step ();}
 <COMMENT>"*/" { BEGIN(TAG) ; }
 <COMMENT>.  { yylloc->step (); }
 
-<TCOMMENT>\n { yylloc->lines (); yylloc->step ();}
 <TCOMMENT>"#}" { BEGIN(INITIAL) ; }
 <TCOMMENT>.  { yylloc->step (); }
 
@@ -137,8 +145,17 @@ using namespace std ;
 "{%" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG) ; }
 "{%-" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG_TRIM) ; }
 "{#" { BEGIN(TCOMMENT) ; }
-"{"|[^{]* {
-/* this introduces a costly copy */
+"{"|[^{]+ {
+
+    // we have to undo the default action
+    yylloc->columns(-yyleng) ;
+
+    uint i = 0 ;
+    for( char *c = yytext ; i < yyleng ; i++, c++ ) {
+        if ( *c == '\n' ) yylloc->lines() ;
+        else yylloc->columns() ;
+    }
+
     return yy::Parser::make_T_RAW_CHARACTERS(std::string(yytext, yyleng), *yylloc) ;
 }
 

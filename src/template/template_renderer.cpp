@@ -5,9 +5,6 @@
 using namespace std ;
 using namespace ast ;
 
-
-
-
 string TemplateRenderer::render(const string &resource, const Variant::Object &ctx)
 {
     TemplateEvalContext eval_ctx(this, ctx) ;
@@ -16,7 +13,6 @@ string TemplateRenderer::render(const string &resource, const Variant::Object &c
     string res ;
     ast->eval(eval_ctx, res) ;
     return res ;
-
 }
 
 string TemplateRenderer::renderString(const string &str, const Variant::Object &ctx)
