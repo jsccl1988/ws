@@ -1,10 +1,13 @@
-#include "functions.hpp"
-#include "template_exceptions.hpp"
-#include "template_renderer.hpp"
+#include <wspp/twig/functions.hpp>
+#include <wspp/twig/exceptions.hpp>
+#include <wspp/twig/renderer.hpp>
+
 #include <boost/algorithm/string.hpp>
 
 using namespace wspp::util ;
 using namespace std ;
+
+namespace wspp { namespace twig {
 
 
 Variant FunctionFactory::invoke(const string &name, const Variant &args, TemplateEvalContext &ctx)
@@ -136,3 +139,6 @@ bool FunctionFactory::hasFunction(const string &name)
 {
     return functions_.count(name) ;
 }
+
+} // namespace twig
+} // namespace wspp

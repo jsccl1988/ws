@@ -1,7 +1,8 @@
-#include "template_ast.hpp"
-#include "template_renderer.hpp"
-#include "template_exceptions.hpp"
-#include "functions.hpp"
+#include "ast.hpp"
+
+#include <wspp/twig/functions.hpp>
+#include <wspp/twig/renderer.hpp>
+#include <wspp/twig/exceptions.hpp>
 
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -9,7 +10,7 @@
 using namespace std ;
 using namespace wspp::util ;
 
-
+namespace wspp { namespace twig {
 
 namespace detail {
 
@@ -480,3 +481,5 @@ void TemplateEvalContext::addBlock(detail::NamedBlockNodePtr node) {
     blocks_.insert({node->name_, node}) ;
 }
 
+} // namespace twig
+} // namespace wspp

@@ -19,7 +19,12 @@
 //                }) ;
 //       cout << v.toJSON() << endl ;
 
-class TemplateEvalContext ;
+namespace wspp {
+    namespace twig {
+        class TemplateEvalContext ;
+    }
+}
+
 
 namespace wspp { namespace util {
 
@@ -29,7 +34,7 @@ public:
 
     using Object = std::map<std::string, Variant> ;
     using Array = std::vector<Variant> ;
-    using Function = std::function<Variant(const Variant &, TemplateEvalContext &)> ;
+    using Function = std::function<Variant(const Variant &, twig::TemplateEvalContext &)> ;
 
     using signed_integer_t = int64_t ;
     using unsigned_integer_t = uint64_t ;
@@ -512,7 +517,7 @@ public:
         return undefined_value ;
     }
 
-    Variant invoke(const Variant &args, TemplateEvalContext &ctx) {
+    Variant invoke(const Variant &args, twig::TemplateEvalContext &ctx) {
         if ( tag_ != Type::Function ) return undefined() ;
         else return (data_.fp_)(args, ctx) ;
     }

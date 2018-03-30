@@ -1,9 +1,12 @@
-#ifndef __WSPP_TEMPLATE_EVAL_CONTEXT_HPP__
-#define __WSPP_TEMPLATE_EVAL_CONTEXT_HPP__
+#ifndef __WSPP_TWIG_EVAL_CONTEXT_HPP__
+#define __WSPP_TWIG_EVAL_CONTEXT_HPP__
 
 #include <memory>
 
 #include <wspp/util/variant.hpp>
+
+namespace wspp { namespace twig {
+
 
 namespace detail {
 class NamedBlockNode ;
@@ -33,13 +36,7 @@ struct TemplateEvalContext {
     TemplateRenderer &rdr_ ;
 };
 
-
-
-
-
-
-
-
-
+} // namespace twig
+} // namespace wspp
 
 #endif

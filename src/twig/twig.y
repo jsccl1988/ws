@@ -10,25 +10,25 @@
 %define api.value.type variant
 %define api.token.prefix {TOK_}
 
-%param { TemplateParser &driver }
+%param { TwigParser &driver }
 %param { Parser::location_type &loc }
 
 %define parse.trace
 %define parse.error verbose
 
 %code requires {
-#include <template_ast.hpp>
-class TemplateParser ;
+#include <ast.hpp>
+class TwigParser ;
 }
 
 %code {
 #include <parser.hpp>
-#include <template_ast.hpp>
+#include <ast.hpp>
 
-using namespace detail ;
+using namespace wspp::twig::detail ;
 using namespace std ;
 
-static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::location_type &loc);
+static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_type &loc);
 }
 
 /* literal keyword tokens */
@@ -100,18 +100,18 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token <double>      T_FLOAT           "float";
 %token <std::string> T_STRING          "string literal";
 
-%type <detail::ExpressionNodePtr> expression value array object function_call
-%type <detail::ExpressionListPtr> expression_list
-%type <detail::KeyValListPtr> key_val_list
-%type <detail::KeyValNodePtr> key_val
-%type <detail::FilterNodePtr> filter
-%type <detail::FunctionArgumentsPtr> func_args
-%type <detail::FunctionArgPtr> func_arg
-%type <detail::IdentifierListPtr> identifier_list
-%type <detail::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
-%type <detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
-%type <detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
-%type <detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
+%type <wspp::twig::detail::ExpressionNodePtr> expression value array object function_call
+%type <wspp::twig::detail::ExpressionListPtr> expression_list
+%type <wspp::twig::detail::KeyValListPtr> key_val_list
+%type <wspp::twig::detail::KeyValNodePtr> key_val
+%type <wspp::twig::detail::FilterNodePtr> filter
+%type <wspp::twig::detail::FunctionArgumentsPtr> func_args
+%type <wspp::twig::detail::FunctionArgPtr> func_arg
+%type <wspp::twig::detail::IdentifierListPtr> identifier_list
+%type <wspp::twig::detail::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
+%type <wspp::twig::detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
+%type <wspp::twig::detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
+%type <wspp::twig::detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
 
 /*operators */
 
@@ -393,7 +393,7 @@ void yy::Parser::error(const yy::Parser::location_type &loc, const string &msg) 
 // Now that we have the Parser declared, we can declare the Scanner and implement
 // the yylex function
 
-static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::location_type &loc) {
+static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_type &loc) {
     return driver.scanner().lex(&loc);
 }
 

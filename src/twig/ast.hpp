@@ -1,5 +1,5 @@
-#ifndef __TEMPLATE_AST_HPP__
-#define __TEMPLATE_AST_HPP__
+#ifndef __TWIG_AST_HPP__
+#define __TWIG_AST_HPP__
 
 #include <memory>
 #include <deque>
@@ -9,15 +9,17 @@
 
 #include <wspp/util/variant.hpp>
 
-#include "context.hpp"
+#include <wspp/twig/context.hpp>
 
 using wspp::util::Variant ;
+
+
+namespace wspp { namespace twig {
+
 
 class TemplateRenderer ;
 
 namespace detail {
-
-
 
 enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
 
@@ -533,6 +535,8 @@ public:
 
 typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
 
-} // namespace template_ast
+} // namespace detail
+} // namespace twig
+} // namespace wspp
 
 #endif

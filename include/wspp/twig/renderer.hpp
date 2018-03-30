@@ -1,14 +1,17 @@
-#ifndef __WSPP_TEMPLATE_RENDERER_HPP__
-#define __WSPP_TEMPLATE_RENDERER_HPP__
+#ifndef __WSPP_TWIG_RENDERER_HPP__
+#define __WSPP_TWIG_RENDERER_HPP__
 
 #include <memory>
 
-#include "template_loader.hpp"
-#include "template_exceptions.hpp"
-#include "functions.hpp"
+#include <wspp/twig/loader.hpp>
+#include <wspp/twig/exceptions.hpp>
+#include <wspp/twig/functions.hpp>
 
 #include <wspp/util/variant.hpp>
 #include <boost/thread/mutex.hpp>
+
+namespace wspp { namespace twig {
+
 
 namespace detail {
     class DocumentNode ;
@@ -73,7 +76,8 @@ protected:
     std::shared_ptr<TemplateLoader> loader_ ;
 } ;
 
-
+} // namespace twig
+} // namespace wspp
 
 
 #endif

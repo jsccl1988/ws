@@ -1,5 +1,5 @@
-#include "template_loader.hpp"
-#include "template_exceptions.hpp"
+#include <wspp/twig/loader.hpp>
+#include <wspp/twig/exceptions.hpp>
 
 #include <fstream>
 #include <sstream>

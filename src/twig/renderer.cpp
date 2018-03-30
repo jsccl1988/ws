@@ -1,8 +1,11 @@
-#include "template_renderer.hpp"
+#include <wspp/twig/renderer.hpp>
+#include <wspp/twig/context.hpp>
 #include "parser.hpp"
 
-
 using namespace std ;
+
+namespace wspp { namespace twig {
+
 using namespace detail ;
 
 string TemplateRenderer::render(const string &resource, const Variant::Object &ctx)
@@ -40,7 +43,7 @@ detail::DocumentNodePtr TemplateRenderer::compile(const std::string &resource)
 
     istringstream strm(src) ;
 
-    TemplateParser parser(strm) ;
+    TwigParser parser(strm) ;
 
     detail::DocumentNodePtr root(new detail::DocumentNode(*this)) ;
 
@@ -55,7 +58,7 @@ detail::DocumentNodePtr TemplateRenderer::compileString(const std::string &src)
 {
     istringstream strm(src) ;
 
-    TemplateParser parser(strm) ;
+    TwigParser parser(strm) ;
 
     detail::DocumentNodePtr root(new detail::DocumentNode(*this)) ;
 
@@ -63,3 +66,6 @@ detail::DocumentNodePtr TemplateRenderer::compileString(const std::string &src)
 
     return root ;
 }
+
+} // namespace twig
+} // namespace wspp

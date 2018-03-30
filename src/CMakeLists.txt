@@ -60,20 +60,12 @@ SET ( WEB_SOURCES
     ${SRC_ROOT}/views/menu.cpp
     ${SRC_ROOT}/views/validators.cpp
 
- #   ${SRC_ROOT}/controllers/login.cpp
-
- #   ${SRC_ROOT}/models/auth.cpp
-
     ${INCLUDE_ROOT}/views/renderer.hpp
 
     ${INCLUDE_ROOT}/views/forms.hpp
     ${INCLUDE_ROOT}/views/table.hpp
     ${INCLUDE_ROOT}/views/menu.hpp
     ${INCLUDE_ROOT}/views/validators.hpp
-
-#    ${INCLUDE_ROOT}/controllers/login.hpp
-
-#    ${INCLUDE_ROOT}/models/auth.hpp
 )
 
 SET ( SERVER_SOURCES
@@ -120,41 +112,35 @@ SET ( SERVER_SOURCES
 FIND_PACKAGE(BISON REQUIRED)
 FIND_PACKAGE(FLEX REQUIRED)
 
-FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/template_parser/)
+FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/twig_parser/)
 
-FLEX_TARGET(TEMPLATE_SCANNER ${SRC_ROOT}/template/template.l  ${CMAKE_CURRENT_BINARY_DIR}/template_parser/flex_scanner.cpp)
-BISON_TARGET(TEMPLATE_PARSER ${SRC_ROOT}/template/template.y  ${CMAKE_CURRENT_BINARY_DIR}/template_parser/bison_parser.cpp)
+FLEX_TARGET(TEMPLATE_SCANNER ${SRC_ROOT}/twig/twig.l  ${CMAKE_CURRENT_BINARY_DIR}/twig_parser/flex_scanner.cpp)
+BISON_TARGET(TEMPLATE_PARSER ${SRC_ROOT}/twig/twig.y  ${CMAKE_CURRENT_BINARY_DIR}/twig_parser/bison_parser.cpp)
 
 ADD_FLEX_BISON_DEPENDENCY(TEMPLATE_SCANNER TEMPLATE_PARSER COMPILE_FLAGS "-Wconflicts-sr")
 
 LIST(APPEND WEB_SOURCES ${FLEX_TEMPLATE_SCANNER_OUTPUTS} ${BISON_TEMPLATE_PARSER_OUTPUTS}
-#    ${SRC_ROOT}/template/template_eval_context.cpp
-#    ${SRC_ROOT}/template/template_eval_context.hpp
 
-    ${SRC_ROOT}/template/parser.hpp
-    ${SRC_ROOT}/template/parser.cpp
+    ${SRC_ROOT}/twig/parser.hpp
+    ${SRC_ROOT}/twig/parser.cpp
+    ${SRC_ROOT}/twig/scanner.hpp
+    ${SRC_ROOT}/twig/ast.hpp
+    ${SRC_ROOT}/twig/ast.cpp
+    ${SRC_ROOT}/twig/loader.cpp
+    ${SRC_ROOT}/twig/renderer.cpp
+    ${SRC_ROOT}/twig/exceptions.cpp
+    ${SRC_ROOT}/twig/functions.cpp
 
-    ${SRC_ROOT}/template/scanner.hpp
-
-    ${SRC_ROOT}/template/template_ast.hpp
-    ${SRC_ROOT}/template/template_ast.cpp
-
-    ${SRC_ROOT}/template/template_loader.hpp
-    ${SRC_ROOT}/template/template_loader.cpp
-
-    ${SRC_ROOT}/template/template_renderer.hpp
-    ${SRC_ROOT}/template/template_renderer.cpp
-
-    ${SRC_ROOT}/template/template_exceptions.hpp
-    ${SRC_ROOT}/template/template_exceptions.cpp
-
-    ${SRC_ROOT}/template/functions.hpp
-    ${SRC_ROOT}/template/functions.cpp
+    ${INCLUDE_ROOT}/twig/loader.hpp
+    ${INCLUDE_ROOT}/twig/exceptions.hpp
+    ${INCLUDE_ROOT}/twig/renderer.hpp
+    ${INCLUDE_ROOT}/twig/functions.hpp
+    ${INCLUDE_ROOT}/twig/context.hpp
 )
 
 INCLUDE_DIRECTORIES(
         ${CMAKE_CURRENT_BINARY_DIR}
-        ${CMAKE_CURRENT_SOURCE_DIR}/template/
+        ${CMAKE_CURRENT_SOURCE_DIR}/twig/
 )
 
 ADD_LIBRARY(wspp_util SHARED ${UTIL_SOURCES})
@@ -166,7 +152,7 @@ TARGET_LINK_LIBRARIES(wspp_web wspp_util ${Boost_LIBRARIES} )
 ADD_LIBRARY(wspp_http_server SHARED ${SERVER_SOURCES})
 TARGET_LINK_LIBRARIES(wspp_http_server wspp_util ${Boost_LIBRARIES} dl z pthread )
 
-ADD_EXECUTABLE(test_parser ${SRC_ROOT}/template/test_parser.cpp)
+ADD_EXECUTABLE(test_parser ${SRC_ROOT}/twig/test_parser.cpp)
 TARGET_LINK_LIBRARIES(test_parser wspp_util wspp_web wspp_http_server ${Boost_LIBRARIES} dl z pthread )
 
 ADD_SUBDIRECTORY(apps)

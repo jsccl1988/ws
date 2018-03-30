@@ -1,7 +1,10 @@
 %{
 #include "parser.hpp"
+
 #include "bison_parser.hpp"
-#include "functions.hpp"
+
+#include <wspp/twig/functions.hpp>
+
 #include <string.h>
 
 void comment() ;

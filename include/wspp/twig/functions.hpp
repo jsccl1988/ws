@@ -8,6 +8,9 @@
 
 #include "context.hpp"
 
+namespace wspp { namespace twig {
+
+
 using TemplateFunction = std::function<wspp::util::Variant(const wspp::util::Variant &, TemplateEvalContext &)>;
 
 class FunctionFactory {
@@ -32,4 +35,6 @@ private:
 };
 
 
+} // namespace twig
+} // namespace wspp
 #endif

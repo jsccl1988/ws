@@ -1,9 +1,10 @@
-#include "parser.hpp"
-#include "template_renderer.hpp"
+#include <wspp/twig/renderer.hpp>
 
 #include <memory>
 
 using namespace std ;
+using namespace wspp::twig ;
+using namespace wspp::util ;
 
 int main(int argc, char *argv[]) {
 
