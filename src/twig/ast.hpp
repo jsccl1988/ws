@@ -44,62 +44,11 @@ public:
     Variant val_;
 };
 
-class ExpressionList {
-public:
-    ExpressionList() {}
-
-    void append(ExpressionNodePtr node) { children_.push_back(node) ; }
-    void prepend(ExpressionNodePtr node) { children_.push_front(node) ; }
-
-    const std::deque<ExpressionNodePtr> &children() const { return children_ ; }
-
-private:
-    std::deque<ExpressionNodePtr> children_ ;
-};
-
-
-typedef std::shared_ptr<ExpressionList> ExpressionListPtr ;
-
-class KeyValNode {
-public:
-    KeyValNode(const std::string &key, ExpressionNodePtr val): key_(key), val_(val) {}
-
-    std::string key_;
-    ExpressionNodePtr val_ ;
-};
-
-typedef std::shared_ptr<KeyValNode> KeyValNodePtr ;
-
-class KeyValList {
-public:
-    KeyValList() {}
-
-    void append(KeyValNodePtr node) { children_.push_back(node) ; }
-    void prepend(KeyValNodePtr node) { children_.push_front(node) ; }
-
-    const std::deque<KeyValNodePtr> &children() const { return children_ ; }
-
-private:
-    std::deque<KeyValNodePtr> children_ ;
-};
-
-typedef std::shared_ptr<KeyValList> KeyValListPtr ;
-
-class IdentifierList {
-public:
-    IdentifierList() {}
-
-    void append(const std::string &item) { children_.push_back(item) ; }
-    void prepend(const std::string &item) { children_.push_front(item) ; }
-
-    const std::deque<std::string> &children() const { return children_ ; }
-
-private:
-    std::deque<std::string> children_ ;
-};
-
-typedef std::shared_ptr<IdentifierList> IdentifierListPtr ;
-
+using key_val_t = std::pair<std::string, ExpressionNodePtr> ;
+using key_val_list_t = std::deque<key_val_t> ;
+using identifier_list_t = std::deque<std::string> ;
+using key_alias_t = std::pair<std::string, std::string> ;
+using key_alias_list_t = std::deque<key_alias_t> ;
 
 class ValueNode: public ExpressionNode {
 public:
@@ -123,22 +72,26 @@ private:
 
 class ArrayNode: public ExpressionNode {
 public:
-    ArrayNode(ExpressionListPtr elements): elements_(elements) {}
+    ArrayNode(const std::deque<ExpressionNodePtr> &&elements): elements_(elements) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 
 private:
-    ExpressionListPtr elements_ ;
+
+    std::deque<ExpressionNodePtr> elements_ ;
 };
+
+
 
 class DictionaryNode: public ExpressionNode {
 public:
-    DictionaryNode(KeyValListPtr elements): elements_(elements) {}
+
+    DictionaryNode(const key_val_list_t && elements): elements_(elements) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 
 private:
-    KeyValListPtr elements_ ;
+    key_val_list_t elements_ ;
 };
 
 class SubscriptIndexingNode: public ExpressionNode {
@@ -221,88 +174,46 @@ private:
     ExpressionNodePtr condition_, positive_, negative_ ;
 };
 
-class FunctionArg {
-public:
-    FunctionArg(ExpressionNodePtr val, const std::string &name = std::string()): name_(name), val_(val) {}
-
-    ExpressionNodePtr val_ ;
-    std::string name_ ;
-};
-
-typedef std::shared_ptr<FunctionArg> FunctionArgPtr ;
-
-
-class FunctionArguments {
-public:
-    FunctionArguments() {}
-
-    void eval(Variant &args, TemplateEvalContext &ctx, const boost::optional<Variant> &extra) const ;
-
-    void append(FunctionArgPtr node) { children_.push_back(node) ; }
-    void prepend(FunctionArgPtr node) { children_.push_front(node) ; }
-
-    const std::deque<FunctionArgPtr> &children() const { return children_ ; }
-
-private:
-    std::deque<FunctionArgPtr> children_ ;
-
-};
-
-typedef std::shared_ptr<FunctionArguments> FunctionArgumentsPtr ;
-
-
-class FilterNode {
-public:
-    FilterNode(const std::string &name, FunctionArgumentsPtr args): name_(name), args_(args) {}
-    FilterNode(const std::string &name): name_(name) {}
-
-    Variant eval(const Variant &target, TemplateEvalContext &ctx) ;
-
-   // void evalArgs(const Variant &target, Variant &args, TemplateEvalContext &ctx) const ;
-    static Variant dispatch(const std::string &, const Variant &args) ;
-
-private:
-    std::string name_ ;
-    FunctionArgumentsPtr args_ ;
-};
-
-typedef std::shared_ptr<FilterNode> FilterNodePtr ;
-
 class InvokeFilterNode: public ExpressionNode {
 public:
-    InvokeFilterNode(ExpressionNodePtr target, FilterNodePtr filter): target_(target), filter_(filter) {}
+    InvokeFilterNode(ExpressionNodePtr target, const std::string &name, key_val_list_t &&args ={}): target_(target), name_(name),
+        args_(args) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 
 
 private:
     ExpressionNodePtr target_ ;
-    FilterNodePtr filter_ ;
+    std::string name_ ;
+    key_val_list_t args_ ;
 };
 
 class InvokeTestNode: public ExpressionNode {
 public:
-    InvokeTestNode(ExpressionNodePtr target, FilterNodePtr filter, bool positive): target_(target), filter_(filter), positive_(positive) {}
+    InvokeTestNode(ExpressionNodePtr target, const std::string &name,
+                   key_val_list_t &&args, bool positive):
+        target_(target), name_(name), args_(args), positive_(positive) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 
 private:
     ExpressionNodePtr target_ ;
-    FilterNodePtr filter_ ;
+    std::string name_ ;
+    key_val_list_t args_ ;
     bool positive_ ;
 };
 
 
 class InvokeFunctionNode: public ExpressionNode {
 public:
-    InvokeFunctionNode(ExpressionNodePtr callable, FunctionArgumentsPtr args): callable_(callable), args_(args) {}
+    InvokeFunctionNode(ExpressionNodePtr callable, key_val_list_t &&args = {}): callable_(callable), args_(args) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 
 
 private:
     ExpressionNodePtr callable_ ;
-    FunctionArgumentsPtr args_ ;
+    key_val_list_t args_ ;
 };
 
 
@@ -357,7 +268,7 @@ typedef std::shared_ptr<ContainerNode> ContainerNodePtr ;
 class ForLoopBlockNode: public ContainerNode {
 public:
 
-    ForLoopBlockNode(IdentifierListPtr ids, ExpressionNodePtr target): ids_(std::move(ids->children())), target_(target) {}
+    ForLoopBlockNode(identifier_list_t &ids, ExpressionNodePtr target): ids_(ids), target_(target) {}
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
@@ -369,7 +280,7 @@ public:
 
     int else_child_start_ = -1 ;
 
-    std::deque<std::string> ids_ ;
+    identifier_list_t ids_ ;
     ExpressionNodePtr target_ ;
 };
 
@@ -468,19 +379,20 @@ public:
 class FilterBlockNode: public ContainerNode {
 public:
 
-    FilterBlockNode(FilterNodePtr filter): filter_(filter) { }
+    FilterBlockNode(const std::string &name, key_val_list_t &&args = {}): args_(args) { }
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
     virtual std::string endContainerTag() const { return "endfilter" ; }
 
-    FilterNodePtr filter_ ;
+    std::string name_ ;
+    key_val_list_t args_ ;
 };
 
 class MacroBlockNode: public ContainerNode {
 public:
 
-    MacroBlockNode(const std::string &name, IdentifierListPtr args): name_(name), args_(std::move(args->children())) { }
+    MacroBlockNode(const std::string &name, identifier_list_t &&args): name_(name), args_(args) { }
     MacroBlockNode(const std::string &name): name_(name) { }
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
@@ -490,39 +402,16 @@ public:
     virtual std::string endContainerTag() const { return "endmacro" ; }
 
     std::string name_ ;
-    std::deque<std::string> args_ ;
+    identifier_list_t args_ ;
 
 };
-
-class  ImportKeyAlias {
-public:
-    ImportKeyAlias(const std::string &key, const std::string &alias): key_(key), alias_(alias) {}
-
-    std::string key_, alias_ ;
-};
-
-typedef std::shared_ptr<ImportKeyAlias> ImportKeyAliasPtr ;
-
-class ImportList {
-public:
-    ImportList() {}
-
-    void prepend(const ImportKeyAlias & node) { children_.push_front(node) ; }
-
-    const std::deque<ImportKeyAlias> &children() const { return children_ ; }
-
-private:
-    std::deque<ImportKeyAlias> children_ ;
-};
-
-typedef std::shared_ptr<ImportList> ImportListPtr ;
 
 class ImportBlockNode: public ContainerNode {
 public:
 
     ImportBlockNode(ExpressionNodePtr source, const std::string &ns): source_(source), ns_(ns) { }
-    ImportBlockNode(ExpressionNodePtr source, const std::deque<ImportKeyAlias> &mapping): source_(source),
-        mapping_(std::move(mapping)) { }
+    ImportBlockNode(ExpressionNodePtr source, const key_alias_list_t &&mapping): source_(source),
+        mapping_(mapping) { }
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
@@ -533,7 +422,7 @@ public:
 
     std::string ns_ ;
     ExpressionNodePtr source_ ;
-    std::deque<ImportKeyAlias> mapping_ ;
+    key_alias_list_t mapping_ ;
 };
 
 class RawTextNode: public ContentNode {

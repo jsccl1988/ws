@@ -124,7 +124,7 @@ Variant ArrayNode::eval(TemplateEvalContext &ctx)
 {
     Variant::Array a ;
 
-    for ( ExpressionNodePtr e: elements_->children() ) {
+    for ( ExpressionNodePtr e: elements_ ) {
         a.push_back(e->eval(ctx)) ;
     }
 
@@ -135,8 +135,8 @@ Variant DictionaryNode::eval(TemplateEvalContext &ctx)
 {
     Variant::Object o ;
 
-    for ( KeyValNodePtr kv: elements_->children() ) {
-        o.insert({kv->key_, kv->val_->eval(ctx)}) ;
+    for ( key_val_t &kv: elements_ ) {
+        o.insert({kv.first, kv.second->eval(ctx)}) ;
     }
 
     return o ;
@@ -159,18 +159,46 @@ Variant AttributeIndexingNode::eval(TemplateEvalContext &ctx)
     return o.at(key_) ;
 }
 
+
+static void evalArgs(const key_val_list_t &input_args, Variant &args, TemplateEvalContext &ctx, const Variant &extra = Variant::undefined())
+{
+    Variant::Array pos_args ;
+
+    if ( !extra.isUndefined() )
+        pos_args.push_back(extra) ;
+
+    Variant::Object kv_args ;
+
+    for ( auto &&e: input_args ) {
+        if ( e.first.empty() )
+            pos_args.push_back(e.second->eval(ctx)) ;
+        else
+            kv_args.insert({e.first, e.second->eval(ctx)}) ;
+
+    }
+
+    args = Variant::Object{{"args", pos_args}, {"kw", kv_args}} ;
+}
+
+
+
+static Variant evalFilter(const string &name, const key_val_list_t &args, const Variant &target, TemplateEvalContext &ctx) {
+
+    Variant evargs ;
+    evalArgs(args, evargs, ctx, target) ;
+    return FunctionFactory::instance().invoke(name, evargs, ctx) ;
+}
+
 Variant InvokeFilterNode::eval(TemplateEvalContext &ctx)
 {
     Variant target = target_->eval(ctx) ;
-
-    return filter_->eval(target, ctx) ;
+    return evalFilter(name_, args_, target, ctx) ;
 }
 
-Variant InvokeTestNode::eval(TemplateEvalContext &ctx)
-{
+Variant InvokeTestNode::eval(TemplateEvalContext &ctx) {
     Variant target = target_->eval(ctx) ;
 
-    Variant v = filter_->eval(target, ctx) ;
+    Variant v = evalFilter(name_, args_, target, ctx) ;
 
     if ( v.type() != Variant::Type::Boolean )
         throw TemplateRuntimeException("test function returning non-boolean value") ;
@@ -179,38 +207,6 @@ Variant InvokeTestNode::eval(TemplateEvalContext &ctx)
 
     return ( positive_ ) ? res : !res ;
 }
-
-
-
-Variant FilterNode::eval(const Variant &target, TemplateEvalContext &ctx)
-{
-    Variant args ;
-    args_->eval(args, ctx, boost::optional<Variant>(target)) ;
-    return FunctionFactory::instance().invoke(name_, args, ctx) ;
-}
-
-
-void FunctionArguments::eval(Variant &args, TemplateEvalContext &ctx, const boost::optional<Variant> &extra) const
-{
-    Variant::Array pos_args ;
-
-    if ( extra.is_initialized() )
-        pos_args.push_back(extra.get()) ;
-
-    Variant::Object kv_args ;
-
-    for ( auto &&e: children() ) {
-        if ( e->name_.empty() )
-            pos_args.push_back(e->val_->eval(ctx)) ;
-        else
-            kv_args.insert({e->name_, e->val_->eval(ctx)}) ;
-
-    }
-
-    args = Variant::Object{{"args", pos_args}, {"kw", kv_args}} ;
-}
-
-
 
 void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
@@ -303,11 +299,11 @@ void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     string block_res ;
     for( auto &&c: children_ )
         c->eval(ctx, block_res) ;
-    string result = filter_->eval(block_res, ctx).toString() ;
+
+    string result = evalFilter(name_, args_, block_res, ctx).toString() ;
 
     trim(std::move(result), res) ;
 }
-
 
 
 void ContentNode::trim(const string &src, string &out) const
@@ -328,7 +324,7 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
     Variant f = callable_->eval(ctx) ;
 
     Variant args ;
-    args_->eval(args, ctx, boost::optional<Variant>()) ;
+    evalArgs(args_, args, ctx) ;
 
     if ( f.type() == Variant::Type::Function ) {
         return f.invoke(args, ctx) ;
@@ -484,9 +480,9 @@ bool ImportBlockNode::mapMacro(MacroBlockNode &n, string &name) const {
     }
 
     // check mapping list if the macro has been imported
-    auto it = std::find_if(mapping_.begin(), mapping_.end(), [&n](const ImportKeyAlias &e) { return e.key_ == n.name_ ; } ) ;
+    auto it = std::find_if(mapping_.begin(), mapping_.end(), [&n](const key_alias_t &e) { return e.first == n.name_ ; } ) ;
     if ( it == mapping_.end() ) return false ; // not found ignore
-    name = (*it).alias_.empty() ? n.name_ : (*it).alias_ ;
+    name = (*it).second.empty() ? n.name_ : (*it).second ;
     return true ;
 }
 

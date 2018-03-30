@@ -2,7 +2,8 @@
 
 {% block content %}
 
-{% set bar = 'bar' %}
+{% set bar = { name: 3, val: ['bar', 'baz'] } %}
+{{ bar.val[1] }}
 {% with { foo: 42 } only %}
 {{foo}}    {# only foo is defined #}
 {{bar}}    {# bar is not defined #}

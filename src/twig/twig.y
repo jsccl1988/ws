@@ -19,6 +19,17 @@
 %code requires {
 #include <ast.hpp>
 class TwigParser ;
+
+
+namespace wspp { namespace twig { namespace detail {
+    using expr_list_t = std::deque<ExpressionNodePtr> ;
+    using key_val_t = std::pair<std::string, ExpressionNodePtr> ;
+    using key_val_list_t = std::deque<key_val_t> ;
+    using identifier_list_t = std::deque<std::string> ;
+    using key_alias_t = std::pair<std::string, std::string> ;
+    using key_alias_list_t = std::deque<key_alias_t> ;
+}}}
+
 }
 
 %code {
@@ -29,6 +40,7 @@ using namespace wspp::twig::detail ;
 using namespace std ;
 
 static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_type &loc);
+
 }
 
 /* literal keyword tokens */
@@ -109,22 +121,19 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token <double>      T_FLOAT           "float";
 %token <std::string> T_STRING          "string literal";
 
-%type <wspp::twig::detail::ExpressionNodePtr> expression value array object function_call with_expression
-%type <wspp::twig::detail::ExpressionListPtr> expression_list
-%type <wspp::twig::detail::KeyValListPtr> key_val_list
-%type <wspp::twig::detail::KeyValNodePtr> key_val
-%type <wspp::twig::detail::FilterNodePtr> filter
-%type <wspp::twig::detail::FunctionArgumentsPtr> func_args
-%type <wspp::twig::detail::FunctionArgPtr> func_arg
-%type <wspp::twig::detail::IdentifierListPtr> identifier_list
+%type <wspp::twig::detail::ExpressionNodePtr> expression value array object function_call with_expression filter_invoke test_call
+%type <wspp::twig::detail::expr_list_t> expression_list
+%type <wspp::twig::detail::key_val_list_t> key_val_list func_args
+%type <wspp::twig::detail::key_val_t> key_val func_arg
+%type <wspp::twig::detail::identifier_list_t> identifier_list
 %type <wspp::twig::detail::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
 %type <wspp::twig::detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
 %type <wspp::twig::detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
 %type <wspp::twig::detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
 %type <wspp::twig::detail::ContentNodePtr> embed_declaration end_embed_declaration include_declaration with_declaration end_with_declaration
 %type <bool> ignore_missing_flag only_flag
-%type <wspp::twig::detail::ImportListPtr> import_list
-%type <wspp::twig::detail::ImportKeyAliasPtr> import_key_alias
+%type <wspp::twig::detail::key_alias_list_t> import_list
+%type <wspp::twig::detail::key_alias_t> import_key_alias
 
 /*operators */
 
@@ -268,12 +277,19 @@ end_set_declaration:
     T_END_SET { driver.popBlock() ; }
 
 filter_declaration:
-    T_FILTER filter  {
+    T_FILTER T_IDENTIFIER  {
 
         auto node = make_shared<FilterBlockNode>($2) ;
             driver.addNode(node) ;
             driver.pushBlock(node);
     }
+    | T_FILTER T_IDENTIFIER T_LPAR func_args T_RPAR {
+
+        auto node = make_shared<FilterBlockNode>($2, std::move($4)) ;
+            driver.addNode(node) ;
+            driver.pushBlock(node);
+    }
+
 
 end_filter_declaration:
     T_END_FILTER { driver.popBlock() ; }
@@ -298,7 +314,7 @@ end_embed_declaration:
 
 macro_declaration:
     T_MACRO T_IDENTIFIER T_LPAR identifier_list T_RPAR  {
-        auto node = make_shared<MacroBlockNode>($2, $4) ;
+        auto node = make_shared<MacroBlockNode>($2, std::move($4)) ;
         driver.addNode(node) ;
         driver.pushBlock(node);
         driver.addMacroBlock($2, node) ;
@@ -325,18 +341,18 @@ import_declaration:
             driver.pushBlock(node);
         }
    | T_FROM expression T_IMPORT import_list  {
-                auto node = make_shared<ImportBlockNode>($2, $4->children()) ;
+                auto node = make_shared<ImportBlockNode>($2, std::move($4)) ;
                 driver.addNode(node) ;
                 driver.pushBlock(node);
             }
 
 import_list:
-    import_key_alias        { $$ = make_shared<ImportList>() ; $$->prepend(*$1); }
-    | import_key_alias T_COMMA import_list { $$ = $3 ; $3->prepend(*$1) ; }
+    import_key_alias                        { $$.push_back(std::move($1)); }
+    | import_list T_COMMA import_key_alias  { $1.push_back(std::move($3)) ; std::swap($$, $1) ; }
 
 import_key_alias:
-    T_IDENTIFIER              { $$ = make_shared<ImportKeyAlias>($1, "") ; }
-    | T_IDENTIFIER T_AS T_IDENTIFIER    { $$ = make_shared<ImportKeyAlias>($1, $3) ; }
+    T_IDENTIFIER                        { $$ = make_pair($1, std::string()) ; }
+    | T_IDENTIFIER T_AS T_IDENTIFIER    { $$ = make_pair($1, $3) ; }
 
 include_declaration:
     T_INCLUDE expression ignore_missing_flag with_expression only_flag {
@@ -374,8 +390,8 @@ end_with_declaration:
     T_END_WITH { driver.popBlock() ; }
 
 identifier_list:
-    T_IDENTIFIER                          { $$ = make_shared<IdentifierList>() ; $$->append($1) ; }
-    | T_IDENTIFIER T_COMMA identifier_list  { $$ = $3 ; $3->prepend($1) ; }
+    T_IDENTIFIER                            {  $$.push_back($1) ; }
+    | identifier_list T_COMMA T_IDENTIFIER  { $1.push_back($3) ; std::swap($$, $1) ; }
 
 
 expression:
@@ -398,64 +414,63 @@ expression:
         | T_LPAR expression T_RPAR { $$ = $2; }
         | expression T_QUESTION_MARK expression T_COLON expression  { $$ = make_shared<TernaryExpressionNode>($1, $3, $5) ; }
         | expression  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = make_shared<SubscriptIndexingNode>($1, $3) ; }
-        | expression T_BAR filter                                   { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
-        | expression T_IS filter                                    { $$ = make_shared<InvokeTestNode>($1, $3, true) ; }
-        | expression T_IS T_NOT filter                              { $$ = make_shared<InvokeTestNode>($1, $4, false) ; }
+        | filter_invoke                                             { $$ = $1 ; }
+        | test_call
         | expression T_PERIOD T_IDENTIFIER                          { $$ = make_shared<AttributeIndexingNode>($1, $3) ; }
         | function_call                                             { $$ = $1 ; }
         | value                                                     { $$ = $1 ; }
         | T_IDENTIFIER                                              { $$ = make_shared<IdentifierNode>($1) ; }
 
-filter:
-    T_IDENTIFIER                            { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
-  | T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<FilterNode>($1, $3) ; }
+filter_invoke:
+    expression T_BAR T_IDENTIFIER                            { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
+  | expression T_BAR T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<InvokeFilterNode>($1, $3, std::move($5)) ; }
 
 function_call:
-    expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1, make_shared<FunctionArguments>()) ; }
-  | expression T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeFunctionNode>($1, $3) ; }
+    expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1) ; }
+  | expression T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeFunctionNode>($1, std::move($3)) ; }
 	;
+test_call:
+   expression T_IS T_IDENTIFIER                              { $$ = make_shared<InvokeTestNode>($1, $3, key_val_list_t{}, true) ; }
+   | expression T_IS T_NOT T_IDENTIFIER                        { $$ = make_shared<InvokeTestNode>($1, $4, key_val_list_t{}, false) ; }
+   | expression T_IS T_IDENTIFIER T_LPAR func_args T_RPAR          { $$ = make_shared<InvokeTestNode>($1, $3, std::move($5), true) ; }
+   | expression T_IS T_NOT T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<InvokeTestNode>($1, $4, std::move($6), false) ; }
 
 func_args:
-    func_arg                    { $$ = make_shared<FunctionArguments>() ; $$->append($1) ; }
-  | func_arg T_COMMA func_args  { $$ = $3 ;  $3->prepend($1) ; }
+    func_arg                    { $$.push_back(std::move($1)) ; }
+  | func_args T_COMMA func_arg  { $1.push_back(std::move($3)) ;  std::swap($$, $1) ; }
 
 
 func_arg:
-    expression                          { $$ = make_shared<FunctionArg>($1) ; }
-    | T_IDENTIFIER T_ASSIGN expression  { $$ = make_shared<FunctionArg>($3, $1) ; }
+    expression                          { $$ = make_pair(std::string(), $1) ; }
+    | T_IDENTIFIER T_ASSIGN expression  { $$ = make_pair($1, $3) ; }
 
 value:
     T_STRING         { $$ = make_shared<LiteralNode>($1) ;  }
     | T_INTEGER      { $$ = make_shared<LiteralNode>($1) ; }
     | T_FLOAT        { $$ = make_shared<LiteralNode>($1) ; }
-    | object         { $$ = $1 ; }
-    | array          { $$ = $1 ; }
+    | object         { std::swap($$, $1) ; }
+    | array          { std::swap($$, $1) ; }
     | T_TRUE         { $$ = make_shared<LiteralNode>(true) ; }
     | T_FALSE        { $$ = make_shared<LiteralNode>(false) ; }
     | T_NULL         { $$ = make_shared<LiteralNode>(Variant::null()) ; }
 
 array:
-    T_LEFT_BRACKET expression_list T_RIGHT_BRACKET { $$ = make_shared<ArrayNode>($2) ; }
+    T_LEFT_BRACKET expression_list T_RIGHT_BRACKET { $$ = make_shared<ArrayNode>(std::move($2)) ; }
 
 object:
-    T_LEFT_BRACE key_val_list T_RIGHT_BRACE { $$ = make_shared<DictionaryNode>($2) ; }
+    T_LEFT_BRACE key_val_list T_RIGHT_BRACE { $$ = make_shared<DictionaryNode>(std::move($2)) ; }
 
 expression_list:
-    expression {  $$ = make_shared<ExpressionList>() ;
-                   $$->append($1) ;
-                }
-    | expression T_COMMA expression_list  {  $$ = $3 ;  $3->prepend($1) ; }
+    expression {  $$.push_back($1) ;  }
+    | expression_list T_COMMA expression  { $1.push_back($3) ; std::swap($$, $1) ; }
 
 key_val_list:
-    key_val                             {   $$ = make_shared<KeyValList>() ;
-                                            $$->append($1) ;
-                                        }
-    | key_val T_COMMA key_val_list        {  $$ = $3 ; $3->prepend($1) ;
-                                        }
+    key_val      {   $$.emplace_back($1) ;  }
+    | key_val_list T_COMMA key_val  {  $1.push_back(std::move($3)) ; std::swap($$, $1) ; }
 
 key_val:
-    T_STRING T_COLON expression { $$ = make_shared<KeyValNode>($1, $3) ; }
-    | T_IDENTIFIER T_COLON expression { $$ = make_shared<KeyValNode>($1, $3) ; }
+    T_STRING T_COLON expression { $$ = std::make_pair($1, $3) ; }
+    | T_IDENTIFIER T_COLON expression { $$ = std::make_pair($1, $3) ; }
 
 
 %%
