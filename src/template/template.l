@@ -93,10 +93,7 @@ using namespace std ;
 "?"	    return TOKEN(T_QUESTION_MARK) ;
 
 [a-zA-Z][a-zA-Z0-9_]* {
-    if ( FunctionFactory::instance().hasFunction(yytext) )
-        return yy::Parser::make_T_GLOBAL_FUNCTION(yytext, *yylloc) ;
-    else
-        return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
+   return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
 }
 
 [0-9]+	  return yy::Parser::make_T_INTEGER(atof(yytext), *yylloc) ;

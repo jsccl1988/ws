@@ -94,7 +94,6 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token T_END  0  "end of file";
 
 %token <std::string> T_IDENTIFIER       "identifier";
-%token <std::string> T_GLOBAL_FUNCTION  "global function name";
 %token <std::string> T_RAW_CHARACTERS  "raw characters";
 %token <int64_t>     T_INTEGER         "integer";
 %token <double>      T_FLOAT           "float";
@@ -326,12 +325,10 @@ expression:
         | T_IDENTIFIER { $$ = make_shared<IdentifierNode>($1) ; }
 
 filter:
-    T_GLOBAL_FUNCTION                     { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
-  | T_GLOBAL_FUNCTION T_LPAR func_args T_RPAR  { $$ = make_shared<FilterNode>($1, $3) ; }
+    T_IDENTIFIER                     { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
+  | T_IDENTIFIER T_LPAR func_args T_RPAR  { $$ = make_shared<FilterNode>($1, $3) ; }
 
 function_call:
-    T_GLOBAL_FUNCTION T_LPAR T_RPAR     { $$ = make_shared<InvokeGlobalFunctionNode>($1, make_shared<FunctionArguments>()) ; }
-  | T_GLOBAL_FUNCTION T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeGlobalFunctionNode>($1, $3) ; }
   | expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1, make_shared<FunctionArguments>()) ; }
   | expression T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeFunctionNode>($1, $3) ; }
 	;

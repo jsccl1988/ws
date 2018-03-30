@@ -19,6 +19,7 @@
 //                }) ;
 //       cout << v.toJSON() << endl ;
 
+class TemplateEvalContext ;
 
 namespace wspp { namespace util {
 
@@ -34,7 +35,7 @@ public:
     using float_t = double ;
     using string_t = std::string ;
     using boolean_t = bool ;
-    using function_t = std::function<Variant(const Variant &)> ;
+    using function_t = std::function<Variant(const Variant &, TemplateEvalContext &)> ;
 
     enum class Type : uint8_t {
         Null,  Object, Array, String, Boolean, SInteger, UInteger, Float, Function
@@ -507,9 +508,9 @@ public:
         return null_value ;
     }
 
-    Variant invoke(const Variant &args) {
+    Variant invoke(const Variant &args, TemplateEvalContext &ctx) {
         if ( tag_ != Type::Function ) return nullptr ;
-        else return (*fp_)(args) ;
+        else return (*fp_)(args, ctx) ;
     }
 
 private:
