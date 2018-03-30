@@ -563,7 +563,7 @@ private:
 
 
     const Variant &fetchKey(const std::string &key) const {
-        assert(isObject()) ;
+        if (!isObject() ) return undefined();
 
         auto it = data_.o_.find(key) ;
         if ( it == data_.o_.end() ) return undefined() ; // return undefined
@@ -571,7 +571,7 @@ private:
     }
 
     const Variant &fetchIndex(uint idx) const {
-        assert(isArray()) ;
+        if (!isArray()) return undefined() ;
 
         if ( idx < data_.a_.size() ) {
             const Variant &v = (data_.a_)[idx] ;

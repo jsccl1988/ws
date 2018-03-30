@@ -73,8 +73,17 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_FILTER         "filter"
 %token T_END_FILTER     "endfilter"
 %token T_EXTENDS        "extends"
+%token T_EMBED          "embed"
+%token T_END_EMBED      "endembed"
 %token T_MACRO          "macro"
 %token T_END_MACRO      "end macro"
+%token T_WITH           "with"
+%token T_END_WITH       "end with"
+%token T_ONLY           "only"
+%token T_INCLUDE        "include"
+%token T_IGNORE         "ignore"
+%token T_MISSING        "missing"
+%token T_FROM           "from"
 %token T_SELF           "_self"
 %token T_AS             "as"
 %token T_IMPORT         "import"
@@ -100,7 +109,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token <double>      T_FLOAT           "float";
 %token <std::string> T_STRING          "string literal";
 
-%type <wspp::twig::detail::ExpressionNodePtr> expression value array object function_call
+%type <wspp::twig::detail::ExpressionNodePtr> expression value array object function_call with_expression
 %type <wspp::twig::detail::ExpressionListPtr> expression_list
 %type <wspp::twig::detail::KeyValListPtr> key_val_list
 %type <wspp::twig::detail::KeyValNodePtr> key_val
@@ -112,6 +121,10 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %type <wspp::twig::detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
 %type <wspp::twig::detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
 %type <wspp::twig::detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
+%type <wspp::twig::detail::ContentNodePtr> embed_declaration end_embed_declaration include_declaration with_declaration end_with_declaration
+%type <bool> ignore_missing_flag only_flag
+%type <wspp::twig::detail::ImportListPtr> import_list
+%type <wspp::twig::detail::ImportKeyAliasPtr> import_key_alias
 
 /*operators */
 
@@ -182,9 +195,14 @@ tag_declaration:
    | filter_declaration         { $$ = $1 ; }
    | end_filter_declaration     { $$ = $1 ; }
    | extends_declaration        { $$ = $1 ; }
+   | embed_declaration          { $$ = $1 ; }
+   | end_embed_declaration      { $$ = $1 ; }
    | macro_declaration          { $$ = $1 ; }
    | end_macro_declaration      { $$ = $1 ; }
    | import_declaration         { $$ = $1 ; }
+   | include_declaration        { $$ = $1 ; }
+   | with_declaration           { $$ = $1 ; }
+   | end_with_declaration       { $$ = $1 ; }
   ;
 
 block_declaration:
@@ -257,6 +275,9 @@ filter_declaration:
             driver.pushBlock(node);
     }
 
+end_filter_declaration:
+    T_END_FILTER { driver.popBlock() ; }
+
 extends_declaration:
         T_EXTENDS expression  {
             auto node = make_shared<ExtensionBlockNode>($2) ;
@@ -264,8 +285,16 @@ extends_declaration:
             driver.pushBlock(node);
        }
 
-end_filter_declaration:
-    T_END_FILTER { driver.popBlock() ; }
+embed_declaration:
+        T_EMBED expression  {
+            auto node = make_shared<ExtensionBlockNode>($2) ;
+            driver.addNode(node) ;
+            driver.pushBlock(node);
+       }
+
+end_embed_declaration:
+   T_END_EMBED { driver.popBlock() ; }
+
 
 macro_declaration:
     T_MACRO T_IDENTIFIER T_LPAR identifier_list T_RPAR  {
@@ -295,6 +324,55 @@ import_declaration:
             driver.addNode(node) ;
             driver.pushBlock(node);
         }
+   | T_FROM expression T_IMPORT import_list  {
+                auto node = make_shared<ImportBlockNode>($2, $4->children()) ;
+                driver.addNode(node) ;
+                driver.pushBlock(node);
+            }
+
+import_list:
+    import_key_alias        { $$ = make_shared<ImportList>() ; $$->prepend(*$1); }
+    | import_key_alias T_COMMA import_list { $$ = $3 ; $3->prepend(*$1) ; }
+
+import_key_alias:
+    T_IDENTIFIER              { $$ = make_shared<ImportKeyAlias>($1, "") ; }
+    | T_IDENTIFIER T_AS T_IDENTIFIER    { $$ = make_shared<ImportKeyAlias>($1, $3) ; }
+
+include_declaration:
+    T_INCLUDE expression ignore_missing_flag with_expression only_flag {
+        auto node = make_shared<IncludeBlockNode>($2, $3, $4, $5) ;
+        driver.addNode(node) ;
+    }
+
+ignore_missing_flag:
+    %empty { $$ = false ; }
+    | T_IGNORE T_MISSING { $$ = true ; }
+
+with_expression:
+    %empty { $$ = nullptr ; }
+    | T_WITH expression { $$ = $2 ; }
+
+only_flag:
+    %empty { $$ = false ; }
+    | T_ONLY { $$ = true ; }
+
+with_declaration:
+    T_WITH only_flag {
+        auto node = make_shared<WithBlockNode>(nullptr, $2) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node) ;
+        $$ = node ;
+    }
+    | T_WITH expression only_flag {
+        auto node = make_shared<WithBlockNode>($2, $3) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node) ;
+        $$ = node ;
+    }
+
+end_with_declaration:
+    T_END_WITH { driver.popBlock() ; }
+
 identifier_list:
     T_IDENTIFIER                          { $$ = make_shared<IdentifierList>() ; $$->append($1) ; }
     | T_IDENTIFIER T_COMMA identifier_list  { $$ = $3 ; $3->prepend($1) ; }

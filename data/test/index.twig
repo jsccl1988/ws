@@ -2,17 +2,22 @@
 
 {% block content %}
 
-{% import 'forms' as forms %}
+{% set bar = 'bar' %}
+{% with { foo: 42 } only %}
+{{foo}}    {# only foo is defined #}
+{{bar}}    {# bar is not defined #}
+{% endwith %}
 
-{% set name = "sotiris" %}
+{% from 'forms' import input as input_field, textarea as ta %}
 
-{% if func1 is defined %}
-{{ func(1, 2) }}
-{% endif %}
-{% endset %}
+<dl> 
+    <dt>Username</dt>
+    <dd>{{ input_field('username') }}</dd>
+    <dt>Password</dt>
+    <dd>{{ input_field('password', '', 'password') }}</dd>
+</dl>
+<p>{{ ta('comment') }}</p>
 
-<p>{{ forms.input('username') }}</p>
-<p>{{ forms.input('password', null, 'password') }}</p>
     {%- for entry in posts -%}
         <h2>{{ entry }}</h2>
         <p>{{ entry.body }}</p>

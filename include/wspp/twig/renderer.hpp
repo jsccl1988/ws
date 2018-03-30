@@ -17,6 +17,7 @@ namespace detail {
     class DocumentNode ;
     class ExtensionBlockNode ;
     class ImportBlockNode ;
+    class IncludeBlockNode ;
 
     typedef std::shared_ptr<DocumentNode> DocumentNodePtr ;
 }
@@ -68,6 +69,7 @@ protected:
 
     friend class detail::ExtensionBlockNode ;
     friend class detail::ImportBlockNode ;
+    friend class detail::IncludeBlockNode ;
 
     detail::DocumentNodePtr compile(const std::string &resource) ;
     detail::DocumentNodePtr compileString(const std::string &resource) ;

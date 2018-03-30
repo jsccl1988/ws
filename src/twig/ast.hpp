@@ -305,17 +305,7 @@ private:
     FunctionArgumentsPtr args_ ;
 };
 
-class InvokeGlobalFunctionNode: public ExpressionNode {
-public:
-    InvokeGlobalFunctionNode(const std::string &name, FunctionArgumentsPtr args): name_(name), args_(args) {}
 
-    Variant eval(TemplateEvalContext &ctx) ;
-
-
-private:
-    std::string name_ ;
-    FunctionArgumentsPtr args_ ;
-};
 
 class DocumentNode ;
 
@@ -410,6 +400,30 @@ public:
     ExpressionNodePtr parent_resource_ ;
 };
 
+class IncludeBlockNode: public ContentNode {
+public:
+
+    IncludeBlockNode(ExpressionNodePtr source, bool ignore_missing, ExpressionNodePtr with_expr, bool only):
+        source_(source), ignore_missing_(ignore_missing), with_(with_expr), only_flag_(only) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    ExpressionNodePtr source_, with_ ;
+    bool ignore_missing_, only_flag_ ;
+};
+
+class WithBlockNode: public ContainerNode {
+public:
+
+    WithBlockNode(ExpressionNodePtr with_expr, bool only):
+        with_(with_expr), only_flag_(only) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    ExpressionNodePtr with_ ;
+    bool only_flag_ ;
+};
+
 
 class IfBlockNode: public ContainerNode {
 public:
@@ -480,19 +494,46 @@ public:
 
 };
 
+class  ImportKeyAlias {
+public:
+    ImportKeyAlias(const std::string &key, const std::string &alias): key_(key), alias_(alias) {}
+
+    std::string key_, alias_ ;
+};
+
+typedef std::shared_ptr<ImportKeyAlias> ImportKeyAliasPtr ;
+
+class ImportList {
+public:
+    ImportList() {}
+
+    void prepend(const ImportKeyAlias & node) { children_.push_front(node) ; }
+
+    const std::deque<ImportKeyAlias> &children() const { return children_ ; }
+
+private:
+    std::deque<ImportKeyAlias> children_ ;
+};
+
+typedef std::shared_ptr<ImportList> ImportListPtr ;
+
 class ImportBlockNode: public ContainerNode {
 public:
 
     ImportBlockNode(ExpressionNodePtr source, const std::string &ns): source_(source), ns_(ns) { }
+    ImportBlockNode(ExpressionNodePtr source, const std::deque<ImportKeyAlias> &mapping): source_(source),
+        mapping_(std::move(mapping)) { }
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    void addMacroClosureToContext(TemplateEvalContext &ctx, MacroBlockNode &n) const;
+    bool mapMacro(MacroBlockNode &n, std::string &name) const ;
+
 
     virtual std::string endContainerTag() const { return "endimport" ; }
 
     std::string ns_ ;
     ExpressionNodePtr source_ ;
+    std::deque<ImportKeyAlias> mapping_ ;
 };
 
 class RawTextNode: public ContentNode {

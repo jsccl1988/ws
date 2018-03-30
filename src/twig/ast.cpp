@@ -335,13 +335,6 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
     } else throw TemplateRuntimeException("function invocation of non-callable variable") ;
 }
 
-Variant InvokeGlobalFunctionNode::eval(TemplateEvalContext &ctx)
-{
-    Variant args ;
-    args_->eval(args, ctx, boost::optional<Variant>()) ;
-
-    return FunctionFactory::instance().invoke(name_, args, ctx) ;
-}
 
 void NamedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
@@ -443,6 +436,10 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
         std::shared_ptr<MacroBlockNode> p_macro = std::dynamic_pointer_cast<MacroBlockNode>(m.second) ;
         if ( p_macro ) {
+
+            string mapped_name ;
+            if ( !mapMacro(*p_macro, mapped_name) ) continue ; // if not imported
+
             auto macro_fn = [&, p_macro](const Variant &args, TemplateEvalContext &tctx) -> Variant {
                 // in this implementation context is always provided so no need for providing the _context parameter
 
@@ -461,15 +458,143 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
                 return out ;
             };
 
-            closures.insert({p_macro->name_, Variant::Function(macro_fn)}) ;
+            closures.insert({mapped_name, Variant::Function(macro_fn)}) ;
         }
     }
 
-    pctx.data().insert({ns_, Variant(closures)}) ;
+    if ( !ns_.empty() ) pctx.data()[ns_] = Variant(closures) ;
+    else {
+        for( auto &e: closures ) {
+            pctx.data()[e.first] = e.second ;
+        }
+    }
 
     for( auto &&c: children_ ) {
         c->eval(pctx, res) ;
     }
+
+}
+
+bool ImportBlockNode::mapMacro(MacroBlockNode &n, string &name) const {
+
+    // only namespace given import all macros using their name
+    if ( mapping_.empty() ) {
+        name = n.name_ ;
+        return true ;
+    }
+
+    // check mapping list if the macro has been imported
+    auto it = std::find_if(mapping_.begin(), mapping_.end(), [&n](const ImportKeyAlias &e) { return e.key_ == n.name_ ; } ) ;
+    if ( it == mapping_.end() ) return false ; // not found ignore
+    name = (*it).alias_.empty() ? n.name_ : (*it).alias_ ;
+    return true ;
+}
+
+void IncludeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    // get the list of templates that we are going to check
+
+    vector<string> templates ;
+
+    Variant source = source_->eval(ctx) ;
+
+    if ( source.isArray() ) {
+        for( auto &&e: source )
+            templates.emplace_back(e.toString()) ;
+    }
+    else
+        templates.emplace_back(source.toString()) ;
+
+    // try to load one of the templates
+
+    DocumentNodePtr doc ;
+
+    for( auto &&tmpl: templates ) {
+        try {
+            doc = ctx.rdr_.compile(tmpl) ;
+            break ;
+        }
+        catch ( ... ) {
+
+        }
+    }
+
+    // check whether not found
+
+    if ( !doc ) {
+        if ( !ignore_missing_ ) // non found
+            throw TemplateRuntimeException("Failed to load included template") ;
+        else
+            return ;
+    }
+
+    // template is compiled so render it with the appropriate context
+
+    Variant::Object ctx_extension ;
+
+    // if there is a with statment we collect the variables
+
+    if ( with_ ) {
+        Variant with = with_->eval(ctx) ;
+        if ( with.isObject() ) {
+            for ( auto it = with.begin() ; it != with.end() ; ++it ) {
+                ctx_extension[it.key()] = it.value() ;
+            }
+        }
+    }
+
+    // create new context either inheriting parent one or empty and extend with key/values if any
+
+    string tmp ;
+
+    if ( only_flag_ ) {
+        TemplateEvalContext cctx(ctx.rdr_, {}) ;
+        cctx.data().insert(ctx_extension.begin(), ctx_extension.end()) ;
+        doc->eval(cctx, tmp) ;
+    } else {
+        TemplateEvalContext cctx(ctx) ;
+        for( auto &&e: ctx_extension )
+            cctx.data()[e.first] = e.second ;
+        doc->eval(cctx, tmp) ;
+    }
+
+    trim(tmp, res) ;
+}
+
+
+void WithBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    Variant::Object ctx_extension ;
+
+    // if there is a with statment we collect the variables
+
+    if ( with_ ) {
+        Variant with = with_->eval(ctx) ;
+        if ( with.isObject() ) {
+            for ( auto it = with.begin() ; it != with.end() ; ++it ) {
+                ctx_extension[it.key()] = it.value() ;
+            }
+        }
+    }
+
+    // create new context either inheriting parent one or empty and extend with key/values if any
+
+    string tmp ;
+
+    if ( only_flag_ ) {
+        TemplateEvalContext cctx(ctx.rdr_, {}) ;
+        cctx.data().insert(ctx_extension.begin(), ctx_extension.end()) ;
+        for( auto &&c: children_ )
+            c->eval(cctx, tmp) ;
+    } else {
+        TemplateEvalContext cctx(ctx) ;
+        for( auto &&e: ctx_extension )
+            cctx.data()[e.first] = e.second ;
+        for( auto &&c: children_ )
+            c->eval(cctx, tmp) ;
+    }
+
+    trim(tmp, res) ;
 
 }
 
