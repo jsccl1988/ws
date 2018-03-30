@@ -29,6 +29,12 @@ int main(int argc, char *argv[]) {
             Variant::Object{{ "title", "aaa"}, {"body", "bbb"}, {"text", "ccc"}}
     } };
 
+    t["func"] = Variant::Function([] ( const Variant &args, TemplateEvalContext &ctx) -> Variant{
+        cout << args.toJSON() << endl ;
+        cout << Variant(ctx.data()).toJSON() << endl ;
+        return "hello from function" ;
+    }) ;
+
 
    // cout.flush() ;
     cout << rdr.render("index", t)<< endl ;

@@ -4,12 +4,17 @@
 
 {% import 'forms' as forms %}
 
-{{ include('include') }}
+{% set name = "sotiris" %}
+
+{% if func1 is defined %}
+{{ func(1, 2) }}
+{% endif %}
+{% endset %}
 
 <p>{{ forms.input('username') }}</p>
 <p>{{ forms.input('password', null, 'password') }}</p>
     {%- for entry in posts -%}
-        <h2>{{ entry.title }}</h2>
+        <h2>{{ entry }}</h2>
         <p>{{ entry.body }}</p>
     {% endfor %}
 {% endblock %}

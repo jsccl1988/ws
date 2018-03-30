@@ -62,21 +62,27 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
     if ( FunctionFactory::instance().hasFunction(name_) ) {
-        return Variant(Variant::function_t([=](const Variant &args, TemplateEvalContext &cc) {
+        return Variant(Variant::Function([=](const Variant &args, TemplateEvalContext &cc) {
             return FunctionFactory::instance().invoke(name_, args, cc) ;
         })) ;
     }
-    auto it = ctx.data().find(name_) ;
-    if ( it == ctx.data().end() ) return Variant::null() ;
-    else return it->second ;
+    else {
+        auto it = ctx.data().find(name_) ;
+        if ( it == ctx.data().end() ) return Variant::undefined() ;
+        else return it->second ;
+    }
 }
-
-
 
 Variant BinaryOperator::eval(TemplateEvalContext &ctx)
 {
     Variant op1 = lhs_->eval(ctx) ;
     Variant op2 = rhs_->eval(ctx) ;
+
+    if ( op1.isUndefined() || op1.isNull() )
+        throw TemplateRuntimeException(str(boost::format("Undefined or null value on the left of %c operator") % (char)op_)) ;
+
+    if ( op2.isUndefined() || op2.isNull() )
+        throw TemplateRuntimeException(str(boost::format("Undefined or null value on the right of %c operator") % (char)op_)) ;
 
     if ( op_ == '+' )
     {
@@ -157,6 +163,20 @@ Variant InvokeFilterNode::eval(TemplateEvalContext &ctx)
     Variant target = target_->eval(ctx) ;
 
     return filter_->eval(target, ctx) ;
+}
+
+Variant InvokeTestNode::eval(TemplateEvalContext &ctx)
+{
+    Variant target = target_->eval(ctx) ;
+
+    Variant v = filter_->eval(target, ctx) ;
+
+    if ( v.type() != Variant::Type::Boolean )
+        throw TemplateRuntimeException("test function returning non-boolean value") ;
+
+    bool res = v.toBoolean() ;
+
+    return ( positive_ ) ? res : !res ;
 }
 
 
@@ -287,6 +307,8 @@ void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     trim(std::move(result), res) ;
 }
 
+
+
 void ContentNode::trim(const string &src, string &out) const
 {
     string::const_iterator start = src.begin(), end = src.end() ;
@@ -375,6 +397,7 @@ void MacroBlockNode::eval(TemplateEvalContext &, string &) const
 
 }
 
+// map passed arguments to context variables with the same name as macro parameters
 void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx, Variant::Array &arg_list)
 {
     auto it = args.begin() ;
@@ -383,9 +406,11 @@ void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx, Var
         if ( it != args.end()  )
             val = *it++ ;
 
-        ctx[arg_name] = val ;
+        ctx[arg_name] = val ; // replace current contex variables with the same name
         arg_list.push_back(val) ;
     }
+
+    // add the rest of non-mapped arguments to arglist array
 
     while ( it != args.end() ) {
         arg_list.push_back(*it++) ;
@@ -396,7 +421,7 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
     DocumentNodePtr doc ;
 
-    // handle _self ?
+    // if _self was provided then source should be null
 
     if ( source_ ) {
         string resource = source_->eval(ctx).toString() ;
@@ -408,6 +433,9 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
     TemplateEvalContext pctx(ctx) ;
 
+    // create closures corresponding to each macro and add them to the namespace variable
+    // of the current context
+
     Variant::Object closures ;
 
     for( auto &&m: (doc) ? doc->macro_blocks_ : root()->macro_blocks_ ) {
@@ -415,22 +443,24 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
         std::shared_ptr<MacroBlockNode> p_macro = std::dynamic_pointer_cast<MacroBlockNode>(m.second) ;
         if ( p_macro ) {
             auto macro_fn = [&, p_macro](const Variant &args, TemplateEvalContext &tctx) -> Variant {
-//                TemplateEvalContext tctx(ctx.rdr_, {}) ; // we should check if the _context variable is set to pass the current context too
+                // in this implementation context is always provided so no need for providing the _context parameter
+
+                TemplateEvalContext mctx(tctx) ;
                 Variant::Array arg_list ;
-                p_macro->mapArguments(args.at("args"), tctx.data(), arg_list) ;
-                tctx.data()["varargs"] = arg_list ;
+                p_macro->mapArguments(args.at("args"), mctx.data(), arg_list) ;
+                mctx.data()["varargs"] = arg_list ;
 
                 string tmp, out ;
 
                 for( auto &&c: p_macro->children_ ) {
-                    c->eval(tctx, tmp) ;
+                    c->eval(mctx, tmp) ;
                 }
 
                 p_macro->trim(tmp, out) ;
                 return out ;
             };
 
-            closures.insert({p_macro->name_, Variant::function_t(macro_fn)}) ;
+            closures.insert({p_macro->name_, Variant::Function(macro_fn)}) ;
         }
     }
 
@@ -441,6 +471,7 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     }
 
 }
+
 
 }
  // namespace detail

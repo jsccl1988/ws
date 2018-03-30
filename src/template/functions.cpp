@@ -114,6 +114,13 @@ static Variant _include(const Variant &args, TemplateEvalContext &ctx) {
 
 }
 
+static Variant _defined(const Variant &args, TemplateEvalContext &ctx) {
+    Variant::Array unpacked ;
+    if ( unpack_args(args, { { "var", true }}, unpacked) ) {
+        return !(unpacked[0].isUndefined() ) ;
+    }
+}
+
 FunctionFactory::FunctionFactory() {
     registerFunction("join", _join);
     registerFunction("lower", _lower);
@@ -122,6 +129,7 @@ FunctionFactory::FunctionFactory() {
     registerFunction("e", _escape);
     registerFunction("escape", _escape);
     registerFunction("include", _include);
+    registerFunction("defined", _defined);
 }
 
 bool FunctionFactory::hasFunction(const string &name)

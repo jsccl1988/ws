@@ -29,22 +29,23 @@ public:
 
     using Object = std::map<std::string, Variant> ;
     using Array = std::vector<Variant> ;
+    using Function = std::function<Variant(const Variant &, TemplateEvalContext &)> ;
 
     using signed_integer_t = int64_t ;
     using unsigned_integer_t = uint64_t ;
     using float_t = double ;
     using string_t = std::string ;
     using boolean_t = bool ;
-    using function_t = std::function<Variant(const Variant &, TemplateEvalContext &)> ;
+
 
     enum class Type : uint8_t {
-        Null,  Object, Array, String, Boolean, SInteger, UInteger, Float, Function
+        Undefined, Null,  Object, Array, String, Boolean, SInteger, UInteger, Float, Function
     };
     // constructors
 
     Variant(): tag_(Type::Null) {}
 
-    Variant(boolean_t v) noexcept : tag_(Type::Boolean), b_(v) { }
+    Variant(boolean_t v) noexcept : tag_(Type::Boolean) { data_.b_ = v ; }
 
     Variant(int v) noexcept: Variant((int64_t)v) {}
     Variant(unsigned int v) noexcept: Variant((uint64_t)v) {}
@@ -52,51 +53,47 @@ public:
     Variant(int64_t v) noexcept {
         if ( v < 0 ) {
             tag_ = Type::SInteger ;
-            si_ = v ;
+            data_.si_ = v ;
         } else {
             tag_ = Type::UInteger ;
-            ui_ = v ;
+            data_.ui_ = v ;
         }
     }
 
-    Variant(function_t v): tag_(Type::Function), fp_(new function_t(v)) {}
+    Variant(uint64_t v) noexcept: tag_(Type::UInteger) { data_.ui_ = v ; }
 
-    Variant(uint64_t v) noexcept: tag_(Type::UInteger), ui_(v) {}
+    Variant(Function v): tag_(Type::Function) { new (&data_.fp_) Function(v) ; }
 
-    Variant(float_t v) noexcept: tag_(Type::Float), f_(v) { }
+    Variant(float_t v) noexcept: tag_(Type::Float) { data_.f_ = v ; }
 
     Variant(const char *value): tag_(Type::String) {
-        s_ = new std::string(value) ;
+        new (&data_.s_) std::string(value) ;
     }
 
     Variant(const string_t& value): tag_(Type::String) {
-        s_ = new std::string(value) ;
+        new (&data_.s_) std::string(value) ;
     }
 
     Variant(string_t&& value): tag_(Type::String)  {
-        s_ = new std::string(std::move(value)) ;
+        new (&data_.s_) std::string(std::move(value)) ;
     }
 
     Variant(const Object& value): tag_(Type::Object) {
-        o_ = new Object(value);
+        new (&data_.o_) Object(value) ;
     }
 
     Variant(Object&& value): tag_(Type::Object) {
-        o_ = new Object(std::move(value));
+        new (&data_.o_) Object(std::move(value)) ;
     }
 
     Variant(const Array& value): tag_(Type::Array) {
-        a_ = new Array(value);
+        new (&data_.a_) Array(value) ;
     }
 
     Variant(Array&& value): tag_(Type::Array) {
-        a_ = new Array(std::move(value));
+        new (&data_.a_) Array(std::move(value)) ;
     }
 
-/*    Variant(function_t&& value): tag_(Type::Function) {
-        fp_ = new function_t(std::move(value));
-    }
-*/
     ~Variant() {
         destroy() ;
     }
@@ -117,32 +114,33 @@ public:
         switch (tag_)
         {
         case Type::Object:
-            o_ = other.o_ ;
+            new (&data_.o_) Object(std::move(other.data_.o_)) ;
             break;
         case Type::Array:
-            a_ = other.a_ ;
+            new (&data_.a_) Array(std::move(other.data_.a_)) ;
             break;
         case Type::String:
-            s_ = other.s_ ;
+            new (&data_.s_) std::string(std::move(other.data_.s_)) ;
             break;
         case Type::Boolean:
-            b_ = other.b_ ;
+            data_.b_ = other.data_.b_ ;
             break;
         case Type::SInteger:
-            si_ = other.si_ ;
+            data_.si_ = other.data_.si_ ;
             break;
         case Type::UInteger:
-            ui_ = other.ui_ ;
+            data_.ui_ = other.data_.ui_ ;
             break;
         case Type::Float:
-            f_ = other.f_ ;
+            data_.f_ = other.data_.f_ ;
             break;
         case Type::Function:
-            fp_ = other.fp_ ;
+            new (&data_.fp_) Function(std::move(other.data_.fp_)) ;
         default:
             break;
         }
-        other.tag_ = Type::Null ;
+
+        other.tag_ = Type::Undefined ;
     }
 
     // make Object from a dictionary
@@ -175,9 +173,11 @@ public:
     static Variant fromJSONFile(const std::string &path, bool throw_exception = false) ;
 
     // check object type
+
     bool isObject() const { return tag_ == Type::Object ; }
     bool isArray() const { return tag_ == Type::Array ; }
     bool isNull() const { return tag_ == Type::Null ; }
+    bool isUndefined() const { return tag_ == Type::Undefined ; }
 
     bool isString() const { return tag_ == Type::String ; }
     bool isNumber() const {
@@ -198,8 +198,8 @@ public:
 
     // False are booleans with false values and empty arrays
     bool isFalse() const {
-        if ( tag_ == Type::Boolean ) return !b_ ;
-        else if ( tag_ == Type::Array ) return a_->size() == 0 ;
+        if ( tag_ == Type::Boolean ) return !data_.b_ ;
+        else if ( tag_ == Type::Array ) return data_.a_.size() == 0 ;
         else if ( tag_ == Type::Null ) return true ;
         else return false ;
     }
@@ -209,18 +209,18 @@ public:
         switch (tag_)
         {
         case Type::String:
-            return *s_;
+            return data_.s_;
         case Type::Boolean: {
             std::ostringstream strm ;
-            strm << b_ ;
+            strm << data_.b_ ;
             return strm.str() ;
         }
         case Type::SInteger:
-            return std::to_string(si_) ;
+            return std::to_string(data_.si_) ;
         case Type::UInteger:
-            return std::to_string(ui_) ;
+            return std::to_string(data_.ui_) ;
         case Type::Float:
-            return std::to_string(f_) ;
+            return std::to_string(data_.f_) ;
         default:
             return std::string();
         }
@@ -231,20 +231,20 @@ public:
         {
         case Type::String:
             try {
-            return std::stod(*s_);
+            return std::stod(data_.s_);
         }
             catch ( ... ) {
             return 0.0 ;
         }
 
         case Type::Boolean:
-            return (double)b_ ;
+            return (double)data_.b_ ;
         case Type::SInteger:
-            return (double)si_ ;
+            return (double)data_.si_ ;
         case Type::UInteger:
-            return (double)ui_ ;
+            return (double)data_.ui_ ;
         case Type::Float:
-            return (double)f_ ;
+            return (double)data_.f_ ;
         default:
             return 0.0;
         }
@@ -254,15 +254,15 @@ public:
         switch (tag_)
         {
         case Type::String:
-            return !(s_->empty()) ;
+            return !(data_.s_.empty()) ;
         case Type::Boolean:
-            return b_ ;
+            return data_.b_ ;
         case Type::SInteger:
-            return (bool)si_ ;
+            return (bool)data_.si_ ;
         case Type::UInteger:
-            return (bool)ui_ ;
+            return (bool)data_.ui_ ;
         case Type::Float:
-            return f_ != 0 ;
+            return data_.f_ != 0 ;
         default:
             return false;
         }
@@ -275,7 +275,7 @@ public:
 
         if ( !isObject() ) return res ;
 
-        for ( const auto &p: *o_ )
+        for ( const auto &p: data_.o_ )
             res.push_back(p.first) ;
         return res ;
     }
@@ -283,9 +283,9 @@ public:
     // length of object or array, zero otherwise
     size_t length() const {
         if ( isObject() )
-            return o_->size() ;
+            return data_.o_.size() ;
         else if ( isArray() ) {
-            return a_->size() ;
+            return data_.a_.size() ;
         }
         else return 0 ;
     }
@@ -301,17 +301,17 @@ public:
         tokenizer tokens(key, sep);
 
         const Variant *current = this ;
-        if ( !current->isObject() ) return null() ;
+        if ( !current->isObject() ) return undefined() ;
 
         for ( tokenizer::iterator it = tokens.begin(); it != tokens.end();  ) {
             const Variant &val = current->fetchKey(*it++) ;
-            if ( val.isNull() ) return val ;
+            if ( val.isUndefined() ) return val ;
             else if ( it != tokens.end() )
                 current = &val ;
             else return val ;
         }
 
-        return Variant::null() ;
+        return Variant::undefined() ;
     }
 
     // return an element of an array
@@ -334,13 +334,13 @@ public:
         switch ( tag_ ) {
         case Type::Object: {
             strm << "{" ;
-            auto it = o_->cbegin() ;
-            if ( it != o_->cend() ) {
+            auto it = data_.o_.cbegin() ;
+            if ( it != data_.o_.cend() ) {
                 strm << json_escape_string(it->first) << ": " ;
                 it->second.toJSON(strm) ;
                 ++it ;
             }
-            while ( it != o_->cend() ) {
+            while ( it != data_.o_.cend() ) {
                 strm << ", " ;
                 strm << json_escape_string(it->first) << ": " ;
                 it->second.toJSON(strm) ;
@@ -351,12 +351,12 @@ public:
         }
         case Type::Array: {
             strm << "[" ;
-            auto it = a_->cbegin() ;
-            if ( it != a_->cend() ) {
+            auto it = data_.a_.cbegin() ;
+            if ( it != data_.a_.cend() ) {
                 it->toJSON(strm) ;
                 ++it ;
             }
-            while ( it != a_->cend() ) {
+            while ( it != data_.a_.cend() ) {
                 strm << ", " ;
                 it->toJSON(strm) ;
                 ++it ;
@@ -366,11 +366,11 @@ public:
             break ;
         }
         case Type::String: {
-            strm << json_escape_string(*s_) ;
+            strm << json_escape_string(data_.s_) ;
             break ;
         }
         case Type::Boolean: {
-            strm << ( b_ ? "true" : "false") ;
+            strm << ( data_.b_ ? "true" : "false") ;
             break ;
         }
         case Type::Null: {
@@ -378,19 +378,18 @@ public:
             break ;
         }
         case Type::Float: {
-            strm << f_ ;
+            strm << data_.f_ ;
             break ;
         }
         case Type::SInteger: {
-            strm << si_ ;
+            strm << data_.si_ ;
             break ;
         }
         case Type::UInteger: {
-            strm << ui_ ;
+            strm << data_.ui_ ;
             break ;
         }
         }
-
     }
 
     std::string toJSON() const {
@@ -405,36 +404,36 @@ public:
     class iterator {
     public:
         iterator(const Variant &obj, bool set_to_begin = false): obj_(obj) {
-            if ( obj.isObject() ) o_it_ = ( set_to_begin ) ? obj_.o_->begin() : obj_.o_->end();
-            else if ( obj.isArray() ) a_it_ = ( set_to_begin ) ? obj_.a_->begin() : obj_.a_->end();
+            if ( obj.isObject() ) o_it_ = ( set_to_begin ) ? obj_.data_.o_.begin() : obj_.data_.o_.end();
+            else if ( obj.isArray() ) a_it_ = ( set_to_begin ) ? obj_.data_.a_.begin() : obj_.data_.a_.end();
         }
 
         const Variant & operator*() const {
             if ( obj_.isObject() ) {
-                assert( o_it_ != obj_.o_->end() ) ;
+                assert( o_it_ != obj_.data_.o_.end() ) ;
                 return o_it_->second ;
             }
             else if ( obj_.isArray() ) {
-                assert( a_it_ != obj_.a_->end() ) ;
+                assert( a_it_ != obj_.data_.a_.end() ) ;
                 return *a_it_ ;
             }
             else {
 
-                return Variant::null() ;
+                return Variant::undefined() ;
             }
         }
 
         const Variant *operator->() const {
             if ( obj_.isObject() ) {
-                assert( o_it_ != obj_.o_->end() ) ;
+                assert( o_it_ != obj_.data_.o_.end() ) ;
                 return &(o_it_->second) ;
             }
             else if ( obj_.isArray() ) {
-                assert( a_it_ != obj_.a_->end() ) ;
+                assert( a_it_ != obj_.data_.a_.end() ) ;
                 return &(*a_it_) ;
             }
             else {
-                return &Variant::null() ;
+                return &Variant::undefined() ;
             }
         }
 
@@ -502,15 +501,20 @@ public:
         return iterator(*this, false) ;
     }
 
-
     static const Variant &null() {
         static Variant null_value ;
         return null_value ;
     }
 
+    static const Variant &undefined() {
+        static Variant undefined_value ;
+        undefined_value.tag_ = Type::Undefined ;
+        return undefined_value ;
+    }
+
     Variant invoke(const Variant &args, TemplateEvalContext &ctx) {
-        if ( tag_ != Type::Function ) return nullptr ;
-        else return (*fp_)(args, ctx) ;
+        if ( tag_ != Type::Function ) return undefined() ;
+        else return (data_.fp_)(args, ctx) ;
     }
 
 private:
@@ -556,66 +560,65 @@ private:
     const Variant &fetchKey(const std::string &key) const {
         assert(isObject()) ;
 
-        auto it = o_->find(key) ;
-        if ( it == o_->end() ) return null() ; // return null
+        auto it = data_.o_.find(key) ;
+        if ( it == data_.o_.end() ) return undefined() ; // return undefined
         else return it->second ; // return reference
     }
 
     const Variant &fetchIndex(uint idx) const {
         assert(isArray()) ;
 
-        if ( idx < a_->size() ) {
-            const Variant &v = (*a_)[idx] ;
+        if ( idx < data_.a_.size() ) {
+            const Variant &v = (data_.a_)[idx] ;
             return v ; // reference to item
         }
-        else return null() ;
+        else return undefined() ;
     }
 
     void destroy() {
         switch (tag_) {
         case Type::Object:
-            delete o_ ;
+            data_.o_.~Object() ;
             break ;
         case Type::Array:
-            delete a_ ;
+            data_.a_.~Array() ;
             break ;
         case Type::String:
-            delete s_ ;
+            data_.s_.~string_t() ;
             break ;
         case Type::Function:
-            delete fp_ ;
+            data_.fp_.~Function() ;
             break ;
         }
     }
 
     void create(const Variant &other) {
-
         tag_ = other.tag_ ;
         switch (tag_)
         {
         case Type::Object:
-            o_ = new Object(*other.o_) ;
+            new ( &data_.o_ ) Object(other.data_.o_) ;
             break;
         case Type::Array:
-            a_ = new Array(*other.a_) ;
+            new ( &data_.a_ ) Array(other.data_.a_) ;
             break;
         case Type::String:
-            s_ = new string_t(*other.s_) ;
+            new ( &data_.s_ ) string_t(other.data_.s_) ;
             break;
         case Type::Function:
-            fp_ = new function_t(*other.fp_) ;
+            new ( &data_.fp_ ) Function(other.data_.fp_) ;
             break;
         case Type::Boolean:
-            b_ = other.b_ ;
+            data_.b_ = other.data_.b_ ;
             break;
         case Type::SInteger:
-            si_ = other.si_ ;
+            data_.si_ = other.data_.si_ ;
             break;
         case Type::UInteger:
-            ui_ = other.ui_ ;
+            data_.ui_ = other.data_.ui_ ;
             break;
         case Type::Float:
-            f_ = other.f_ ;
+            data_.f_ = other.data_.f_ ;
             break;
         default:
             break;
@@ -627,18 +630,21 @@ private:
 
 private:
 
-
-    union {
-        Object    *o_;
-        Array     *a_ ;
-        string_t  *s_ ;
+    union Data {
+        Object    o_;
+        Array     a_ ;
+        string_t  s_ ;
         boolean_t   b_ ;
         signed_integer_t   si_ ;
         unsigned_integer_t ui_ ;
         float_t     f_ ;
-        function_t *fp_ ;
+        Function fp_ ;
+
+        Data() {}
+        ~Data() {}
     } ;
 
+    Data data_ ;
     Type tag_ ;
 
 

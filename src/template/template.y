@@ -32,7 +32,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 }
 
 /* literal keyword tokens */
-%token T_NOT            "!"
+%token T_NOT            "not"
 %token T_AND            "&&"
 %token T_OR             "||"
 %token T_NOT_MATCHES    "!~"
@@ -80,6 +80,7 @@ static yy::Parser::symbol_type yylex(TemplateParser &driver, yy::Parser::locatio
 %token T_IMPORT         "import"
 %token T_ASSIGN         "="
 %token T_IN             "in"
+%token T_IS             "is"
 %token T_BEGIN_BLOCK    "block"
 %token T_END_BLOCK      "endblock"
 %token T_START_BLOCK_TAG        "{%"
@@ -300,36 +301,39 @@ identifier_list:
 
 
 expression:
-          expression T_OR expression      { $$ = make_shared<BooleanOperator>( BooleanOperator::Or, $1, $3) ; }
-        | expression T_AND expression     { $$ = make_shared<BooleanOperator>( BooleanOperator::And, $1, $3) ; }
+          T_NOT expression                      { $$ = make_shared<BooleanOperator>( BooleanOperator::Not, $2, nullptr) ; }
+        | expression T_OR expression            { $$ = make_shared<BooleanOperator>( BooleanOperator::Or, $1, $3) ; }
+        | expression T_AND expression           { $$ = make_shared<BooleanOperator>( BooleanOperator::And, $1, $3) ; }
         | expression T_EQUAL expression			{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::Equal, $1, $3 ) ; }
         | expression T_NOT_EQUAL expression		{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::NotEqual, $1, $3 ) ; }
         | expression T_LESS_THAN expression		{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::Less, $1, $3 ) ; }
         | expression T_GREATER_THAN expression		{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::Greater, $1, $3 ) ; }
         | expression T_LESS_THAN_OR_EQUAL expression	{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::LessOrEqual, $1, $3 ) ; }
         | expression T_GREATER_THAN_OR_EQUAL expression	{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::GreaterOrEqual, $1, $3 ) ; }
-        | expression T_PLUS expression		{ $$ = make_shared<BinaryOperator>('+', $1, $3) ; }
-        | expression T_MINUS expression		{ $$ = make_shared<BinaryOperator>('-', $1, $3) ; }
-        | expression T_TILDE expression	{ $$ = make_shared<BinaryOperator>('~', $1, $3) ; }
-        | expression T_STAR expression		{ $$ = make_shared<BinaryOperator>('*', $1, $3) ; }
-        | expression T_DIV expression		{ $$ = make_shared<BinaryOperator>('/', $1, $3) ; }
-        | T_PLUS expression  { $$ = make_shared<UnaryOperator>('+', $2) ; }
-        | T_MINUS expression  { $$ = make_shared<UnaryOperator>('-', $2) ; }
+        | expression T_PLUS expression          { $$ = make_shared<BinaryOperator>('+', $1, $3) ; }
+        | expression T_MINUS expression         { $$ = make_shared<BinaryOperator>('-', $1, $3) ; }
+        | expression T_TILDE expression         { $$ = make_shared<BinaryOperator>('~', $1, $3) ; }
+        | expression T_STAR expression          { $$ = make_shared<BinaryOperator>('*', $1, $3) ; }
+        | expression T_DIV expression           { $$ = make_shared<BinaryOperator>('/', $1, $3) ; }
+        | T_PLUS expression                     { $$ = make_shared<UnaryOperator>('+', $2) ; }
+        | T_MINUS expression                    { $$ = make_shared<UnaryOperator>('-', $2) ; }
         | T_LPAR expression T_RPAR { $$ = $2; }
-        | expression T_QUESTION_MARK expression T_COLON expression { $$ = make_shared<TernaryExpressionNode>($1, $3, $5) ; }
+        | expression T_QUESTION_MARK expression T_COLON expression  { $$ = make_shared<TernaryExpressionNode>($1, $3, $5) ; }
         | expression  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = make_shared<SubscriptIndexingNode>($1, $3) ; }
-        | expression T_BAR filter                                 { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
+        | expression T_BAR filter                                   { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
+        | expression T_IS filter                                    { $$ = make_shared<InvokeTestNode>($1, $3, true) ; }
+        | expression T_IS T_NOT filter                              { $$ = make_shared<InvokeTestNode>($1, $4, false) ; }
         | expression T_PERIOD T_IDENTIFIER                          { $$ = make_shared<AttributeIndexingNode>($1, $3) ; }
-        | function_call  { $$ = $1 ; }
-        | value { $$ = $1 ; }
-        | T_IDENTIFIER { $$ = make_shared<IdentifierNode>($1) ; }
+        | function_call                                             { $$ = $1 ; }
+        | value                                                     { $$ = $1 ; }
+        | T_IDENTIFIER                                              { $$ = make_shared<IdentifierNode>($1) ; }
 
 filter:
-    T_IDENTIFIER                     { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
-  | T_IDENTIFIER T_LPAR func_args T_RPAR  { $$ = make_shared<FilterNode>($1, $3) ; }
+    T_IDENTIFIER                            { $$ = make_shared<FilterNode>($1, make_shared<FunctionArguments>()) ;    }
+  | T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<FilterNode>($1, $3) ; }
 
 function_call:
-  | expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1, make_shared<FunctionArguments>()) ; }
+    expression T_LPAR T_RPAR            { $$ = make_shared<InvokeFunctionNode>($1, make_shared<FunctionArguments>()) ; }
   | expression T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeFunctionNode>($1, $3) ; }
 	;
 

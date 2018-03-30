@@ -47,6 +47,7 @@ using namespace std ;
   "as"          return TOKEN(T_AS) ;
   "_self"       return TOKEN(T_SELF) ;
   "in"          return TOKEN(T_IN);
+  "is"          return TOKEN(T_IS);
   "%}"          { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG) ; }
   "-%}"         { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG_TRIM) ; }
 }

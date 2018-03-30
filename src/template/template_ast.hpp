@@ -278,6 +278,19 @@ private:
     FilterNodePtr filter_ ;
 };
 
+class InvokeTestNode: public ExpressionNode {
+public:
+    InvokeTestNode(ExpressionNodePtr target, FilterNodePtr filter, bool positive): target_(target), filter_(filter), positive_(positive) {}
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+private:
+    ExpressionNodePtr target_ ;
+    FilterNodePtr filter_ ;
+    bool positive_ ;
+};
+
+
 class InvokeFunctionNode: public ExpressionNode {
 public:
     InvokeFunctionNode(ExpressionNodePtr callable, FunctionArgumentsPtr args): callable_(callable), args_(args) {}
