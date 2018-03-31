@@ -27,6 +27,65 @@ Variant BooleanOperator::eval(TemplateEvalContext &ctx)
     }
 }
 
+
+static bool compare_numbers(int64_t lhs, int64_t rhs, ComparisonPredicate::Type op) {
+    switch ( op ) {
+    case ComparisonPredicate::Equal:
+        return lhs == rhs ;
+    case ComparisonPredicate::NotEqual:
+        return lhs != rhs ;
+    case ComparisonPredicate::Less:
+        return lhs < rhs ;
+    case ComparisonPredicate::LessOrEqual:
+        return lhs <= rhs ;
+    case ComparisonPredicate::GreaterOrEqual:
+        return lhs >= rhs ;
+    case ComparisonPredicate::Greater:
+        return lhs > rhs ;
+    }
+}
+
+static bool compare_numbers(const Variant &lhs, const Variant &rhs, ComparisonPredicate::Type op) {
+
+    if ( ( lhs.type() == Variant::Type::Integer || lhs.type() == Variant::Type::Boolean) && rhs.type() == Variant::Type::Float ) {
+        return compare_numbers(lhs.toFloat(), rhs.toFloat(), op) ;
+    } else if ( lhs.type() == Variant::Type::Float && ( rhs.type() == Variant::Type::Integer || rhs.type() == Variant::Type::Boolean ) ) {
+        return compare_numbers(lhs.toFloat(), rhs.toFloat(), op) ;
+    } else
+        return compare_numbers(lhs.toInteger(), rhs.toInteger(), op) ;
+}
+
+static bool variant_compare(const Variant &lhs, const Variant &rhs, ComparisonPredicate::Type op) {
+
+    if ( lhs.isString() && rhs.isString() ) {
+        string ls = lhs.toString(), rs = rhs.toString() ;
+        int res = ls.compare(rs) ;
+        switch ( op ) {
+        case ComparisonPredicate::Equal:
+            return res == 0 ;
+        case ComparisonPredicate::NotEqual:
+            return res != 0 ;
+        case ComparisonPredicate::Less:
+            return res < 0 ;
+        case ComparisonPredicate::LessOrEqual:
+            return res <= 0 ;
+        case ComparisonPredicate::GreaterOrEqual:
+            return res >= 0 ;
+        case ComparisonPredicate::Greater:
+            return res > 0 ;
+        }
+    }
+
+    if ( lhs.isNumber() && rhs.isNumber() ) {
+        return compare_numbers(lhs, rhs, op) ;
+    } else if ( lhs.isNumber() && rhs.isString() ) {
+        return compare_numbers(lhs, rhs.toNumber(), op ) ;
+    } else if ( lhs.isString() && rhs.isNumber() ) {
+        return compare_numbers(lhs.toNumber(), rhs, op ) ;
+    } else return compare_numbers((int64_t)&lhs, (int64_t)&rhs, op) ;
+
+}
+
 Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 {
     Variant lhs = lhs_->eval(ctx) ;
@@ -34,28 +93,7 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 
     if ( lhs.isNull() || rhs.isNull() ) return false ;
 
-    switch ( op_ ) {
-    case Equal:
-    {
-        if ( lhs.isString() && rhs.isString() )
-            return Variant(lhs.toString() == rhs.toString()) ;
-        else return Variant(lhs.toNumber() == rhs.toNumber()) ;
-    }
-    case NotEqual:
-        if ( lhs.isString() && rhs.isString() )
-            return Variant(lhs.toString() != rhs.toString()) ;
-        else return Variant(lhs.toNumber() != rhs.toNumber()) ;
-    case Less:
-        return lhs.toNumber() < rhs.toNumber() ;
-    case Greater:
-        return lhs.toNumber() > rhs.toNumber() ;
-    case LessOrEqual:
-        return lhs.toNumber() <= rhs.toNumber() ;
-    case GreaterOrEqual:
-        return lhs.toNumber() >= rhs.toNumber() ;
-    }
-
-    return Variant() ;
+    return variant_compare(lhs, rhs, op_);
 }
 
 
@@ -74,6 +112,47 @@ Variant IdentifierNode::eval(TemplateEvalContext &ctx)
     }
 }
 
+static int64_t arithemtic(int64_t lhs, int64_t rhs, char op) {
+    switch ( op ) {
+    case '+':
+        return lhs + rhs ;
+    case '-':
+        return lhs - rhs ;
+    case '*':
+        return lhs * rhs ;
+    case '/':
+        return ( rhs ) ? (lhs / rhs) : 0 ;
+    case '%':
+        return ( rhs ) ? (lhs % rhs) : 0 ;
+    }
+}
+
+static double arithemtic(double lhs, double rhs, char op) {
+    switch ( op ) {
+    case '+':
+        return lhs + rhs ;
+    case '-':
+        return lhs - rhs ;
+    case '*':
+        return lhs * rhs ;
+    case '/':
+        return ( rhs != 0 ) ? (lhs / rhs) : 0.0 ;
+    case '%':
+        return ( (int64_t)rhs != 0) ? ((int64_t)lhs % (int64_t)rhs) : 0 ;
+    }
+}
+
+
+static Variant arithmetic(const Variant &lhs, const Variant &rhs, char op) {
+    if ( ( lhs.type() == Variant::Type::Integer || lhs.type() == Variant::Type::Boolean) && rhs.type() == Variant::Type::Float ) {
+        return arithmetic(lhs.toFloat(), rhs.toFloat(), op) ;
+    } else if ( lhs.type() == Variant::Type::Float && ( rhs.type() == Variant::Type::Integer || rhs.type() == Variant::Type::Boolean ) ) {
+        return arithmetic(lhs.toFloat(), rhs.toFloat(), op) ;
+    } else
+        return arithmetic(lhs.toInteger(), rhs.toInteger(), op) ;
+
+}
+
 Variant BinaryOperator::eval(TemplateEvalContext &ctx)
 {
     Variant op1 = lhs_->eval(ctx) ;
@@ -85,13 +164,23 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     if ( op2.isUndefined() || op2.isNull() )
         throw TemplateRuntimeException(str(boost::format("Undefined or null value on the right of %c operator") % (char)op_)) ;
 
+    switch ( op_ ) {
+    case '+':
+    case '-':
+    case '*':
+    case '/':
+        return arithmetic(op1.toNumber(), op2.toNumber(), op_) ;
+    case '~':
+        return op1.toString() + op2.toString() ;
+    }
+/*
     if ( op_ == '+' )
     {
-        return op1.toNumber() + op2.toNumber() ;
+        return arithmetic(op1.toNumber(), op2.toNumber() ;
     }
     else if ( op_ == '-' )
     {
-        return op1.toNumber() + op2.toNumber() ;
+        return op1.toNumber() - op2.toNumber() ;
     }
     else if ( op_ == '~' )
     {
@@ -105,6 +194,7 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
         if ( op2.toNumber() == 0.0 ) return Variant::null() ;
         else return op1.toNumber()/op2.toNumber() ;
     }
+    */
 }
 
 
@@ -113,7 +203,7 @@ Variant UnaryOperator::eval(TemplateEvalContext &ctx)
     Variant val = rhs_->eval(ctx) ;
 
     if ( op_ == '-' ) {
-        return -val.toNumber() ;
+        return arithmetic(0, val, '-') ;
     }
     else return val ;
 
@@ -150,7 +240,7 @@ Variant SubscriptIndexingNode::eval(TemplateEvalContext &ctx)
     if ( index.isString() )
         return a.at(index.toString()) ;
     else
-        return a.at(index.toNumber()) ;
+        return a.at(index.toInteger()) ;
 }
 
 Variant AttributeIndexingNode::eval(TemplateEvalContext &ctx)
@@ -591,6 +681,38 @@ void WithBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     }
 
     trim(tmp, res) ;
+
+}
+
+static bool compare_numbers(double lhs, double rhs, ComparisonPredicate::Type op) {
+    switch ( op ) {
+    case ComparisonPredicate::Equal:
+        return lhs == rhs ;
+    case ComparisonPredicate::NotEqual:
+        return lhs != rhs ;
+    case ComparisonPredicate::Less:
+        return lhs < rhs ;
+    case ComparisonPredicate::LessOrEqual:
+        return lhs <= rhs ;
+    case ComparisonPredicate::GreaterOrEqual:
+        return lhs >= rhs ;
+    case ComparisonPredicate::Greater:
+        return lhs > rhs ;
+    }
+}
+
+
+Variant ContainmentNode::eval(TemplateEvalContext &ctx)
+{
+    Variant lhs = lhs_->eval(ctx) ;
+    Variant rhs = lhs_->eval(ctx) ;
+
+    if ( !lhs.isPrimitive() || !rhs.isArray() )
+        throw TemplateRuntimeException("wrong type of values on containment operaror") ;
+
+    for( auto &&e: rhs ) {
+        if ( variant_compare(lhs, rhs, ComparisonPredicate::Equal) ) return true ;
+    }
 
 }
 

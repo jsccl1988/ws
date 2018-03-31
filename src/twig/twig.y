@@ -138,14 +138,20 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 /*operators */
 
 %right T_QUESTION_MARK T_COLON
+%left T_NOT
 %left T_OR
 %left T_AND
 %nonassoc T_LESS_THAN T_GREATER_THAN T_LESS_THAN_OR_EQUAL T_GREATER_THAN_OR_EQUAL T_EQUAL T_NOT_EQUAL
+%nonassoc T_IN
 %left T_PLUS T_MINUS T_TILDE
 %left T_STAR T_DIV
-%right T_NOT
+%left T_UMINUS T_NEG
+%left T_IS
+%left T_BAR
+%nonassoc T_NO_ARGS
+%right T_LPAR
 %right T_LEFT_BRACKET T_PERIOD
-%right T_ASSIGN T_COMMA
+%left T_ASSIGN T_COMMA
 
 %start document
 
@@ -395,7 +401,7 @@ identifier_list:
 
 
 expression:
-          T_NOT expression                      { $$ = make_shared<BooleanOperator>( BooleanOperator::Not, $2, nullptr) ; }
+          T_NOT expression %prec T_NEG                     { $$ = make_shared<BooleanOperator>( BooleanOperator::Not, $2, nullptr) ; }
         | expression T_OR expression            { $$ = make_shared<BooleanOperator>( BooleanOperator::Or, $1, $3) ; }
         | expression T_AND expression           { $$ = make_shared<BooleanOperator>( BooleanOperator::And, $1, $3) ; }
         | expression T_EQUAL expression			{ $$ = make_shared<ComparisonPredicate>( ComparisonPredicate::Equal, $1, $3 ) ; }
@@ -409,8 +415,8 @@ expression:
         | expression T_TILDE expression         { $$ = make_shared<BinaryOperator>('~', $1, $3) ; }
         | expression T_STAR expression          { $$ = make_shared<BinaryOperator>('*', $1, $3) ; }
         | expression T_DIV expression           { $$ = make_shared<BinaryOperator>('/', $1, $3) ; }
-        | T_PLUS expression                     { $$ = make_shared<UnaryOperator>('+', $2) ; }
-        | T_MINUS expression                    { $$ = make_shared<UnaryOperator>('-', $2) ; }
+        | T_PLUS expression %prec T_UMINUS                    { $$ = make_shared<UnaryOperator>('+', $2) ; }
+        | T_MINUS expression %prec T_UMINUS                   { $$ = make_shared<UnaryOperator>('-', $2) ; }
         | T_LPAR expression T_RPAR { $$ = $2; }
         | expression T_QUESTION_MARK expression T_COLON expression  { $$ = make_shared<TernaryExpressionNode>($1, $3, $5) ; }
         | expression  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = make_shared<SubscriptIndexingNode>($1, $3) ; }
@@ -419,10 +425,11 @@ expression:
         | expression T_PERIOD T_IDENTIFIER                          { $$ = make_shared<AttributeIndexingNode>($1, $3) ; }
         | function_call                                             { $$ = $1 ; }
         | value                                                     { $$ = $1 ; }
-        | T_IDENTIFIER                                              { $$ = make_shared<IdentifierNode>($1) ; }
+        | expression T_IN expression                                { $$ = make_shared<ContainmentNode>($1, $3, true) ; }
+        | expression T_NOT T_IN expression                          { $$ = make_shared<ContainmentNode>($1, $4, false) ; }
 
 filter_invoke:
-    expression T_BAR T_IDENTIFIER                            { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
+    expression T_BAR T_IDENTIFIER %prec T_NO_ARGS            { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
   | expression T_BAR T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<InvokeFilterNode>($1, $3, std::move($5)) ; }
 
 function_call:
@@ -430,8 +437,8 @@ function_call:
   | expression T_LPAR func_args T_RPAR  { $$ = make_shared<InvokeFunctionNode>($1, std::move($3)) ; }
 	;
 test_call:
-   expression T_IS T_IDENTIFIER                              { $$ = make_shared<InvokeTestNode>($1, $3, key_val_list_t{}, true) ; }
-   | expression T_IS T_NOT T_IDENTIFIER                        { $$ = make_shared<InvokeTestNode>($1, $4, key_val_list_t{}, false) ; }
+   expression T_IS T_IDENTIFIER   %prec T_NO_ARGS                  { $$ = make_shared<InvokeTestNode>($1, $3, key_val_list_t{}, true) ; }
+   | expression T_IS T_NOT T_IDENTIFIER %prec T_NO_ARGS            { $$ = make_shared<InvokeTestNode>($1, $4, key_val_list_t{}, false) ; }
    | expression T_IS T_IDENTIFIER T_LPAR func_args T_RPAR          { $$ = make_shared<InvokeTestNode>($1, $3, std::move($5), true) ; }
    | expression T_IS T_NOT T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<InvokeTestNode>($1, $4, std::move($6), false) ; }
 
@@ -445,7 +452,8 @@ func_arg:
     | T_IDENTIFIER T_ASSIGN expression  { $$ = make_pair($1, $3) ; }
 
 value:
-    T_STRING         { $$ = make_shared<LiteralNode>($1) ;  }
+    T_IDENTIFIER     { $$ = make_shared<IdentifierNode>($1) ; }
+    | T_STRING         { $$ = make_shared<LiteralNode>($1) ;  }
     | T_INTEGER      { $$ = make_shared<LiteralNode>($1) ; }
     | T_FLOAT        { $$ = make_shared<LiteralNode>($1) ; }
     | object         { std::swap($$, $1) ; }
@@ -472,9 +480,8 @@ key_val:
     T_STRING T_COLON expression { $$ = std::make_pair($1, $3) ; }
     | T_IDENTIFIER T_COLON expression { $$ = std::make_pair($1, $3) ; }
 
-
 %%
-//#define YYDEBUG 1
+#define YYDEBUG 1
 
 #include "scanner.hpp"
 

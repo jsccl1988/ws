@@ -10,6 +10,7 @@
 #include <wspp/util/dictionary.hpp>
 
 #include <boost/tokenizer.hpp>
+#include <boost/lexical_cast.hpp>
 
 // very lighweight write-only variant class e.g. to enable json responses and passed to template engines
 //
@@ -44,7 +45,7 @@ public:
 
 
     enum class Type : uint8_t {
-        Undefined, Null,  Object, Array, String, Boolean, SInteger, UInteger, Float, Function
+        Undefined, Null,  Object, Array, String, Boolean, Integer, Float, Function
     };
     // constructors
 
@@ -53,19 +54,10 @@ public:
     Variant(boolean_t v) noexcept : tag_(Type::Boolean) { data_.b_ = v ; }
 
     Variant(int v) noexcept: Variant((int64_t)v) {}
-    Variant(unsigned int v) noexcept: Variant((uint64_t)v) {}
+    Variant(unsigned int v) noexcept: Variant((int64_t)v) {}
 
-    Variant(int64_t v) noexcept {
-        if ( v < 0 ) {
-            tag_ = Type::SInteger ;
-            data_.si_ = v ;
-        } else {
-            tag_ = Type::UInteger ;
-            data_.ui_ = v ;
-        }
-    }
-
-    Variant(uint64_t v) noexcept: tag_(Type::UInteger) { data_.ui_ = v ; }
+    Variant(int64_t v) noexcept: tag_(Type::Integer) { data_.i_ = v ; }
+    Variant(uint64_t v) noexcept: tag_(Type::Integer) { data_.i_ = (int64_t)v ; }
 
     Variant(Function v): tag_(Type::Function) { new (&data_.fp_) Function(v) ; }
 
@@ -130,11 +122,8 @@ public:
         case Type::Boolean:
             data_.b_ = other.data_.b_ ;
             break;
-        case Type::SInteger:
-            data_.si_ = other.data_.si_ ;
-            break;
-        case Type::UInteger:
-            data_.ui_ = other.data_.ui_ ;
+        case Type::Integer:
+            data_.i_ = other.data_.i_ ;
             break;
         case Type::Float:
             data_.f_ = other.data_.f_ ;
@@ -186,16 +175,15 @@ public:
 
     bool isString() const { return tag_ == Type::String ; }
     bool isNumber() const {
-        return ( tag_ == Type::SInteger ) ||
-                ( tag_ == Type::UInteger ) ||
-                ( tag_ == Type::Float ) ;
+        return ( tag_ == Type::Integer ) ||
+                ( tag_ == Type::Float ) ||
+                ( tag_ == Type::Boolean );
     }
 
     // check if variant stores simple type string, number, integer or boolean
     bool isPrimitive() const {
         return ( tag_ == Type::String ||
-                 tag_ == Type::SInteger ||
-                 tag_ == Type::UInteger ||
+                 tag_ == Type::Integer ||
                  tag_ == Type::Float ||
                  tag_ == Type::Boolean
                  ) ;
@@ -220,10 +208,8 @@ public:
             strm << data_.b_ ;
             return strm.str() ;
         }
-        case Type::SInteger:
-            return std::to_string(data_.si_) ;
-        case Type::UInteger:
-            return std::to_string(data_.ui_) ;
+        case Type::Integer:
+            return std::to_string(data_.i_) ;
         case Type::Float:
             return std::to_string(data_.f_) ;
         default:
@@ -231,7 +217,7 @@ public:
         }
     }
 
-    double toNumber() const {
+    double toFloat() const {
         switch (tag_)
         {
         case Type::String:
@@ -244,15 +230,63 @@ public:
 
         case Type::Boolean:
             return (double)data_.b_ ;
-        case Type::SInteger:
-            return (double)data_.si_ ;
-        case Type::UInteger:
-            return (double)data_.ui_ ;
+        case Type::Integer:
+            return (double)data_.i_ ;
         case Type::Float:
             return (double)data_.f_ ;
         default:
             return 0.0;
         }
+    }
+
+    int64_t toInteger() const {
+        switch (tag_)
+        {
+        case Type::String:
+            try {
+            return std::stoi(data_.s_);
+        }
+            catch ( ... ) {
+            return 0 ;
+        }
+
+        case Type::Boolean:
+            return (int64_t)data_.b_ ;
+        case Type::Integer:
+            return (int64_t)data_.i_ ;
+        case Type::Float:
+            return (int64_t)data_.f_ ;
+        default:
+            return 0;
+        }
+    }
+
+    Variant toNumber() const {
+        switch (tag_)
+        {
+        case Type::String:
+            try {
+            return boost::lexical_cast<int64_t>(data_.s_);
+        }
+        catch ( boost::bad_lexical_cast & ) {
+            try {
+                return boost::lexical_cast<double>(data_.s_);
+            }
+            catch ( boost::bad_lexical_cast & ) {
+                return 0 ;
+            }
+        }
+
+        case Type::Boolean:
+            return (int64_t)data_.b_ ;
+        case Type::Integer:
+            return data_.i_ ;
+        case Type::Float:
+            return (double)data_.f_ ;
+        default:
+            return (int64_t)0;
+        }
+
     }
 
     bool toBoolean() const {
@@ -262,16 +296,13 @@ public:
             return !(data_.s_.empty()) ;
         case Type::Boolean:
             return data_.b_ ;
-        case Type::SInteger:
-            return (bool)data_.si_ ;
-        case Type::UInteger:
-            return (bool)data_.ui_ ;
+        case Type::Integer:
+            return (bool)data_.i_ ;
         case Type::Float:
             return data_.f_ != 0 ;
         default:
             return false;
         }
-
     }
 
     // Return the keys of an Object otherwise an empty list
@@ -386,12 +417,8 @@ public:
             strm << data_.f_ ;
             break ;
         }
-        case Type::SInteger: {
-            strm << data_.si_ ;
-            break ;
-        }
-        case Type::UInteger: {
-            strm << data_.ui_ ;
+        case Type::Integer: {
+            strm << data_.i_ ;
             break ;
         }
         }
@@ -616,11 +643,8 @@ private:
         case Type::Boolean:
             data_.b_ = other.data_.b_ ;
             break;
-        case Type::SInteger:
-            data_.si_ = other.data_.si_ ;
-            break;
-        case Type::UInteger:
-            data_.ui_ = other.data_.ui_ ;
+        case Type::Integer:
+            data_.i_ = other.data_.i_ ;
             break;
         case Type::Float:
             data_.f_ = other.data_.f_ ;
@@ -640,8 +664,7 @@ private:
         Array     a_ ;
         string_t  s_ ;
         boolean_t   b_ ;
-        signed_integer_t   si_ ;
-        unsigned_integer_t ui_ ;
+        signed_integer_t   i_ ;
         float_t     f_ ;
         Function fp_ ;
 

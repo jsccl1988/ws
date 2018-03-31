@@ -81,7 +81,17 @@ private:
     std::deque<ExpressionNodePtr> elements_ ;
 };
 
+class ContainmentNode: public ExpressionNode {
+public:
+    ContainmentNode(ExpressionNodePtr lhs, ExpressionNodePtr rhs, bool positive):
+        lhs_(lhs), rhs_(rhs), positive_(positive) {}
 
+    Variant eval(TemplateEvalContext &ctx) ;
+
+private:
+    ExpressionNodePtr lhs_, rhs_ ;
+    bool positive_ ;
+};
 
 class DictionaryNode: public ExpressionNode {
 public:
