@@ -1,6 +1,0 @@
-{{! no dropdown support }}
-<ul class="nav navbar-nav">
-{{#items}}
-	<li><a href="{{href}}" {{#active}}class="active"{{/active}}>{{label}}</a></li>
-{{/items}}
-</ul>

@@ -52,15 +52,15 @@ IF ( PostgreSQL_FOUND )
 ENDIF ( PostgreSQL_FOUND )
 
 SET ( WEB_SOURCES
-    ${SRC_ROOT}/views/renderer.cpp
-    ${SRC_ROOT}/views/template_parser.cpp
-    ${SRC_ROOT}/views/template_parser.hpp
+#    ${SRC_ROOT}/views/renderer.cpp
+#    ${SRC_ROOT}/views/template_parser.cpp
+ #   ${SRC_ROOT}/views/template_parser.hpp
     ${SRC_ROOT}/views/forms.cpp
     ${SRC_ROOT}/views/table.cpp
     ${SRC_ROOT}/views/menu.cpp
     ${SRC_ROOT}/views/validators.cpp
 
-    ${INCLUDE_ROOT}/views/renderer.hpp
+ #   ${INCLUDE_ROOT}/views/renderer.hpp
 
     ${INCLUDE_ROOT}/views/forms.hpp
     ${INCLUDE_ROOT}/views/table.hpp

@@ -13,6 +13,9 @@ namespace wspp { namespace twig {
 
 using TemplateFunction = std::function<wspp::util::Variant(const wspp::util::Variant &, TemplateEvalContext &)>;
 
+bool unpack_args(const util::Variant &args, const std::vector<std::pair<std::string, bool>> &named_args, util::Variant::Array &res) ;
+
+
 class FunctionFactory {
 public:
 

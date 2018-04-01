@@ -98,7 +98,8 @@ private:
 
                          }
 
-                        catch ( ... ) {
+                        catch ( std::runtime_error &e ) {
+                            std::cout << e.what() << std::endl ;
                             response_.stockReply(Response::internal_server_error) ;
                         }
                     }

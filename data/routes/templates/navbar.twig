@@ -16,12 +16,10 @@
 
     <div id="navbar" class="collapse navbar-collapse">
 
-        	{{#menu}}
-        		{{> menu}}
-        	{{/menu}}
+  		{% include 'menu' with menu %}
 
             <ul class="nav navbar-nav navbar-right">
-                {{#username}}
+                {% if username  %}
                         <li class="dropdown">
                                 <a href="#" class="dropdown-toggle" data-toggle="dropdown">
                                         <span class="glyphicon glyphicon-user"></span>
@@ -37,10 +35,10 @@
                         </ul>
                 </ul>
                         </li>
-				{{/username}}
-				{{^username}}
+		{% else %}
+				
                     <li><a href="#" id="login">Login</a></li>
-				{{/username}}
+		{% endif %}
                   </ul>
         </div>
 </nav>

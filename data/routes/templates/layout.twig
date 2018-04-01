@@ -10,9 +10,9 @@
     <body>
         <div class="container">
 
-			{% with page.nav %}
-			{% include 'navbar' %}
-			{% endwith %}}
+
+			{% include 'navbar' with page.nav %}
+
 		
 			{% block contents %}
 			{% endblock %}

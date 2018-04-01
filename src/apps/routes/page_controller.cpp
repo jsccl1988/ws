@@ -89,9 +89,9 @@ void PageController::fetch()
 
 void PageController::edit()
 {
-    Variant ctx( Variant::Object{
-                 { "page", page_.data("edit_pages", "Edit pages") }
-    }) ;
+    Variant::Object ctx{
+        { "page", page_.data("edit_pages", "Edit pages") }
+    } ;
 
     response_.write(engine_.render("pages-edit", ctx)) ;
 }
@@ -126,13 +126,13 @@ void PageController::edit(const string &id)
         string permalink, title, content ;
         res >> title >> content >> permalink ;
 
-        Variant ctx( Variant::Object{
+        Variant::Object ctx{
                      { "page", page_.data(permalink, title) },
                      { "id", id },
                      { "title", title },
                      { "content", content },
                      { "slug", permalink }
-        }) ;
+        } ;
 
         response_.write(engine_.render("page-edit", ctx)) ;
 
@@ -221,11 +221,11 @@ void PageController::show(const std::string &page_id)
 
     if ( res.next() ) {
 
-        Variant ctx( Variant::Object{
+        Variant::Object ctx{
                      { "page", page_.data(page_id, res.get<string>("title")) },
                      { "content", res.get<string>("content") },
                      { "id", res.get<int>("id") }
-        }) ;
+        } ;
 
         response_.write(engine_.render("page", ctx)) ;
     }

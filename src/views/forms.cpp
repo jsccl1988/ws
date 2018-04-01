@@ -1,5 +1,5 @@
 #include <wspp/views/forms.hpp>
-#include <wspp/views/renderer.hpp>
+#include <wspp/twig/renderer.hpp>
 #include <wspp/util/crypto.hpp>
 
 #include <boost/make_shared.hpp>
@@ -8,6 +8,7 @@
 using namespace std ;
 using namespace wspp::server ;
 using namespace wspp::util ;
+using namespace wspp::twig ;
 
 namespace wspp { namespace web {
 

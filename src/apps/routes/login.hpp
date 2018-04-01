@@ -5,14 +5,14 @@
 #include <wspp/server/request.hpp>
 #include <wspp/server/response.hpp>
 #include <wspp/database/connection.hpp>
-#include <wspp/views/renderer.hpp>
+#include <wspp/twig/renderer.hpp>
 
 #include "auth.hpp"
 
 using wspp::server::Response ;
 using wspp::server::Request ;
 using wspp::server::Session ;
-using wspp::web::TemplateRenderer ;
+using wspp::twig::TemplateRenderer ;
 
 using std::string ;
 

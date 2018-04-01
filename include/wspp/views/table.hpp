@@ -13,10 +13,16 @@
 using wspp::server::Request ;
 using wspp::server::Response ;
 
+
 namespace wspp {
+
+namespace twig {
+class TemplateRenderer ;
+}
+
 namespace web {
 
-class TemplateRenderer ;
+
 
 using namespace util ;
 using namespace db ;
@@ -49,7 +55,7 @@ public:
     virtual Variant transform(const std::string &key, const std::string &value) { return value ; }
 
     // render the table
-    void render(const Request &request, Response &response, TemplateRenderer &engine) ;
+    void render(const Request &request, Response &response, twig::TemplateRenderer &engine) ;
 
 protected:
 

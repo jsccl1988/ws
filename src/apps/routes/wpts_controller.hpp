@@ -7,7 +7,7 @@
 #include <wspp/database/connection.hpp>
 
 #include <wspp/views/forms.hpp>
-#include <wspp/views/renderer.hpp>
+#include <wspp/twig/renderer.hpp>
 #include <wspp/util/variant.hpp>
 
 #include "auth.hpp"
@@ -21,7 +21,7 @@ using wspp::server::Response ;
 using wspp::server::Request ;
 using wspp::server::Session ;
 using std::string ;
-using wspp::web::TemplateRenderer ;
+using wspp::twig::TemplateRenderer ;
 
 
 

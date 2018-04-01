@@ -614,7 +614,7 @@ void IncludeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
     if ( !doc ) {
         if ( !ignore_missing_ ) // non found
-            throw TemplateRuntimeException("Failed to load included template") ;
+            throw TemplateRuntimeException("Failed to load included template: " + templates[0]) ;
         else
             return ;
     }

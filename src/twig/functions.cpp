@@ -26,7 +26,7 @@ void FunctionFactory::registerFunction(const string &name, const TemplateFunctio
 // unpack passed arguments into an array checking if all required arguments have been passed
 // the known arguments are supplied by named_args map which provides the argument name and whether it is required or not
 
-static bool unpack_args(const Variant &args, const std::vector<pair<std::string, bool>> &named_args, Variant::Array &res) {
+bool unpack_args(const Variant &args, const std::vector<pair<std::string, bool>> &named_args, Variant::Array &res) {
 
     uint n_args = named_args.size() ;
 

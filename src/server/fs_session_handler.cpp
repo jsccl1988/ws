@@ -171,9 +171,12 @@ bool FileSystemSessionHandler::readSessionData(const string &id, string &data)
     try {
         Query q(db_, "SELECT data FROM sessions WHERE sid = ? LIMIT 1", id) ;
         QueryResult res = q.exec() ;
-        Blob bdata = res.get<Blob>(0) ;
-        data.assign(bdata.data(), bdata.size()) ;
-        return true ;
+        if ( res.next() ) {
+            Blob bdata = res.get<Blob>(0) ;
+            data.assign(bdata.data(), bdata.size()) ;
+            return true ;
+        }
+        return false ;
     }
     catch ( Exception &e ) {
         cerr << e.what() << endl ;

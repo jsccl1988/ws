@@ -7,7 +7,7 @@
 #include <wspp/database/connection.hpp>
 
 #include <wspp/views/forms.hpp>
-#include <wspp/views/renderer.hpp>
+#include <wspp/twig/renderer.hpp>
 
 #include "login.hpp"
 #include "page_view.hpp"
@@ -17,7 +17,7 @@ using wspp::server::Response ;
 using wspp::server::Request ;
 using wspp::server::Session ;
 using std::string ;
-using wspp::web::TemplateRenderer ;
+using wspp::twig::TemplateRenderer ;
 
 class PageCreateForm: public wspp::web::Form {
 public:

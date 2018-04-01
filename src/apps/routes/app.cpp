@@ -14,7 +14,8 @@
 #include <wspp/util/variant.hpp>
 #include <wspp/util/filesystem.hpp>
 
-#include <wspp/views/renderer.hpp>
+#include <wspp/twig/renderer.hpp>
+#include <wspp/twig/functions.hpp>
 #include <wspp/views/menu.hpp>
 
 #include <boost/make_shared.hpp>
@@ -48,6 +49,7 @@
 using namespace std ;
 using namespace wspp::util ;
 using namespace wspp::web ;
+using namespace wspp::twig ;
 using namespace wspp::server ;
 using namespace wspp::db ;
 namespace fs = boost::filesystem ;
@@ -96,13 +98,18 @@ public:
     {
         i18n::instance().setLanguage("el") ;
 
-        engine_.registerValueHelper("_", [&](ContextStack &ctx, Variant::Array params) -> pair<bool, string> {
-            return make_pair(false, engine_.renderString(i18n::instance().trans(params.at(0).toString()), ctx)) ;
+        FunctionFactory::instance().registerFunction("_", [&](const Variant &args, TemplateEvalContext &ctx) -> Variant {
+            Variant::Array unpacked ;
+            unpack_args(args, { { "str", true } }, unpacked) ;
+            return engine_.renderString(i18n::instance().trans(unpacked[0].toString()), ctx.data()) ;
         }) ;
 
-        engine_.registerBlockHelper("make_two_columns", [&](const std::string &src, ContextStack &ctx, Variant::Array params) -> string {
-            Variant v = params.at(0) ; // parameters is the array to iterate
+        FunctionFactory::instance().registerFunction("make_two_columns", [&](const Variant &args, TemplateEvalContext &ctx) -> Variant {
 
+            Variant::Array params ;
+            unpack_args(args, { { "src", true }, {"params", true} }, params) ;
+            Variant v = params.at(1) ; // parameters is the array to iterate
+            string src = params[0].toString() ;
 
             size_t len = v.length() ;
             size_t len1 = floor(len/2.0) ;
@@ -112,31 +119,44 @@ public:
             for(size_t i = 0 ; i < len1 ; i++ ) {
                 Variant p1 = v.at(k++) ;
                 res += "<tr>" ;
-                ctx.push(p1) ;
-                res += engine_.renderString(src, ctx) ;
-                ctx.pop() ;
+
+                Variant::Object cdata ;
+
+                for ( auto it=p1.begin() ; it != p1.end() ; ++it )
+                    cdata[it.key()] = it.value() ;
+
+                res += engine_.renderString(src, cdata) ;
+
                 Variant p2 = v.at(k++) ;
-                ctx.push(p2) ;
-                res += engine_.renderString(src, ctx) ;
-                ctx.pop() ;
+
+                for ( auto it=p1.begin() ; it != p1.end() ; ++it )
+                    cdata[it.key()] = it.value() ;
+
+                res += engine_.renderString(src, cdata) ;
+
                 res += "</tr>" ;
             }
             if ( k < len ) {
                 Variant p = v.at(k) ;
                 res += "<tr>" ;
-                ctx.push(p) ;
-                res += engine_.renderString(src, ctx) ;
-                ctx.pop() ;
+                Variant::Object cdata ;
+
+                for ( auto it=p.begin() ; it != p.end() ; ++it )
+                    cdata[it.key()] = it.value() ;
+
+                res += engine_.renderString(src, cdata) ;
+
                 res += "<td></td></tr>" ;
             }
             return res ;
+
 
         }) ;
     }
 
     void handle(const Request &req, Response &resp) override {
 
-        Connection con("sqlite:" + root_ + "/routes.sqlite") ; // establish connection with database
+        Connection con("sqlite:db=" + root_ + "/routes.sqlite") ; // establish connection with database
 
         Session session(session_handler_, req, resp) ; // start a new session
 
@@ -149,8 +169,9 @@ public:
 
         if ( RouteController(req, resp, con, user, engine_, page).dispatch() ) return ;
         if ( req.matches("GET", "/map/") ) {
-            Variant ctx( Variant::Object{
-                         { "page", page.data("map", _("Routes Map")) }}) ;
+            Variant::Object ctx{
+                         { "page", page.data("map", _("Routes Map")) }
+            } ;
 
             resp.write(engine_.render("map", ctx)) ;
             return ;
@@ -188,29 +209,6 @@ int main(int argc, char *argv[]) {
 
     wspp::db::Connection con("uri:file:///home/malasiot/source/ws/data/routes/pg.dsn") ;
 
-    cout << con.query("SELECT count(*) FROM wpts WHERE route=$1", 5000).getOne()[0].as<uint>() << endl ;
-
-    for( auto && r: con.query("SELECT *, ST_AsBinary(geom) as geom from wpts WHERE route=$1", 5000) ) {
-        int id, route ;
-        double ele ;
-        Blob geom ;
-
-        r.into(id, ele, route, geom) ;
-            cout << "1" << endl ;
-    }
-
-    Transaction tr = con.transaction() ;
-
-    Statement st(con, "insert into auth_tokens ( userid, expires) values ($1, $2);") ;
-
-    for( uint i=0 ; i<5 ; i++) {
-        st(i, i+1) ;
-        st.clear() ;
-    }
-
-    tr.commit() ;
-
-
     // example of seting up translation with boost::locale
     //
     // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...
@@ -222,7 +220,8 @@ int main(int argc, char *argv[]) {
     i18n::instance().addDomain("messages") ;
     i18n::instance().addPath(".") ;
 
-    Server server("vision.iti.gr", "5000") ;
+  //  Server server("vision.iti.gr", "5000") ;
+    Server server("127.0.0.1", "5000") ;
 
     FileSystemSessionHandler sh ;
     DefaultLogger logger("/tmp/logger", true) ;

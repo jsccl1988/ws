@@ -87,7 +87,7 @@ void RouteController::fetch() {
     uint offset = request_.GET_.value<int>("page", 1) ;
     uint results_per_page = request_.GET_.value<int>("total", 10) ;
 
-    Variant data = view.fetch(offset, results_per_page) ;
+    const Variant::Object &data = view.fetch(offset, results_per_page) ;
 
     response_.write(engine_.render("pages-table-view", data )) ;
 }
@@ -101,9 +101,9 @@ void RouteController::query() {
 
 void RouteController::edit()
 {
-    Variant ctx( Variant::Object{
+    Variant::Object ctx{
         { "page", page_.data("edit_routes", "Edit routes") }
-    }) ;
+    } ;
 
     response_.write(engine_.render("routes-edit", ctx)) ;
 }
@@ -136,12 +136,12 @@ void RouteController::edit(const string &id)
     Variant wpts = routes_.fetchWaypoints(id) ;
     Variant attachments = routes_.fetchAttachments(id) ;
 
-    Variant ctx( Variant::Object{
+    Variant::Object ctx{
         { "page", page_.data("edit_route", "Edit route") },
         { "route", data },
         { "wpts", wpts },
         { "attachments", attachments }
-    }) ;
+    } ;
 
     response_.write(engine_.render("route-edit", ctx)) ;
 }
@@ -300,12 +300,12 @@ void RouteController::view(const std::string &route_id) {
         throw HttpResponseException(Response::not_found) ;
     else {
         Variant attachments = routes_.fetchAttachments(route_id) ;
-        Variant ctx( Variant::Object{
+        Variant::Object ctx{
              { "page", page_.data("view", route.at("title").toString()) },
              { "route", route },
              { "attachments", attachments },
              { "id", route_id }
-        }) ;
+        } ;
 
         response_.write(engine_.render("route-view", ctx)) ;
     }
@@ -318,19 +318,19 @@ void RouteController::browse(const string &mountain)
         Variant routes = routes_.fetchMountain(mountain) ;
 
         string mname = routes_.getMountainName(mountain) ;
-        Variant ctx( Variant::Object{
+        Variant::Object ctx{
                      { "page", page_.data("routes", mname) },
                      { "name", mname },
                      { "routes", routes },
-                 } )  ;
+                 }   ;
         response_.write(engine_.render("routes-mountain", ctx)) ;
     } else {
         Variant routes = routes_.fetchAllByMountain() ;
 
-        Variant ctx( Variant::Object{
+        Variant::Object ctx{
                      { "page", page_.data("routes", "Όλες οι διαδρομές") },
                      { "mountains", routes },
-                 } )  ;
+                 }  ;
         response_.write(engine_.render("routes-all", ctx)) ;
     }
 }

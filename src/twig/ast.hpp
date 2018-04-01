@@ -403,7 +403,7 @@ public:
 class FilterBlockNode: public ContainerNode {
 public:
 
-    FilterBlockNode(const std::string &name, key_val_list_t &&args = {}): args_(args) { }
+    FilterBlockNode(const std::string &name, key_val_list_t &&args = {}): name_(name), args_(args) { }
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 

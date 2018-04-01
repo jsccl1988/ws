@@ -1,9 +1,10 @@
 #include <wspp/views/table.hpp>
-#include <wspp/views/renderer.hpp>
+#include <wspp/twig/renderer.hpp>
 
 #include <cmath>
 
 using namespace std ;
+using namespace wspp::twig ;
 
 namespace wspp {
 namespace web {
@@ -84,7 +85,7 @@ void TableView::render(const server::Request &request, server::Response &respons
     uint offset = request.GET_.value<int>("page", 1) ;
     uint results_per_page = request.GET_.value<int>("total", 10) ;
 
-    Variant data = fetch(offset, results_per_page) ;
+    const Variant::Object &data = fetch(offset, results_per_page) ;
 
     response.write(engine.render("table-view", data )) ;
 }

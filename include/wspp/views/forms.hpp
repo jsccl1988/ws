@@ -17,6 +17,12 @@ using std::string ;
 using wspp::server::Request ;
 using wspp::server::Response ;
 
+namespace wspp {
+namespace twig {
+class TemplateRenderer ;
+}
+}
+
 namespace wspp { namespace web {
 
 // Form helper class. The aim of the class is:
@@ -186,7 +192,7 @@ private:
     bool is_checked_ = false ;
 };
 
-class TemplateRenderer ;
+
 
 class Form {
 public:
@@ -228,7 +234,7 @@ public:
     string getValue(const string &field_name) ;
 
     // render form
-    string render(TemplateRenderer &r) ;
+    string render(twig::TemplateRenderer &r) ;
 
     // override to perform special processing after a succesfull form validation (e.g. persistance)
     virtual void onSuccess(const Request &request) {}
@@ -239,7 +245,7 @@ public:
     // When a POST request is recieved and succesfully validated then onSuccess function is called
     // When a GET request is received for initial rendering of the form then the onGet handler is called to initialize
     // the form
-    void handle(const Request &req, server::Response &response, TemplateRenderer &engine) ;
+    void handle(const Request &req, server::Response &response, twig::TemplateRenderer &engine) ;
 
 protected:
 

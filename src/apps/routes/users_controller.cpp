@@ -146,9 +146,9 @@ void UsersController::fetch()
 
 void UsersController::edit()
 {
-    Variant ctx( Variant::Object{
+    Variant::Object ctx{
         { "page", page_.data("edit_users", "Edit Users") }
-    }) ;
+    };
 
     response_.write(engine_.render("users-edit", ctx)) ;
 }
