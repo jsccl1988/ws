@@ -16,7 +16,7 @@ void comment() ;
 %option debug
 %option case-insensitive
 
-%x COMMENT TAG SUBS TCOMMENT
+%x COMMENT TAG SUBS TCOMMENT RAW
 
 %{
 # define YY_USER_ACTION  yylloc->columns (yyleng);
@@ -153,7 +153,7 @@ using namespace std ;
 <TCOMMENT>"#}" { BEGIN(INITIAL) ; }
 <TCOMMENT>.  { yylloc->step (); }
 
-
+"{%"[\s]*"raw"[\s]"%}" { BEGIN(RAW) ; }
 "{{"    { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE) ; }
 "{{-"   { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE_TRIM) ; }
 "{%" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG) ; }
