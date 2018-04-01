@@ -93,6 +93,19 @@ private:
     bool positive_ ;
 };
 
+
+class MatchesNode: public ExpressionNode {
+public:
+    MatchesNode(ExpressionNodePtr lhs, const std::string &rx, bool positive) ;
+
+    Variant eval(TemplateEvalContext &ctx) ;
+
+private:
+    ExpressionNodePtr lhs_ ;
+    boost::regex rx_ ;
+    bool positive_ ;
+};
+
 class DictionaryNode: public ExpressionNode {
 public:
 
@@ -278,7 +291,8 @@ typedef std::shared_ptr<ContainerNode> ContainerNodePtr ;
 class ForLoopBlockNode: public ContainerNode {
 public:
 
-    ForLoopBlockNode(identifier_list_t &ids, ExpressionNodePtr target): ids_(ids), target_(target) {}
+    ForLoopBlockNode(identifier_list_t &&ids, ExpressionNodePtr target, ExpressionNodePtr cond = nullptr):
+        ids_(ids), target_(target), condition_(cond) {}
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
@@ -291,7 +305,7 @@ public:
     int else_child_start_ = -1 ;
 
     identifier_list_t ids_ ;
-    ExpressionNodePtr target_ ;
+    ExpressionNodePtr target_, condition_ ;
 };
 
 

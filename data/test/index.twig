@@ -2,12 +2,10 @@
 
 {% block content %}
 
-{% set bar = { name: 3, val: ['bar', 'baz'] } %}
-{{ bar.val[1] }}
-{% with { foo: 42 } only %}
-{{foo}}    {# only foo is defined #}
-{{bar}}    {# bar is not defined #}
-{% endwith %}
+{% set phone = '123456' %}
+{% if phone matches '/^[\d\.]+$/' %}
+{{ phone }}
+{% endif %}
 
 {% from 'forms' import input as input_field, textarea as ta %}
 
@@ -19,7 +17,8 @@
 </dl>
 <p>{{ ta('comment') }}</p>
 
-    {%- for entry in posts -%}
+    {%- for key,entry in posts -%}
+	{{key}}
         <h2>{{ entry }}</h2>
         <p>{{ entry.body }}</p>
     {% endfor %}

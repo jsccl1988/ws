@@ -20,10 +20,8 @@ Variant FunctionFactory::invoke(const string &name, const Variant &args, Templat
 
 void FunctionFactory::registerFunction(const string &name, const TemplateFunction &f)
 {
-    functions_.emplace(name, f);
-
+    functions_[name] = f;
 }
-
 
 // unpack passed arguments into an array checking if all required arguments have been passed
 // the known arguments are supplied by named_args map which provides the argument name and whether it is required or not
@@ -123,6 +121,7 @@ static Variant _defined(const Variant &args, TemplateEvalContext &ctx) {
         return !(unpacked[0].isUndefined() ) ;
     }
 }
+
 
 FunctionFactory::FunctionFactory() {
     registerFunction("join", _join);

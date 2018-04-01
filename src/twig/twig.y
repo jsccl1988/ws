@@ -99,6 +99,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_SELF           "_self"
 %token T_AS             "as"
 %token T_IMPORT         "import"
+%token T_MATCHES        "matches"
 %token T_ASSIGN         "="
 %token T_IN             "in"
 %token T_IS             "is"
@@ -143,6 +144,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %left T_AND
 %nonassoc T_LESS_THAN T_GREATER_THAN T_LESS_THAN_OR_EQUAL T_GREATER_THAN_OR_EQUAL T_EQUAL T_NOT_EQUAL
 %nonassoc T_IN
+%nonassoc T_MATCHES
 %left T_PLUS T_MINUS T_TILDE
 %left T_STAR T_DIV
 %left T_UMINUS T_NEG
@@ -240,10 +242,16 @@ end_block_declaration:
 
 for_loop_declaration:
     T_FOR identifier_list T_IN expression {
-        auto node = make_shared<ForLoopBlockNode>($2, $4) ;
+        auto node = make_shared<ForLoopBlockNode>(std::move($2), $4) ;
         driver.addNode(node) ;
         driver.pushBlock(node);
     }
+  | T_FOR identifier_list T_IN expression T_IF expression {
+    auto node = make_shared<ForLoopBlockNode>(std::move($2), $4, $6) ;
+    driver.addNode(node) ;
+    driver.pushBlock(node);
+}
+
 
 end_for_declaration:
     T_END_FOR { driver.popBlock() ; }
@@ -427,6 +435,8 @@ expression:
         | value                                                     { $$ = $1 ; }
         | expression T_IN expression                                { $$ = make_shared<ContainmentNode>($1, $3, true) ; }
         | expression T_NOT T_IN expression                          { $$ = make_shared<ContainmentNode>($1, $4, false) ; }
+        | expression T_MATCHES T_STRING                             { $$ = make_shared<MatchesNode>($1, $3, true) ; }
+        | expression T_NOT T_MATCHES T_STRING                       { $$ = make_shared<MatchesNode>($1, $4, false) ; }
 
 filter_invoke:
     expression T_BAR T_IDENTIFIER %prec T_NO_ARGS            { $$ = make_shared<InvokeFilterNode>($1, $3) ; }

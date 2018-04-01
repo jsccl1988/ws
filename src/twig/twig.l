@@ -60,6 +60,7 @@ using namespace std ;
   "_self"       return TOKEN(T_SELF) ;
   "in"          return TOKEN(T_IN);
   "is"          return TOKEN(T_IS);
+  "matches"     return TOKEN(T_MATCHES);
   "%}"          { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG) ; }
   "-%}"         { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG_TRIM) ; }
 }

@@ -307,8 +307,13 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     string tmp ;
 
     if ( asize > 0 ) {
+
+
         int child_count = ( else_child_start_ < 0 ) ? children_.size() : else_child_start_ ;
         for ( auto it = target.begin() ; it != target.end() ; ++it, counter++  ) {
+
+            if ( condition_ && !condition_->eval(ctx).toBoolean() ) continue ;
+
             TemplateEvalContext tctx(ctx) ;
 
             Variant::Object loop{ {"index0", counter},
@@ -357,7 +362,7 @@ void IfBlockNode::eval(TemplateEvalContext &ctx, string &res) const
             for( int c = c_start ; c < c_stop ; c++ ) {
                 children_[c]->eval(ctx, tmp) ;
             }
-            return ;
+            break ;
         }
     }
 
@@ -714,6 +719,50 @@ Variant ContainmentNode::eval(TemplateEvalContext &ctx)
         if ( variant_compare(lhs, rhs, ComparisonPredicate::Equal) ) return true ;
     }
 
+}
+
+MatchesNode::MatchesNode(ExpressionNodePtr lhs, const string &rx, bool positive): lhs_(lhs), positive_(positive) {
+
+    if ( rx.size() < 2 ) throw TemplateCompileException("empty regex string") ;
+    const char *p = rx.c_str(), *q = p + rx.length() - 1 ;
+    char mod = 0 ;
+
+    if ( *q != *p ) { mod = *q ; --q ; }
+    if ( *q != *p )
+        throw TemplateCompileException("unmatched delimiters in regex") ;
+
+    boost::regex::flag_type flags = boost::regex::perl ;/*| boost::regex::no_mod_m*/;
+
+    switch ( mod ) {
+    case 0:
+        break ;
+    case 's':
+        flags |= boost::regex::mod_s ;
+        break ;
+    case 'i':
+        flags |= boost::regex::icase ;
+        break ;
+    case 'm':
+        flags |= boost::regex::no_mod_m ;
+        break ;
+    case 'x':
+        flags |= boost::regex::mod_x ;
+        break ;
+    }
+
+    ++p ;
+    rx_.assign(p, q) ;
+
+
+}
+
+Variant MatchesNode::eval(TemplateEvalContext &ctx)
+{
+    string val = lhs_->eval(ctx).toString() ;
+
+    bool res = boost::regex_match(val, rx_)  ;
+
+    return (bool)res ;
 }
 
 
