@@ -250,12 +250,12 @@ Variant AttributeIndexingNode::eval(TemplateEvalContext &ctx)
 }
 
 
-static void evalArgs(const key_val_list_t &input_args, Variant &args, TemplateEvalContext &ctx, const Variant &extra = Variant::undefined())
+static void evalArgs(const key_val_list_t &input_args, Variant &args, TemplateEvalContext &ctx, const boost::optional<Variant> &extra = {})
 {
     Variant::Array pos_args ;
 
-    if ( !extra.isUndefined() )
-        pos_args.push_back(extra) ;
+    if ( extra )
+        pos_args.push_back(extra.get()) ;
 
     Variant::Object kv_args ;
 

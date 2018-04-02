@@ -70,6 +70,8 @@ private:
     DocumentNodePtr root_ ;
     std::deque<ContainerNodePtr> stack_ ;
 
+    WhiteSpace ws_mode_ = WhiteSpace::TrimNone ;
+
 
 } ;
 

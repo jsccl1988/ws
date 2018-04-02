@@ -178,9 +178,9 @@ tag_or_chars:
     }
 
 block_tag:
-T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimNone) ; }
-| T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimLeft) ; }
-| T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG_TRIM { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimBoth) ; }
+T_START_BLOCK_TAG { driver.ws_mode_ = WhiteSpace::TrimNone ; } tag_declaration T_END_BLOCK_TAG { driver.ws_mode_ = WhiteSpace::TrimNone ; }
+| T_START_BLOCK_TAG_TRIM { driver.ws_mode_ = WhiteSpace::TrimLeft ; } tag_declaration T_END_BLOCK_TAG { driver.ws_mode_ = WhiteSpace::TrimNone ; }
+| T_START_BLOCK_TAG_TRIM { driver.ws_mode_ = WhiteSpace::TrimLeft ; } tag_declaration T_END_BLOCK_TAG_TRIM { { driver.ws_mode_ = WhiteSpace::TrimRight ; }
 | T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimRight) ; }
 
 ;
@@ -428,11 +428,12 @@ expression:
         | expression T_MOD expression           { $$ = make_shared<BinaryOperator>('%', $1, $3) ; }
         | T_PLUS expression %prec T_UMINUS                    { $$ = make_shared<UnaryOperator>('+', $2) ; }
         | T_MINUS expression %prec T_UMINUS                   { $$ = make_shared<UnaryOperator>('-', $2) ; }
-        | T_LPAR expression T_RPAR { $$ = $2; }
+        | T_LPAR expression T_RPAR { std::swap($$, $2); }
         | expression T_QUESTION_MARK expression T_COLON expression  { $$ = make_shared<TernaryExpressionNode>($1, $3, $5) ; }
+        | expression T_QUESTION_MARK expression { $$ = make_shared<TernaryExpressionNode>($1, $3, nullptr) ; }
         | expression  T_LEFT_BRACKET expression T_RIGHT_BRACKET     { $$ = make_shared<SubscriptIndexingNode>($1, $3) ; }
         | filter_invoke                                             { $$ = $1 ; }
-        | test_call
+        | test_call                                                 { $$ = $1 ; }
         | expression T_PERIOD T_IDENTIFIER                          { $$ = make_shared<AttributeIndexingNode>($1, $3) ; }
         | function_call                                             { $$ = $1 ; }
         | value                                                     { $$ = $1 ; }

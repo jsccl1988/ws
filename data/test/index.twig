@@ -2,11 +2,7 @@
 
 {% block content %}
 
-{% verbatim %}
-
-hello {{name}}
-
-{% endverbatim %}
+{{ (x is defined) ? 'yes'  }}
 {% from 'forms' import input as input_field, textarea as ta %}
 
 <dl> 

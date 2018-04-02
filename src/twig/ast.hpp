@@ -13,6 +13,7 @@
 
 using wspp::util::Variant ;
 
+enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
 
 namespace wspp { namespace twig {
 
@@ -21,7 +22,7 @@ class TemplateRenderer ;
 
 namespace detail {
 
-enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
+
 
 class ExpressionNode ;
 
@@ -190,7 +191,9 @@ private:
 
 class TernaryExpressionNode: public ExpressionNode {
 public:
-    TernaryExpressionNode(ExpressionNodePtr cond, ExpressionNodePtr t, ExpressionNodePtr f): condition_(cond), positive_(t), negative_(f) {}
+    TernaryExpressionNode(ExpressionNodePtr cond, ExpressionNodePtr t, ExpressionNodePtr f):
+        condition_(cond),
+        positive_(t), negative_(f) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
 private:

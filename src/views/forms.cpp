@@ -228,7 +228,6 @@ std::string Form::render(TemplateRenderer &e) {
 
     form.insert({"data", data()}) ;
 
-    cout << Variant(form).toJSON() << endl ;
     return e.render(form_template_, form) ;
 }
 

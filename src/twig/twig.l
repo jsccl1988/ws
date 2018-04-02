@@ -110,6 +110,9 @@ using namespace std ;
 ":"	    return TOKEN(T_COLON) ;
 "|"	    return TOKEN(T_BAR) ;
 "?"	    return TOKEN(T_QUESTION_MARK) ;
+"in"          return TOKEN(T_IN);
+"is"          return TOKEN(T_IS);
+"matches"     return TOKEN(T_MATCHES);
 
 [a-zA-Z][a-zA-Z0-9_]* {
    return yy::Parser::make_T_IDENTIFIER(yytext, *yylloc);
