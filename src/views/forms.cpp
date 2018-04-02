@@ -130,6 +130,7 @@ void CheckBoxField::fillData(Variant::Object &res) const {
     FormField::fillData(res) ;
     if ( is_checked_ ) res.insert({"checked", "checked"}) ;
     res.insert({"template", "checkbox"}) ;
+    res.insert({"widget", "checkbox-field"}) ;
 }
 /*
 CSRFField::CSRFField(const string &name,  Session &session): InputField(name, "hidden"), con_(con), session_(session)
@@ -172,7 +173,7 @@ Variant::Object Form::data() const
         Variant::Array errors ;
         for( const string &msg: errors_ )
             errors.emplace_back(Variant::Object{{"message", msg}}) ;
-        form_data.insert({"global-errors", errors}) ;
+        form_data.insert({"global_errors", errors}) ;
     }
 
     Variant::Array field_data_list ;
@@ -196,12 +197,12 @@ Variant::Object Form::errors() const
 {
     Variant::Object e ;
 
-    e.insert({"global-errors", Variant::fromVector(errors_)}) ;
+    e.insert({"global_errors", Variant::fromVector(errors_)}) ;
     Variant::Object fe ;
     for( const auto &f: fields_ ) {
         fe.insert({f->name_, Variant::fromVector(f->error_messages_)}) ;
     }
-    e.insert({"field-errors", fe}) ;
+    e.insert({"field_errors", fe}) ;
 
     return e ;
 }
@@ -227,6 +228,7 @@ std::string Form::render(TemplateRenderer &e) {
 
     form.insert({"data", data()}) ;
 
+    cout << Variant(form).toJSON() << endl ;
     return e.render(form_template_, form) ;
 }
 

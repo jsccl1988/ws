@@ -96,61 +96,14 @@ public:
         root_(root_dir),
         engine_(std::shared_ptr<TemplateLoader>(new FileSystemTemplateLoader({{root_ + "/templates/"}, {root_ + "/templates/bootstrap-partials/"}})))
     {
+
+        engine_.setCaching(false) ;
         i18n::instance().setLanguage("el") ;
 
         FunctionFactory::instance().registerFunction("_", [&](const Variant &args, TemplateEvalContext &ctx) -> Variant {
             Variant::Array unpacked ;
             unpack_args(args, { { "str", true } }, unpacked) ;
             return engine_.renderString(i18n::instance().trans(unpacked[0].toString()), ctx.data()) ;
-        }) ;
-
-        FunctionFactory::instance().registerFunction("make_two_columns", [&](const Variant &args, TemplateEvalContext &ctx) -> Variant {
-
-            Variant::Array params ;
-            unpack_args(args, { { "src", true }, {"params", true} }, params) ;
-            Variant v = params.at(1) ; // parameters is the array to iterate
-            string src = params[0].toString() ;
-
-            size_t len = v.length() ;
-            size_t len1 = floor(len/2.0) ;
-            size_t k = 0 ;
-
-            string res ;
-            for(size_t i = 0 ; i < len1 ; i++ ) {
-                Variant p1 = v.at(k++) ;
-                res += "<tr>" ;
-
-                Variant::Object cdata ;
-
-                for ( auto it=p1.begin() ; it != p1.end() ; ++it )
-                    cdata[it.key()] = it.value() ;
-
-                res += engine_.renderString(src, cdata) ;
-
-                Variant p2 = v.at(k++) ;
-
-                for ( auto it=p1.begin() ; it != p1.end() ; ++it )
-                    cdata[it.key()] = it.value() ;
-
-                res += engine_.renderString(src, cdata) ;
-
-                res += "</tr>" ;
-            }
-            if ( k < len ) {
-                Variant p = v.at(k) ;
-                res += "<tr>" ;
-                Variant::Object cdata ;
-
-                for ( auto it=p.begin() ; it != p.end() ; ++it )
-                    cdata[it.key()] = it.value() ;
-
-                res += engine_.renderString(src, cdata) ;
-
-                res += "<td></td></tr>" ;
-            }
-            return res ;
-
-
         }) ;
     }
 
@@ -207,8 +160,6 @@ private:
 
 int main(int argc, char *argv[]) {
 
-    wspp::db::Connection con("uri:file:///home/malasiot/source/ws/data/routes/pg.dsn") ;
-
     // example of seting up translation with boost::locale
     //
     // xgettext -c++ --keyword=__ --output messages.pot main.cpp ...
@@ -220,8 +171,8 @@ int main(int argc, char *argv[]) {
     i18n::instance().addDomain("messages") ;
     i18n::instance().addPath(".") ;
 
-  //  Server server("vision.iti.gr", "5000") ;
-    Server server("127.0.0.1", "5000") ;
+    Server server("vision.iti.gr", "5000") ;
+  //  Server server("127.0.0.1", "5000") ;
 
     FileSystemSessionHandler sh ;
     DefaultLogger logger("/tmp/logger", true) ;

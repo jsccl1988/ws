@@ -112,7 +112,7 @@ Variant IdentifierNode::eval(TemplateEvalContext &ctx)
     }
 }
 
-static int64_t arithemtic(int64_t lhs, int64_t rhs, char op) {
+static int64_t arithmetic(int64_t lhs, int64_t rhs, char op) {
     switch ( op ) {
     case '+':
         return lhs + rhs ;
@@ -127,7 +127,7 @@ static int64_t arithemtic(int64_t lhs, int64_t rhs, char op) {
     }
 }
 
-static double arithemtic(double lhs, double rhs, char op) {
+static double arithmetic(double lhs, double rhs, char op) {
     switch ( op ) {
     case '+':
         return lhs + rhs ;
@@ -605,9 +605,13 @@ void IncludeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
             doc = ctx.rdr_.compile(tmpl) ;
             break ;
         }
-        catch ( ... ) {
+        catch ( TemplateLoadException & ) {
 
         }
+        catch ( TemplateCompileException &e ) {
+            throw e ;
+        }
+
     }
 
     // check whether not found

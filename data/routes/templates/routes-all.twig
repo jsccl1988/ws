@@ -12,9 +12,26 @@
 							<tr><th colspan="2">{{mountain.name}}</th></tr>
 						</thead>
 						<tbody>
-						{% filter make_two_columns(mountain.routes) %}
-							<td data-ref="{{id}}"><a href="view/{{id}}">{{title}}</a></td>
-						{% endfilter %}	
+						
+						{% for route_idx in range(0, (mountain.routes|length)/2) %}
+						<tr>
+							{% set route = mountain.routes[2*route_idx] %}
+								<td data-ref="{{route.id}}"><a href="view/{{route.id}}">{{route.title}}</a></td>
+							{% endset %}
+							{% set route = mountain.routes[2*route_idx+1] %}
+								<td data-ref="{{route.id}}"><a href="view/{{route.id}}">{{route.title}}</a></td>
+							{% endset %}
+						</tr>
+						{% endfor %}	
+						{% if  (mountain.routes|length) % 2 %}
+							<tr>
+							{% set route = mountain.routes|last %}
+								<td data-ref="{{route.id}}"><a href="view/{{route.id}}">{{route.title}}</a></td>
+							{% endset %}
+							</tr>
+						{% endif %}
+
+						
 						</tbody>
   					</table>
 				{% endfor %}

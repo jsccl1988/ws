@@ -16,7 +16,7 @@ void comment() ;
 %option debug
 %option case-insensitive
 
-%x COMMENT TAG SUBS TCOMMENT RAW
+%x COMMENT TAG SUBS TCOMMENT VERBATIM
 
 %{
 # define YY_USER_ACTION  yylloc->columns (yyleng);
@@ -65,6 +65,10 @@ using namespace std ;
   "-%}"         { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG_TRIM) ; }
 }
 
+<VERBATIM>{
+"{%"[ ]*"endverbatim"[ ]*"%}"  { BEGIN(INITIAL) ; }
+}
+
 <TAG,SUBS>{
 
 "if"    return TOKEN(T_IF) ;
@@ -90,6 +94,7 @@ using namespace std ;
 "~"     return TOKEN(T_TILDE) ;
 "!~"    return TOKEN(T_NOT_MATCHES) ;
 "!"     return TOKEN(T_NOT) ;
+"%"     return TOKEN(T_MOD) ;
 "("     return TOKEN(T_LPAR) ;
 ")"     return TOKEN(T_RPAR) ;
 "+"     return TOKEN(T_PLUS) ;
@@ -153,24 +158,31 @@ using namespace std ;
 <TCOMMENT>"#}" { BEGIN(INITIAL) ; }
 <TCOMMENT>.  { yylloc->step (); }
 
-"{%"[\s]*"raw"[\s]"%}" { BEGIN(RAW) ; }
+"{%"[ ]*"verbatim"[ ]*"%}" { BEGIN(VERBATIM) ; }
 "{{"    { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE) ; }
 "{{-"   { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE_TRIM) ; }
 "{%" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG) ; }
 "{%-" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG_TRIM) ; }
 "{#" { BEGIN(TCOMMENT) ; }
-"{"|[^{]+ {
+<INITIAL,VERBATIM>"{"|[^{]+ {
 
     // we have to undo the default action
     yylloc->columns(-yyleng) ;
 
+    string text ;
     uint i = 0 ;
     for( char *c = yytext ; i < yyleng ; i++, c++ ) {
-        if ( *c == '\n' ) yylloc->lines() ;
-        else yylloc->columns() ;
+        if ( *c == '\n' ) {
+            yylloc->lines() ;
+            if ( i > 0 ) text.push_back(*c) ; // remove the first new line character
+        }
+        else {
+            yylloc->columns() ;
+            text.push_back(*c) ;
+        }
     }
 
-    return yy::Parser::make_T_RAW_CHARACTERS(std::string(yytext, yyleng), *yylloc) ;
+    return yy::Parser::make_T_RAW_CHARACTERS(text, *yylloc) ;
 }
 
 <<EOF>>  return TOKEN(T_END);

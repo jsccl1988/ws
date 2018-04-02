@@ -316,13 +316,14 @@ public:
         return res ;
     }
 
-    // length of object or array, zero otherwise
+    // length of object or array or string, zero otherwise
     size_t length() const {
         if ( isObject() )
             return data_.o_.size() ;
         else if ( isArray() ) {
             return data_.a_.size() ;
-        }
+        } else if ( tag_ == Type::String )
+            return data_.s_.length() ;
         else return 0 ;
     }
 

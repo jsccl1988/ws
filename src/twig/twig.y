@@ -73,6 +73,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_RIGHT_BRACKET  "]"
 %token T_TILDE          "~"
 %token T_BAR            "|"
+%token T_MOD            "%"
 
 %token T_FOR            "for"
 %token T_END_FOR        "endfor"
@@ -147,6 +148,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %nonassoc T_MATCHES
 %left T_PLUS T_MINUS T_TILDE
 %left T_STAR T_DIV
+%left T_MOD
 %left T_UMINUS T_NEG
 %left T_IS
 %left T_BAR
@@ -423,6 +425,7 @@ expression:
         | expression T_TILDE expression         { $$ = make_shared<BinaryOperator>('~', $1, $3) ; }
         | expression T_STAR expression          { $$ = make_shared<BinaryOperator>('*', $1, $3) ; }
         | expression T_DIV expression           { $$ = make_shared<BinaryOperator>('/', $1, $3) ; }
+        | expression T_MOD expression           { $$ = make_shared<BinaryOperator>('%', $1, $3) ; }
         | T_PLUS expression %prec T_UMINUS                    { $$ = make_shared<UnaryOperator>('+', $2) ; }
         | T_MINUS expression %prec T_UMINUS                   { $$ = make_shared<UnaryOperator>('-', $2) ; }
         | T_LPAR expression T_RPAR { $$ = $2; }

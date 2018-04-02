@@ -13,7 +13,11 @@ namespace wspp { namespace twig {
 
 using TemplateFunction = std::function<wspp::util::Variant(const wspp::util::Variant &, TemplateEvalContext &)>;
 
-bool unpack_args(const util::Variant &args, const std::vector<std::pair<std::string, bool>> &named_args, util::Variant::Array &res) ;
+// Unpack positional and named arguments passed to the function to the list of expected arguments
+// The named_args is a list of arguments names. If ending with '?' argument is optional. Non supplied arguments are given undefined value.
+// Throws TemplateRuntimeException if not all required arguments are provided
+
+void unpack_args(const util::Variant &args, const std::vector<std::string> &named_args, util::Variant::Array &res) ;
 
 
 class FunctionFactory {

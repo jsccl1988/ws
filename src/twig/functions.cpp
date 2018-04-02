@@ -23,14 +23,12 @@ void FunctionFactory::registerFunction(const string &name, const TemplateFunctio
     functions_[name] = f;
 }
 
-// unpack passed arguments into an array checking if all required arguments have been passed
-// the known arguments are supplied by named_args map which provides the argument name and whether it is required or not
 
-bool unpack_args(const Variant &args, const std::vector<pair<std::string, bool>> &named_args, Variant::Array &res) {
+void unpack_args(const Variant &args, const std::vector<std::string> &named_args, Variant::Array &res) {
 
     uint n_args = named_args.size() ;
 
-    res.resize(n_args, Variant::null()) ;
+    res.resize(n_args, Variant::undefined()) ;
 
     std::vector<bool> provided(n_args, false) ;
 
@@ -48,78 +46,138 @@ bool unpack_args(const Variant &args, const std::vector<pair<std::string, bool>>
         const Variant &val = it.value() ;
 
         for( uint k=0 ; k<named_args.size() ; k++ ) {
-            if ( key == named_args[k].first && !provided[k] ) {
+            const auto &named_arg = named_args[k] ;
+            string arg_name ;
+            if ( named_arg.back() == '?') arg_name = named_arg.substr(0, named_arg.length() - 1) ;
+            else arg_name = named_arg ;
+
+            if ( key == arg_name && !provided[k] ) {
                 res[k] = val ;
                 provided[k] = true ;
             }
-
         }
     }
 
-    uint required = std::count_if(named_args.begin(), named_args.end(), [](const pair<string, bool> &b) { return b.second ;});
+    uint required = std::count_if(named_args.begin(), named_args.end(), [](const string &b) { return b.back() != '?' ;});
 
-    return std::count(provided.begin(), provided.end(), true) >= required ;
+    if ( std::count(provided.begin(), provided.end(), true) < required ) {
+        throw TemplateRuntimeException("function call missing required arguments") ;
+    }
 }
 
 static Variant _join(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "string_list", true }, { "sep", false }, {"key", false } },  unpacked) ) {
+    unpack_args(args, { "string_list", "sep?", "key?" },  unpacked) ;
 
-        string sep = ( unpacked[1].isNull() ) ? "" : unpacked[1].toString() ;
-        string key = ( unpacked[2].isNull() ) ? "" : unpacked[2].toString() ;
+    string sep = ( unpacked[1].isUndefined() ) ? "" : unpacked[1].toString() ;
+    string key = ( unpacked[2].isUndefined() ) ? "" : unpacked[2].toString() ;
 
-        bool is_first = true ;
-        string res ;
-        for( auto &i: unpacked[0] ) {
-            if ( !is_first ) res.append(sep) ;
-            if ( !key.empty() )
-                res.append(i.at(key).toString()) ;
-            else
-                res.append(i.toString()) ;
-            is_first = false ;
-        }
-        return res ;
+    bool is_first = true ;
+    string res ;
+    for( auto &i: unpacked[0] ) {
+        if ( !is_first ) res.append(sep) ;
+        if ( !key.empty() )
+            res.append(i.at(key).toString()) ;
+        else
+            res.append(i.toString()) ;
+        is_first = false ;
     }
+    return res ;
+
 }
 
 static Variant _lower(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "str", true }}, unpacked) )
-        return boost::to_lower_copy(unpacked[0].toString()) ;
+    unpack_args(args, { "str" }, unpacked) ;
+    return boost::to_lower_copy(unpacked[0].toString()) ;
 }
 
 static Variant _upper(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "str", true }}, unpacked) )
-        return boost::to_upper_copy(unpacked[0].toString()) ;
+    unpack_args(args, { "str" }, unpacked) ;
+    return boost::to_upper_copy(unpacked[0].toString()) ;
 }
 
 static Variant _default(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "str", true }, {"default", true} }, unpacked) )
-        return unpacked[0].isNull() ? unpacked[1] : unpacked[0] ;
+    unpack_args(args, { "str", "default" }, unpacked) ;
+    return unpacked[0].isUndefined() ? unpacked[1] : unpacked[0] ;
 }
 
 static Variant _escape(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "str", true }}, unpacked) )
-        return unpacked[0].toString() ;
+    unpack_args(args, { "str" }, unpacked) ;
+    return unpacked[0].toString() ;
 }
 
 static Variant _include(const Variant &args, TemplateEvalContext &ctx) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "file", true }}, unpacked) ) {
-        string resource = unpacked[0].toString() ;
-        return ctx.rdr_.render(resource, ctx.data()) ;
-    }
-
+    unpack_args(args, { "template" }, unpacked ) ;
+    string resource = unpacked[0].toString() ;
+    return ctx.rdr_.render(resource, ctx.data()) ;
 }
 
 static Variant _defined(const Variant &args, TemplateEvalContext &ctx) {
     Variant::Array unpacked ;
-    if ( unpack_args(args, { { "var", true }}, unpacked) ) {
-        return !(unpacked[0].isUndefined() ) ;
+    unpack_args(args, { "variable" }, unpacked) ;
+    return !(unpacked[0].isUndefined() ) ;
+}
+
+static Variant _range(const Variant &args, TemplateEvalContext &) {
+    Variant::Array unpacked, result ;
+    unpack_args(args, { "start", "end", "step?" }, unpacked) ;
+
+    if ( unpacked[0].type() == Variant::Type::Integer ) {
+        int64_t start = unpacked[0].toInteger() ;
+        int64_t stop = unpacked[1].toInteger() ;
+        int64_t step = unpacked[2].isUndefined() ? 1 : unpacked[2].toInteger() ;
+        if ( step == 0 ) throw TemplateRuntimeException("Zero step is provided in range function") ;
+        if ( ( step > 0 && start > stop ) ||
+             ( step < 0 && start < stop ) )
+            throw TemplateRuntimeException("Invalid arguments provided in range function") ;
+
+        for( int64_t i = start ; i <= stop ; i += step )
+            result.push_back(i) ;
     }
+
+    return result ;
+}
+
+static Variant _length(const Variant &args, TemplateEvalContext &) {
+    Variant::Array unpacked, result ;
+    unpack_args(args, { "value" }, unpacked) ;
+
+    return unpacked[0].length() ;
+}
+
+static Variant _last(const Variant &args, TemplateEvalContext &) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "value" }, unpacked) ;
+
+    if ( unpacked[0].isArray() )
+        return unpacked[0].at(unpacked[0].length() - 1) ;
+    else if ( unpacked[0].isString() ) {
+        char last = unpacked[0].toString().back() ;
+        string result ;
+        result += last ;
+        return result ;
+    }
+    else return Variant::null() ;
+}
+
+static Variant _first(const Variant &args, TemplateEvalContext &) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "value" }, unpacked) ;
+
+    if ( unpacked[0].isArray() )
+        return unpacked[0].at(0) ;
+    else if ( unpacked[0].isString() ) {
+        char first = unpacked[0].toString().front() ;
+        string result ;
+        result += first ;
+        return result ;
+    }
+    else return Variant::null() ;
 }
 
 
@@ -132,6 +190,10 @@ FunctionFactory::FunctionFactory() {
     registerFunction("escape", _escape);
     registerFunction("include", _include);
     registerFunction("defined", _defined);
+    registerFunction("range", _range);
+    registerFunction("length", _length);
+    registerFunction("first", _first);
+    registerFunction("last", _last);
 }
 
 bool FunctionFactory::hasFunction(const string &name)
@@ -140,4 +202,4 @@ bool FunctionFactory::hasFunction(const string &name)
 }
 
 } // namespace twig
-} // namespace wspp
+               } // namespace wspp

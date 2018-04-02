@@ -2,11 +2,11 @@
 
 {% block content %}
 
-{% set phone = '123456' %}
-{% if phone matches '/^[\d\.]+$/' %}
-{{ phone }}
-{% endif %}
+{% verbatim %}
 
+hello {{name}}
+
+{% endverbatim %}
 {% from 'forms' import input as input_field, textarea as ta %}
 
 <dl> 
