@@ -37,6 +37,10 @@ public:
     void error(const yy::Parser::location_type &loc,  const std::string& m) ;
 
     void addNode(ContentNodePtr node) {
+        scanner_.trim_next_raw_block_ = false ;
+        if ( scanner_.trim_previous_raw_block_ ) trimWhiteBefore() ;
+        current_ = node ;
+
         stack_.back()->addChild(node) ;
     }
 
@@ -52,6 +56,9 @@ public:
     void addMacroBlock(const std::string &name, ContentNodePtr node) {
         root_->macro_blocks_.insert({name, node}) ;
     }
+
+    void trimWhiteBefore() ;
+    void trimWhiteAfter() ;
 
     ContainerNodePtr stackTop() const { return stack_.back() ; }
 
@@ -69,8 +76,8 @@ private:
 
     DocumentNodePtr root_ ;
     std::deque<ContainerNodePtr> stack_ ;
+    ContentNodePtr current_ ;
 
-    WhiteSpace ws_mode_ = WhiteSpace::TrimNone ;
 
 
 } ;

@@ -2,8 +2,16 @@
 
 {% block content %}
 
-{{ (x is defined) ? 'yes'  }}
 {% from 'forms' import input as input_field, textarea as ta %}
+before
+{%- for i in [1, 2, 3] -%}
+
+--    {{-i-}}    --
+{%- endfor -%}
+after
+
+
+------
 
 <dl> 
     <dt>Username</dt>
@@ -18,4 +26,5 @@
         <h2>{{ entry }}</h2>
         <p>{{ entry.body }}</p>
     {% endfor %}
+
 {% endblock %}

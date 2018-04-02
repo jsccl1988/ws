@@ -5,6 +5,8 @@
 
 #include <wspp/twig/functions.hpp>
 
+#include <boost/algorithm/string.hpp>
+
 #include <string.h>
 
 void comment() ;
@@ -165,7 +167,7 @@ using namespace std ;
 "{{"    { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE) ; }
 "{{-"   { BEGIN(SUBS) ; return TOKEN(T_DOUBLE_LEFT_BRACE_TRIM) ; }
 "{%" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG) ; }
-"{%-" { BEGIN(TAG); return TOKEN(T_START_BLOCK_TAG_TRIM) ; }
+"{%-" { BEGIN(TAG); trim_previous_raw_block_ = true ; return TOKEN(T_START_BLOCK_TAG_TRIM) ; }
 "{#" { BEGIN(TCOMMENT) ; }
 <INITIAL,VERBATIM>"{"|[^{]+ {
 
@@ -183,6 +185,11 @@ using namespace std ;
             yylloc->columns() ;
             text.push_back(*c) ;
         }
+    }
+
+    if ( trim_next_raw_block_ ) {
+        boost::trim_left(text) ;
+        trim_next_raw_block_ = false ;
     }
 
     return yy::Parser::make_T_RAW_CHARACTERS(text, *yylloc) ;

@@ -173,28 +173,7 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     case '~':
         return op1.toString() + op2.toString() ;
     }
-/*
-    if ( op_ == '+' )
-    {
-        return arithmetic(op1.toNumber(), op2.toNumber() ;
-    }
-    else if ( op_ == '-' )
-    {
-        return op1.toNumber() - op2.toNumber() ;
-    }
-    else if ( op_ == '~' )
-    {
-        return op1.toString() + op2.toString() ;
-    }
-    else if ( op_ == '*' )
-    {
-        return op1.toNumber() * op2.toNumber() ;
-    }
-    else if ( op_ == '/' ) {
-        if ( op2.toNumber() == 0.0 ) return Variant::null() ;
-        else return op1.toNumber()/op2.toNumber() ;
-    }
-    */
+
 }
 
 

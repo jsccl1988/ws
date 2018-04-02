@@ -178,11 +178,10 @@ tag_or_chars:
     }
 
 block_tag:
-T_START_BLOCK_TAG { driver.ws_mode_ = WhiteSpace::TrimNone ; } tag_declaration T_END_BLOCK_TAG { driver.ws_mode_ = WhiteSpace::TrimNone ; }
-| T_START_BLOCK_TAG_TRIM { driver.ws_mode_ = WhiteSpace::TrimLeft ; } tag_declaration T_END_BLOCK_TAG { driver.ws_mode_ = WhiteSpace::TrimNone ; }
-| T_START_BLOCK_TAG_TRIM { driver.ws_mode_ = WhiteSpace::TrimLeft ; } tag_declaration T_END_BLOCK_TAG_TRIM { { driver.ws_mode_ = WhiteSpace::TrimRight ; }
-| T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { driver.stackTop()->setWhiteSpace(WhiteSpace::TrimRight) ; }
-
+    T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG
+    | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG
+    | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG_TRIM { driver.trimWhiteAfter() ;  }
+    | T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { driver.trimWhiteAfter() ;}
 ;
 
 sub_tag:
@@ -190,13 +189,17 @@ sub_tag:
         driver.addNode(make_shared<SubTextNode>($2)) ;
     }
     | T_DOUBLE_LEFT_BRACE_TRIM expression T_DOUBLE_RIGHT_BRACE {
-        driver.addNode(make_shared<SubTextNode>($2, WhiteSpace::TrimLeft)) ;
+        driver.trimWhiteBefore() ;
+        driver.addNode(make_shared<SubTextNode>($2)) ;
     }
     | T_DOUBLE_LEFT_BRACE expression T_DOUBLE_RIGHT_BRACE_TRIM {
-        driver.addNode(make_shared<SubTextNode>($2, WhiteSpace::TrimRight)) ;
+        driver.addNode(make_shared<SubTextNode>($2)) ;
+        driver.trimWhiteAfter() ;
     }
     | T_DOUBLE_LEFT_BRACE_TRIM expression T_DOUBLE_RIGHT_BRACE_TRIM {
-        driver.addNode(make_shared<SubTextNode>($2, WhiteSpace::TrimBoth)) ;
+        driver.trimWhiteBefore() ;
+        driver.addNode(make_shared<SubTextNode>($2)) ;
+        driver.trimWhiteAfter() ;
     }
 
 
