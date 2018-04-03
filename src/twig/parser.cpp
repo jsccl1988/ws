@@ -34,18 +34,44 @@ void TwigParser::error(const yy::Parser::location_type &loc, const std::string& 
     throw TemplateCompileException(strm.str()) ;
 }
 
+void TwigParser::addNode(ContentNodePtr node) {
+    scanner_.trim_next_raw_block_ = false ;
+    if ( scanner_.trim_previous_raw_block_ ) trimWhiteBefore() ;
+    current_ = node ;
+
+    stack_.back()->addChild(node) ;
+}
+
+void TwigParser::popBlock(const char *start_block_name) {
+
+    auto it = stack_.rbegin() ;
+
+    while ( it != stack_.rend() ) {
+        if ( (*it)->tagName() == start_block_name ) {
+            stack_.pop_back() ;
+            return ;
+        } else if ( !(*it)->shouldClose() ) {
+            ++it ; stack_.pop_back() ;
+        }
+        else throw TemplateCompileException("unmatched tag: " + (*it)->tagName()) ;
+    }
+
+}
+
 void TwigParser::trimWhiteBefore()
 {
     if ( !current_ ) return ;
     if ( RawTextNode *p = dynamic_cast<RawTextNode *>(current_.get()) ) {
         boost::trim_right(p->text_) ;
+        if ( p->text_.empty() ) { // erase child
+            stack_.back()->children_.pop_back() ;
+        }
     }
     scanner_.trim_previous_raw_block_ = false ;
 
 }
 
-void TwigParser::trimWhiteAfter()
-{
+void TwigParser::trimWhiteAfter() {
     scanner_.trim_next_raw_block_ = true ;
 }
 

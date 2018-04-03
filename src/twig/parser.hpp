@@ -36,21 +36,13 @@ public:
 
     void error(const yy::Parser::location_type &loc,  const std::string& m) ;
 
-    void addNode(ContentNodePtr node) {
-        scanner_.trim_next_raw_block_ = false ;
-        if ( scanner_.trim_previous_raw_block_ ) trimWhiteBefore() ;
-        current_ = node ;
-
-        stack_.back()->addChild(node) ;
-    }
+    void addNode(ContentNodePtr node);
 
     void pushBlock(ContainerNodePtr node) {
         stack_.push_back(node) ;
     }
 
-    void popBlock() {
-        stack_.pop_back() ;
-    }
+    void popBlock(const char *tag_name);
 
 
     void addMacroBlock(const std::string &name, ContentNodePtr node) {

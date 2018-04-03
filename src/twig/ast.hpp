@@ -253,6 +253,8 @@ public:
     // evalute a node using input context and put result in res
     virtual void eval(TemplateEvalContext &ctx, std::string &res) const = 0 ;
 
+
+
     void trim(const std::string &src, std::string &out) const;
 
     static std::string escape(const std::string &src) ;
@@ -285,7 +287,8 @@ public:
         child->parent_ = this ;
     }
 
-    virtual std::string endContainerTag() const { return {} ; }
+    virtual std::string tagName() const { return {} ; }
+    virtual bool shouldClose() const { return true ; }
     std::vector<ContentNodePtr> children_ ;
 };
 
@@ -299,7 +302,7 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    virtual std::string endContainerTag() const { return "endfor" ; }
+    std::string tagName() const override { return "for" ; }
 
     void startElseBlock() {
         else_child_start_ = children_.size() ;
@@ -319,7 +322,7 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    virtual std::string endContainerTag() const { return "endblock" ; }
+    std::string tagName() const override { return "block" ; }
 
     std::string name_ ;
 };
@@ -333,7 +336,8 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    virtual std::string endContainerTag() const { return "endextends" ; }
+    std::string tagName() const override { return "extends" ; }
+    bool shouldClose() const { return false ; }
 
     ExpressionNodePtr parent_resource_ ;
 };
@@ -358,6 +362,8 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
+    std::string tagName() const override { return "with" ; }
+
     ExpressionNodePtr with_ ;
     bool only_flag_ ;
 };
@@ -370,7 +376,7 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    virtual std::string endContainerTag() const { return "endif" ; }
+    std::string tagName() const override { return "if" ; }
 
     void addBlock(ExpressionNodePtr ptr) {
         if ( !blocks_.empty() ) {
@@ -396,7 +402,8 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    virtual std::string endContainerTag() const { return "endset" ; }
+    std::string tagName() const override { return "set" ; }
+    bool shouldClose() const override { return false ; }
 
     ExpressionNodePtr val_ ;
     std::string id_ ;
@@ -410,7 +417,7 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    virtual std::string endContainerTag() const { return "endfilter" ; }
+    std::string tagName() const override { return "filter" ; }
 
     std::string name_ ;
     key_val_list_t args_ ;
@@ -426,7 +433,7 @@ public:
 
     void mapArguments(const Variant &args, Variant::Object &ctx, Variant::Array &arg_list) ;
 
-    virtual std::string endContainerTag() const { return "endmacro" ; }
+    std::string tagName() const override { return "macro" ; }
 
     std::string name_ ;
     identifier_list_t args_ ;
@@ -442,10 +449,11 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
+    std::string tagName() const override { return "import" ; }
+    bool shouldClose() const { return false ; }
+
     bool mapMacro(MacroBlockNode &n, std::string &name) const ;
 
-
-    virtual std::string endContainerTag() const { return "endimport" ; }
 
     std::string ns_ ;
     ExpressionNodePtr source_ ;

@@ -192,7 +192,8 @@ using namespace std ;
         trim_next_raw_block_ = false ;
     }
 
-    return yy::Parser::make_T_RAW_CHARACTERS(text, *yylloc) ;
+    if ( !text.empty() )
+        return yy::Parser::make_T_RAW_CHARACTERS(text, *yylloc) ;
 }
 
 <<EOF>>  return TOKEN(T_END);
