@@ -43,6 +43,15 @@ public:
     using string_t = std::string ;
     using boolean_t = bool ;
 
+    struct EscapedString {
+        EscapedString(const char *v, bool e): s_(v), escaped_(e) {}
+        EscapedString(const std::string &v, bool e): s_(v), escaped_(e) {}
+        EscapedString(std::string &&v, bool e): s_(v), escaped_(e) {}
+
+        std::string s_;
+        bool escaped_ = false ;
+    };
+
 
     enum class Type : uint8_t {
         Undefined, Null,  Object, Array, String, Boolean, Integer, Float, Function
@@ -64,15 +73,23 @@ public:
     Variant(float_t v) noexcept: tag_(Type::Float) { data_.f_ = v ; }
 
     Variant(const char *value): tag_(Type::String) {
-        new (&data_.s_) std::string(value) ;
+        new (&data_.s_) EscapedString(value, false) ;
     }
 
     Variant(const string_t& value): tag_(Type::String) {
-        new (&data_.s_) std::string(value) ;
+        new (&data_.s_) EscapedString(value, false) ;
     }
 
     Variant(string_t&& value): tag_(Type::String)  {
-        new (&data_.s_) std::string(std::move(value)) ;
+        new (&data_.s_) EscapedString(std::move(value), false) ;
+    }
+
+    Variant(const EscapedString& value): tag_(Type::String) {
+        new (&data_.s_) EscapedString(value) ;
+    }
+
+    Variant(EscapedString&& value): tag_(Type::String)  {
+        new (&data_.s_) EscapedString(std::move(value)) ;
     }
 
     Variant(const Object& value): tag_(Type::Object) {
@@ -117,7 +134,7 @@ public:
             new (&data_.a_) Array(std::move(other.data_.a_)) ;
             break;
         case Type::String:
-            new (&data_.s_) std::string(std::move(other.data_.s_)) ;
+            new (&data_.s_) EscapedString(std::move(other.data_.s_)) ;
             break;
         case Type::Boolean:
             data_.b_ = other.data_.b_ ;
@@ -172,6 +189,7 @@ public:
     bool isArray() const { return tag_ == Type::Array ; }
     bool isNull() const { return tag_ == Type::Null ; }
     bool isUndefined() const { return tag_ == Type::Undefined ; }
+    bool isEscaped() const { return ( tag_ != Type::String ) ? true : data_.s_.escaped_ ; }
 
     bool isString() const { return tag_ == Type::String ; }
     bool isNumber() const {
@@ -202,7 +220,7 @@ public:
         switch (tag_)
         {
         case Type::String:
-            return data_.s_;
+            return data_.s_.s_;
         case Type::Boolean: {
             std::ostringstream strm ;
             strm << data_.b_ ;
@@ -222,7 +240,7 @@ public:
         {
         case Type::String:
             try {
-            return std::stod(data_.s_);
+            return std::stod(data_.s_.s_);
         }
             catch ( ... ) {
             return 0.0 ;
@@ -244,7 +262,7 @@ public:
         {
         case Type::String:
             try {
-            return std::stoi(data_.s_);
+            return std::stoi(data_.s_.s_);
         }
             catch ( ... ) {
             return 0 ;
@@ -266,11 +284,11 @@ public:
         {
         case Type::String:
             try {
-            return boost::lexical_cast<int64_t>(data_.s_);
+            return boost::lexical_cast<int64_t>(data_.s_.s_);
         }
         catch ( boost::bad_lexical_cast & ) {
             try {
-                return boost::lexical_cast<double>(data_.s_);
+                return boost::lexical_cast<double>(data_.s_.s_);
             }
             catch ( boost::bad_lexical_cast & ) {
                 return 0 ;
@@ -293,7 +311,7 @@ public:
         switch (tag_)
         {
         case Type::String:
-            return !(data_.s_.empty()) ;
+            return !(data_.s_.s_.empty()) ;
         case Type::Boolean:
             return data_.b_ ;
         case Type::Integer:
@@ -323,7 +341,7 @@ public:
         else if ( isArray() ) {
             return data_.a_.size() ;
         } else if ( tag_ == Type::String )
-            return data_.s_.length() ;
+            return data_.s_.s_.length() ;
         else return 0 ;
     }
 
@@ -403,7 +421,7 @@ public:
             break ;
         }
         case Type::String: {
-            strm << json_escape_string(data_.s_) ;
+            strm << json_escape_string(data_.s_.s_) ;
             break ;
         }
         case Type::Boolean: {
@@ -617,7 +635,7 @@ private:
             data_.a_.~Array() ;
             break ;
         case Type::String:
-            data_.s_.~string_t() ;
+            data_.s_.~EscapedString() ;
             break ;
         case Type::Function:
             data_.fp_.~Function() ;
@@ -636,7 +654,7 @@ private:
             new ( &data_.a_ ) Array(other.data_.a_) ;
             break;
         case Type::String:
-            new ( &data_.s_ ) string_t(other.data_.s_) ;
+            new ( &data_.s_ ) EscapedString(other.data_.s_) ;
             break;
         case Type::Function:
             new ( &data_.fp_ ) Function(other.data_.fp_) ;
@@ -663,7 +681,7 @@ private:
     union Data {
         Object    o_;
         Array     a_ ;
-        string_t  s_ ;
+        EscapedString s_ ;
         boolean_t   b_ ;
         signed_integer_t   i_ ;
         float_t     f_ ;

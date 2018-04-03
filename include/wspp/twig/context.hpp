@@ -34,6 +34,7 @@ struct TemplateEvalContext {
     wspp::util::Variant::Object data_ ;
     std::map<std::string, detail::NamedBlockNodePtr> blocks_ ;
     TemplateRenderer &rdr_ ;
+    std::string escape_mode_ = "html";
 };
 
 } // namespace twig

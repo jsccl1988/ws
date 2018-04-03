@@ -4,11 +4,10 @@
 
 {% from 'forms' import input as input_field, textarea as ta %}
 
-{%- for i in [1, 2, 3] -%}
+{% set s = { name: "<html>" } %}
 
---    {{-i-}}    --
-{%- endfor -%}
-after
+{{ s.name }}
+
 
 
 ------

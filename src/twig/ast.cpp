@@ -97,6 +97,32 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 }
 
 
+static string escape_html(const string &src) {
+    string buffer ;
+    for ( char c: src ) {
+        switch(c) {
+        case '&':  buffer.append("&amp;");       break;
+        case '\"': buffer.append("&quot;");      break;
+        case '\'': buffer.append("&apos;");      break;
+        case '<':  buffer.append("&lt;");        break;
+        case '>':  buffer.append("&gt;");        break;
+        default:   buffer.push_back(c);          break;
+        }
+    }
+    return buffer ;
+}
+
+Variant escape(const Variant &src, const string &escape_mode)
+{
+    if ( !src.isString() || src.isEscaped() )
+        return src ;
+
+
+    if ( escape_mode == "html" )
+        return Variant::EscapedString(escape_html(src.toString(), true)) ;
+
+}
+
 
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
@@ -108,7 +134,7 @@ Variant IdentifierNode::eval(TemplateEvalContext &ctx)
     else {
         auto it = ctx.data().find(name_) ;
         if ( it == ctx.data().end() ) return Variant::undefined() ;
-        else return it->second ;
+        else return escape(it->second, ctx.escape_mode_) ;
     }
 }
 
@@ -283,8 +309,6 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     Variant target = target_->eval(ctx) ;
     int asize = target.length() ;
 
-    string tmp ;
-
     if ( asize > 0 ) {
 
 
@@ -311,41 +335,36 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
                 if ( ids_.size() == 1 ) {
                     TemplateEvalContext cctx(tctx) ;
                     cctx.data()[ids_[0]] = *it ;
-                    c->eval(cctx, tmp) ;
+                    c->eval(cctx, res) ;
                 } else if ( ids_.size() == 2 ) {
                     TemplateEvalContext cctx(tctx) ;
                     cctx.data()[ids_[0]] =  it.key() ;
                     cctx.data()[ids_[1]] =  it.value() ;
-                    c->eval(cctx, tmp) ;
+                    c->eval(cctx, res) ;
                 }
             }
         }
     } else if ( else_child_start_ >= 0 ) {
 
         for( uint count = else_child_start_ ; count < children_.size() ; count ++ ) {
-            children_[count]->eval(ctx, tmp) ;
+            children_[count]->eval(ctx, res) ;
         }
     }
 
-    trim(tmp, res) ;
 }
 
 void IfBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
-    string tmp ;
-
     for( const Block &b: blocks_ ) {
         int c_start = b.cstart_ ;
         int c_stop = ( b.cstop_ == -1 ) ? children_.size() : b.cstop_ ;
         if (  !b.condition_ || b.condition_->eval(ctx).toBoolean() ) {
             for( int c = c_start ; c < c_stop ; c++ ) {
-                children_[c]->eval(ctx, tmp) ;
+                children_[c]->eval(ctx, res) ;
             }
             break ;
         }
     }
-
-    trim(tmp, res) ;
 }
 
 Variant TernaryExpressionNode::eval(TemplateEvalContext &ctx)
@@ -357,15 +376,11 @@ Variant TernaryExpressionNode::eval(TemplateEvalContext &ctx)
 
 void AssignmentBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
-    string tmp ;
-
     Variant val = val_->eval(ctx) ;
     TemplateEvalContext ectx(ctx) ;
     ectx.data()[id_] = val ;
     for( auto &&c: children_ )
-        c->eval(ectx, tmp) ;
-
-    trim(tmp, res) ;
+        c->eval(ectx, res) ;
 }
 
 void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -376,22 +391,9 @@ void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
     string result = evalFilter(name_, args_, block_res, ctx).toString() ;
 
-    trim(std::move(result), res) ;
+    res.append(result)  ;
 }
 
-
-void ContentNode::trim(const string &src, string &out) const
-{
-    string::const_iterator start = src.begin(), end = src.end() ;
-
-    if ( ws_ & WhiteSpace::TrimLeft )
-        start = std::find_if_not(src.begin(), src.end(), [](unsigned char c){ return std::isspace(c); }) ;
-
-    if ( ws_ & WhiteSpace::TrimRight )
-        end = std::find_if_not(src.rbegin(), src.rend(), [](unsigned char c){ return std::isspace(c); }).base() ;
-
-    out.append(start, end) ;
-}
 
 Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
 {
@@ -408,7 +410,7 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
 
 void NamedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
-    string tmp ;
+
     auto it = ctx.blocks_.find(name_) ;
     if ( it != ctx.blocks_.end() ) {
         TemplateEvalContext cctx(ctx) ;
@@ -421,16 +423,15 @@ void NamedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
         }) ;
 
         for( auto &&c: it->second->children_ ) {
-            c->eval(cctx, tmp) ;
+            c->eval(cctx, res) ;
         }
     }
     else {
         for( auto &&c: children_ ) {
-            c->eval(ctx, tmp) ;
+            c->eval(ctx, res) ;
         }
     }
 
-    trim(tmp, res) ;
 }
 
 void ExtensionBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -518,13 +519,12 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
                 p_macro->mapArguments(args.at("args"), mctx.data(), arg_list) ;
                 mctx.data()["varargs"] = arg_list ;
 
-                string tmp, out ;
+                string out ;
 
                 for( auto &&c: p_macro->children_ ) {
-                    c->eval(mctx, tmp) ;
+                    c->eval(mctx, out) ;
                 }
 
-                p_macro->trim(tmp, out) ;
                 return out ;
             };
 
@@ -619,20 +619,16 @@ void IncludeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
     // create new context either inheriting parent one or empty and extend with key/values if any
 
-    string tmp ;
-
     if ( only_flag_ ) {
         TemplateEvalContext cctx(ctx.rdr_, {}) ;
         cctx.data().insert(ctx_extension.begin(), ctx_extension.end()) ;
-        doc->eval(cctx, tmp) ;
+        doc->eval(cctx, res) ;
     } else {
         TemplateEvalContext cctx(ctx) ;
         for( auto &&e: ctx_extension )
             cctx.data()[e.first] = e.second ;
-        doc->eval(cctx, tmp) ;
+        doc->eval(cctx, res) ;
     }
-
-    trim(tmp, res) ;
 }
 
 
@@ -653,23 +649,18 @@ void WithBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
     // create new context either inheriting parent one or empty and extend with key/values if any
 
-    string tmp ;
-
     if ( only_flag_ ) {
         TemplateEvalContext cctx(ctx.rdr_, {}) ;
         cctx.data().insert(ctx_extension.begin(), ctx_extension.end()) ;
         for( auto &&c: children_ )
-            c->eval(cctx, tmp) ;
+            c->eval(cctx, res) ;
     } else {
         TemplateEvalContext cctx(ctx) ;
         for( auto &&e: ctx_extension )
             cctx.data()[e.first] = e.second ;
         for( auto &&c: children_ )
-            c->eval(cctx, tmp) ;
+            c->eval(cctx, res) ;
     }
-
-    trim(tmp, res) ;
-
 }
 
 static bool compare_numbers(double lhs, double rhs, ComparisonPredicate::Type op) {
@@ -750,11 +741,11 @@ Variant MatchesNode::eval(TemplateEvalContext &ctx)
 
 
 }
- // namespace detail
+// namespace detail
 
 void TemplateEvalContext::addBlock(detail::NamedBlockNodePtr node) {
     blocks_.insert({node->name_, node}) ;
 }
 
 } // namespace twig
-} // namespace wspp
+               } // namespace wspp

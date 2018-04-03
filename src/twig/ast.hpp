@@ -13,7 +13,7 @@
 
 using wspp::util::Variant ;
 
-enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
+//enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
 
 namespace wspp { namespace twig {
 
@@ -248,16 +248,10 @@ class DocumentNode ;
 
 class ContentNode {
 public:
-    ContentNode(WhiteSpace ws = WhiteSpace::TrimNone): ws_(ws) {}
+    ContentNode() {}
     virtual ~ContentNode() {}
     // evalute a node using input context and put result in res
     virtual void eval(TemplateEvalContext &ctx, std::string &res) const = 0 ;
-
-
-
-    void trim(const std::string &src, std::string &out) const;
-
-    static std::string escape(const std::string &src) ;
 
     const DocumentNode *root() const {
         const ContentNode *node = this ;
@@ -267,12 +261,6 @@ public:
 
         return reinterpret_cast<const DocumentNode *>(node) ;
     }
-
-    void setWhiteSpace(WhiteSpace ws) {
-        ws_ = ws ;
-    }
-
-    WhiteSpace ws_ ;
 
     ContentNode *parent_ = nullptr ;
 };
@@ -473,11 +461,10 @@ public:
 
 class SubTextNode: public ContentNode {
 public:
-    SubTextNode(ExpressionNodePtr expr, WhiteSpace ws = WhiteSpace::TrimNone): expr_(expr), ContentNode(ws) {}
+    SubTextNode(ExpressionNodePtr expr): expr_(expr), ContentNode() {}
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override {
-        std::string contents = expr_->eval(ctx).toString() ;
-        trim(contents, res) ;
+        res.append(expr_->eval(ctx).toString()) ;
     }
 
     ExpressionNodePtr expr_ ;
