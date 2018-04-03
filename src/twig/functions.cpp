@@ -181,6 +181,15 @@ static Variant _first(const Variant &args, TemplateEvalContext &) {
 }
 
 
+static Variant _render(const Variant &args, TemplateEvalContext &ctx) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "template" }, unpacked) ;
+
+    string tmpl = unpacked[0].toString() ;
+
+    return ctx.rdr_.renderString(tmpl, ctx.data()) ;
+}
+
 FunctionFactory::FunctionFactory() {
     registerFunction("join", _join);
     registerFunction("lower", _lower);
@@ -194,6 +203,7 @@ FunctionFactory::FunctionFactory() {
     registerFunction("length", _length);
     registerFunction("first", _first);
     registerFunction("last", _last);
+    registerFunction("render", _render);
 }
 
 bool FunctionFactory::hasFunction(const string &name)

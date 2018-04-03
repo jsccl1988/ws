@@ -1,6 +1,0 @@
-{{#global-errors}}
- <div class="alert alert-danger">
-        <a class="close" data-dismiss="alert">&times;</a>
-        <p>{{message}}</p>
-</div>
-{{/global-errors}}

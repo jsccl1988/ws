@@ -60,7 +60,7 @@ public:
 
         addColumn("Name", "{{name}}") ;
         addColumn("Description", "{{desc}}") ;
-        addColumn("Location", "{{> show-wpt-on-map}}" ) ;
+        addColumn("Location", "{% include 'show-wpt-on-map' %}" ) ;
     }
 
 };

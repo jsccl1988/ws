@@ -11,7 +11,7 @@ namespace web {
 
 static Variant make_pager_data(uint page, uint max_page)
 {
-    Variant::Array pages ;
+    Variant::Object pages ;
     if ( max_page == 1 ) return pages ;
 
     // Show pager
@@ -28,12 +28,12 @@ static Variant make_pager_data(uint page, uint max_page)
     // if ( start > 1 ) $nav .= '<li>...</li>' ;
 
 
-    pages.emplace_back(Variant::Object{{"first", Variant::Object{{"page", 1}} }});
+    pages.insert({"first", Variant::Object{{"page", 1}} });
 
     if ( page > 1 )
-        pages.emplace_back(Variant::Object{{"previous", Variant::Object{{"page", page-1}} }});
+        pages.insert({"previous", Variant::Object{{"page", page-1}} });
     else
-        pages.emplace_back(Variant::Object{{"previous", Variant::Object{{"disabled", true}} }});
+        pages.insert({"previous", Variant::Object{{"disabled", true}} });
 
 
     Variant::Array page_entries ;
@@ -45,14 +45,14 @@ static Variant make_pager_data(uint page, uint max_page)
         }
     }
 
-    pages.emplace_back(Variant::Object{{"pages", page_entries}}) ;
+    pages.insert({"pages", page_entries}) ;
 
     if ( page < max_page )
-        pages.emplace_back(Variant::Object{{"next", Variant::Object{{"page", page+1}} }});
+        pages.insert({"next", Variant::Object{{"page", page+1}} });
     else
-        pages.emplace_back(Variant::Object{{"next", Variant::Object{{"disabled", true}} }});
+        pages.insert({"next", Variant::Object{{"disabled", true}} });
 
-    pages.emplace_back(Variant::Object{{"last", Variant::Object{{"page", max_page}} }});
+    pages.insert({"last", Variant::Object{{"page", max_page}} });
 
     return pages ;
 }

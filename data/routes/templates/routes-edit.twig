@@ -1,0 +1,33 @@
+{% extends 'layout' %}
+
+{% block extra_headers %}
+<style>
+	table { table-layout:fixed; }
+	th.col-title { width: 70%; }
+	th.col-mountain { width: 20%; }
+	th.col-action-buttons { width: 100px; }
+}
+</style>
+{% endblock %}
+
+{% block contents %}
+		<div id="routes-list-view">
+		</div>
+{% endblock %}
+
+{% block extra_footers %}
+		<script src="js/tableview.js"></script>
+        <script type="text/javascript">
+  			$(document).ready(function() {
+  			
+  				$('#routes-list-view').tableview({ 
+  					listUrl:"routes/list/",  
+  					addUrl: "routes/add/",
+  					updateUrl: "routes/update/",
+  					deleteUrl: "routes/delete/"
+  				}) ;
+			});
+		</script>
+
+{% endblock %}
+

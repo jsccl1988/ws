@@ -696,7 +696,6 @@ Variant RouteModel::fetchWaypoints(const string &route_id) const {
         res.into(id, ele, name, desc, lon, lat) ;
         Variant::Object results{{"id", id}, {"name", name}, {"desc", desc}, {"lat", lat}, {"lon", lon}, {"ele", ele}} ;
         wpts.emplace_back(results) ;
-        res.next() ;
     }
 
     return wpts ;
@@ -719,7 +718,6 @@ Variant RouteModel::fetchAttachments(const string &route_id) const  {
     while ( res.next() ) {
         res.into(id, type, name, url) ;
         results.emplace_back(Variant::Object{{"id", id}, {"title", getAttachmentTitle(type)}, {"name", name}, {"url", url}}) ;
-        res.next() ;
     }
 
     return results ;
