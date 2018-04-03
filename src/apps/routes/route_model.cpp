@@ -317,7 +317,6 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
             gaiaFreeGeomColl(geom);
 
             g.tracks_.emplace_back(tr) ;
-            res.next() ;
         }
 
         if ( g.tracks_.size() == 1 ) g.tracks_[0].name_ = name ;
@@ -344,7 +343,7 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
             gaiaFreeGeomColl(geom);
 
             g.wpts_.emplace_back(pt) ;
-            res.next() ;
+
         }
     }
 
@@ -352,10 +351,13 @@ void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
 
         Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?") ;
         QueryResult res = stmt(route_id) ;
-        Blob blob = res.get<Blob>(0) ;
 
-        if ( blob.data() != nullptr ) {
-            g.box_ = box_from_extent(blob) ;
+        if ( res.next() ) {
+            Blob blob = res.get<Blob>(0) ;
+
+            if ( blob.data() != nullptr ) {
+                g.box_ = box_from_extent(blob) ;
+            }
         }
     }
 
@@ -624,7 +626,11 @@ string RouteModel::exportKml(const RouteGeometry &g) {
 }
 
 string RouteModel::fetchTitle(const string &id) const {
-    return Query(con_, "SELECT title FROM routes WHERE id=?", id).exec().get<string>("title") ;
+    QueryResult row = Query(con_, "SELECT title FROM routes WHERE id=?", id).exec() ;
+    if ( row.next() )
+        return row.get<string>("title") ;
+    else
+        return string() ;
 }
 
 Variant RouteModel::query(double x, double y) const {

@@ -31,6 +31,7 @@ void SQLiteQueryResultHandle::check_has_row() const
 }
 
 bool SQLiteQueryResultHandle::next() {
+
     if ( pos_ == -2 )
         throw Exception("next called passed the end of the record set");
 
