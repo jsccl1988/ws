@@ -43,9 +43,7 @@ public:
 
 public:
 
-    FormField(const string &name): name_(name) {
-
-    }
+    FormField(const string &name): name_(name) {}
 
     // set field to required
     FormField &required(bool is_required = true) { required_ = is_required ; return *this ; }
@@ -53,10 +51,9 @@ public:
     FormField &disabled(bool is_disabled = true) { disabled_ = is_disabled ; return *this ; }
     // set field value
     FormField &value(const string &val) { value_ = val ; return *this ; }
-    // append classes to class attribute
-    FormField &appendClass(const string &extra) { extra_classes_ = extra ;  return *this ; }
+
     // append extra attributes to element
-    FormField &extraAttributes(const Dictionary &attrs) { extra_attrs_ = attrs ; return *this ; }
+    FormField &attributes(const Dictionary &attrs) { attrs_ = attrs ; return *this ; }
 
     // the validator checks the validity of the input string.
     // if invalid then it should throw a FormFieldValidationError exception
@@ -106,8 +103,8 @@ protected:
 
     string label_, name_, alias_, value_, id_, place_holder_, initial_value_, help_text_ ;
     bool required_ = false, disabled_ = false ;
-    string extra_classes_ ;
-    Dictionary extra_attrs_ ;
+
+    Dictionary attrs_ ;
     std::vector<string> error_messages_ ;
     std::vector<std::unique_ptr<FormFieldValidator>> validators_ ;
     Normalizer normalizer_ ;
@@ -225,7 +222,7 @@ public:
     void init(const Dictionary &vals) ;
 
     // get form view to pass to template render
-    Variant::Object data() const ;
+    Variant::Object view() const ;
 
     // get errors object
     Variant::Object errors() const ;

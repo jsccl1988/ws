@@ -37,9 +37,9 @@ void FormField::fillData(Variant::Object &res) const {
     if ( !help_text_.empty() ) res.insert({"help_text", help_text_}) ;
     res.insert({"required", required_}) ;
     res.insert({"disabled", disabled_}) ;
-    if ( !extra_classes_.empty() ) res.insert({"extra_classes", extra_classes_}) ;
-    if ( !extra_attrs_.empty() ) res.insert({"extra_attrs", Variant::fromDictionary(extra_attrs_)}) ;
-    if ( !error_messages_.empty() ) res.insert({"errors", Variant::Object{{"messages", Variant::fromVector(error_messages_)}}}) ;
+   // if ( !extra_classes_.empty() ) res.insert({"extra_classes", extra_classes_}) ;
+    if ( !attrs_.empty() ) res.insert({"attrs", Variant::fromDictionary(attrs_)}) ;
+    if ( !error_messages_.empty() ) res.insert({"errors", Variant::fromVector(error_messages_)}) ;
 }
 
 bool FormField::validate(const string &value)
@@ -165,7 +165,7 @@ void Form::addField(const FormField::Ptr &field) {
 }
 
 
-Variant::Object Form::data() const
+Variant::Object Form::view() const
 {
     Variant::Object form_data ;
 
@@ -226,7 +226,7 @@ std::string Form::render(TemplateRenderer &e) {
 
     form.insert({"button", Variant::Object{{"name", button_name_}, {"title", button_title_}}}) ;
 
-    form.insert({"data", data()}) ;
+    form.insert({"data", view()}) ;
 
     return e.render(form_template_, form) ;
 }

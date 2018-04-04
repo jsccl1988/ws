@@ -1,0 +1,27 @@
+{% extends 'layout' %}
+
+{% block contents %}
+	<div id="pages-list-view">
+	</div>
+{% endblock %}
+
+{% block extra_footers %}
+        
+	<script src="js/tableview.js"></script>
+
+		
+    <script type="text/javascript">
+		$(document).ready(function() {
+  			
+			$('#pages-list-view').tableview({ 
+				listUrl:"pages/list/",  
+				addUrl: "pages/add/",
+				updateUrl: "pages/update/",
+				deleteUrl: "pages/delete/"
+			}) ;
+		});
+		
+	</script>
+
+{% endblock extra_footers %}
+

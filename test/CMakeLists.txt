@@ -7,4 +7,5 @@ INCLUDE_DIRECTORIES(
 
 ADD_DEFINITIONS( -std=c++11 )
 
-ADD_EXECUTABLE(test_variant test_variant.cpp )
+ADD_EXECUTABLE(test_forms test_forms.cpp )
+TARGET_LINK_LIBRARIES(test_forms wspp_util wspp_web  wspp_http_server ${Boost_LIBRARIES} dl z pthread)
