@@ -63,6 +63,8 @@ using namespace std ;
   "in"          return TOKEN(T_IN);
   "is"          return TOKEN(T_IS);
   "matches"     return TOKEN(T_MATCHES);
+  "autoescape"  return TOKEN(T_AUTOESCAPE);
+  "endautoescape"  return TOKEN(T_END_AUTOESCAPE);
   "%}"          { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG) ; }
   "-%}"         { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG_TRIM) ; }
 }

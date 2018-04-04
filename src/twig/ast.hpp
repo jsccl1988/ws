@@ -13,7 +13,6 @@
 
 using wspp::util::Variant ;
 
-//enum WhiteSpace { TrimNone = 0, TrimLeft = 1, TrimRight = 2, TrimBoth = TrimLeft | TrimRight } ;
 
 namespace wspp { namespace twig {
 
@@ -356,7 +355,17 @@ public:
     bool only_flag_ ;
 };
 
+class AutoEscapeBlockNode: public ContainerNode {
+public:
 
+    AutoEscapeBlockNode(const std::string &mode): mode_(mode) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    std::string tagName() const override { return "autoescape" ; }
+
+    std::string mode_ ;
+};
 class IfBlockNode: public ContainerNode {
 public:
 
@@ -463,9 +472,7 @@ class SubTextNode: public ContentNode {
 public:
     SubTextNode(ExpressionNodePtr expr): expr_(expr), ContentNode() {}
 
-    void eval(TemplateEvalContext &ctx, std::string &res) const override {
-        res.append(expr_->eval(ctx).toString()) ;
-    }
+    void eval(TemplateEvalContext &ctx, std::string &res) const override;
 
     ExpressionNodePtr expr_ ;
 };

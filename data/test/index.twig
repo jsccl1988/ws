@@ -6,8 +6,9 @@
 
 {% set s = { name: "<html>" } %}
 
-{{ s.name }}
-
+{% autoescape 'html' %}
+{{ '<h1>' }}
+{% endautoescape %}
 
 
 ------
@@ -16,7 +17,7 @@
     <dt>Username</dt>
     <dd>{{ input_field('username') }}</dd>
     <dt>Password</dt>
-    <dd>{{ input_field('password', '', 'password') }}</dd>
+    <dd>{{ input_field('password', '<script>', 'password') }}</dd>
 </dl>
 <p>{{ ta('comment') }}</p>
 

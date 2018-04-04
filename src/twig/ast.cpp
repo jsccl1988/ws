@@ -12,8 +12,9 @@ using namespace wspp::util ;
 
 namespace wspp { namespace twig {
 
-namespace detail {
+extern Variant escape(const Variant &src, const string &escape_mode) ;
 
+namespace detail {
 
 Variant BooleanOperator::eval(TemplateEvalContext &ctx)
 {
@@ -97,31 +98,7 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 }
 
 
-static string escape_html(const string &src) {
-    string buffer ;
-    for ( char c: src ) {
-        switch(c) {
-        case '&':  buffer.append("&amp;");       break;
-        case '\"': buffer.append("&quot;");      break;
-        case '\'': buffer.append("&apos;");      break;
-        case '<':  buffer.append("&lt;");        break;
-        case '>':  buffer.append("&gt;");        break;
-        default:   buffer.push_back(c);          break;
-        }
-    }
-    return buffer ;
-}
 
-Variant escape(const Variant &src, const string &escape_mode)
-{
-    if ( !src.isString() || src.isEscaped() )
-        return src ;
-
-
-    if ( escape_mode == "html" )
-        return Variant::EscapedString(escape_html(src.toString(), true)) ;
-
-}
 
 
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
@@ -134,7 +111,7 @@ Variant IdentifierNode::eval(TemplateEvalContext &ctx)
     else {
         auto it = ctx.data().find(name_) ;
         if ( it == ctx.data().end() ) return Variant::undefined() ;
-        else return escape(it->second, ctx.escape_mode_) ;
+        else return it->second ;
     }
 }
 
@@ -525,7 +502,7 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
                     c->eval(mctx, out) ;
                 }
 
-                return out ;
+                return Variant(out, true) ; // macros should return safe strings
             };
 
             closures.insert({mapped_name, Variant::Function(macro_fn)}) ;
@@ -737,6 +714,20 @@ Variant MatchesNode::eval(TemplateEvalContext &ctx)
     bool res = boost::regex_match(val, rx_)  ;
 
     return (bool)res ;
+}
+
+void SubTextNode::eval(TemplateEvalContext &ctx, string &res) const {
+
+    string content = escape(expr_->eval(ctx), ctx.escape_mode_).toString() ;
+    res.append(content) ;
+}
+
+void AutoEscapeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    TemplateEvalContext cctx(ctx) ;
+    cctx.escape_mode_ = mode_ ;
+    for( auto &&c: children_ )
+        c->eval(cctx, res) ;
 }
 
 

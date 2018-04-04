@@ -106,6 +106,9 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_IS             "is"
 %token T_BEGIN_BLOCK    "block"
 %token T_END_BLOCK      "endblock"
+%token T_AUTOESCAPE     "autoescape"
+%token T_END_AUTOESCAPE "endautoescape"
+
 %token T_START_BLOCK_TAG        "{%"
 %token T_END_BLOCK_TAG          "%}"
 %token T_START_BLOCK_TAG_TRIM   "{%-"
@@ -132,7 +135,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %type <wspp::twig::detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
 %type <wspp::twig::detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
 %type <wspp::twig::detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
-%type <wspp::twig::detail::ContentNodePtr> include_declaration with_declaration end_with_declaration
+%type <wspp::twig::detail::ContentNodePtr> include_declaration with_declaration end_with_declaration auto_escape_declaration end_auto_escape_declaration
 %type <bool> ignore_missing_flag only_flag
 %type <wspp::twig::detail::key_alias_list_t> import_list
 %type <wspp::twig::detail::key_alias_t> import_key_alias
@@ -223,6 +226,8 @@ tag_declaration:
    | include_declaration        { $$ = $1 ; }
    | with_declaration           { $$ = $1 ; }
    | end_with_declaration       { $$ = $1 ; }
+   | auto_escape_declaration           { $$ = $1 ; }
+   | end_auto_escape_declaration       { $$ = $1 ; }
   ;
 
 block_declaration:
@@ -394,6 +399,27 @@ with_declaration:
 
 end_with_declaration:
     T_END_WITH { driver.popBlock("with") ; }
+
+auto_escape_declaration:
+    T_AUTOESCAPE T_FALSE    {
+        auto node = make_shared<AutoEscapeBlockNode>("no") ;
+        driver.addNode(node) ;
+        driver.pushBlock(node) ;
+    }
+    | T_AUTOESCAPE     {
+        auto node = make_shared<AutoEscapeBlockNode>("html") ;
+        driver.addNode(node) ;
+        driver.pushBlock(node) ;
+    }
+    | T_AUTOESCAPE T_STRING    {
+        auto node = make_shared<AutoEscapeBlockNode>($2) ;
+        driver.addNode(node) ;
+        driver.pushBlock(node) ;
+    }
+
+end_auto_escape_declaration:
+    T_END_AUTOESCAPE { driver.popBlock("autoescape") ; }
+
 
 identifier_list:
     T_IDENTIFIER                            {  $$.push_back($1) ; }

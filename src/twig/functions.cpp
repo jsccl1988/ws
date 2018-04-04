@@ -15,7 +15,9 @@ Variant FunctionFactory::invoke(const string &name, const Variant &args, Templat
     auto it = functions_.find(name) ;
     if ( it == functions_.end() )
         throw TemplateRuntimeException("Unknown function or filter: " + name) ;
-    return it->second(args, ctx) ;
+
+    Variant res = (it->second)(args, ctx) ;
+    return res ;
 }
 
 void FunctionFactory::registerFunction(const string &name, const TemplateFunction &f)
@@ -101,13 +103,51 @@ static Variant _upper(const Variant &args, TemplateEvalContext &) {
 static Variant _default(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
     unpack_args(args, { "str", "default" }, unpacked) ;
-    return unpacked[0].isUndefined() ? unpacked[1] : unpacked[0] ;
+    return ( unpacked[0].isUndefined() || unpacked[0].isNull() ) ? unpacked[1] : unpacked[0] ;
+}
+
+static Variant _raw(const Variant &args, TemplateEvalContext &) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "str" }, unpacked) ;
+
+    if ( unpacked[0].isString() )
+        return Variant(unpacked[0].toString(), true) ; // make it safe
+    else
+        return unpacked[0] ;
+}
+
+static string escape_html(const string &src) {
+    string buffer ;
+    for ( char c: src ) {
+        switch(c) {
+        case '&':  buffer.append("&amp;");       break;
+        case '\"': buffer.append("&quot;");      break;
+        case '\'': buffer.append("&apos;");      break;
+        case '<':  buffer.append("&lt;");        break;
+        case '>':  buffer.append("&gt;");        break;
+        default:   buffer.push_back(c);          break;
+        }
+    }
+    return buffer ;
+}
+
+
+Variant escape(const Variant &src, const string &escape_mode)
+{
+    if ( src.isSafe() ) return src ;
+
+    if ( escape_mode == "html" )
+        return Variant(escape_html(src.toString()), true) ;
+    else return src ;
 }
 
 static Variant _escape(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    unpack_args(args, { "str" }, unpacked) ;
-    return unpacked[0].toString() ;
+    unpack_args(args, { "str", "mode?" }, unpacked) ;
+
+    string mode = unpacked[1].isUndefined() ? "html" : unpacked[1].toString() ;
+
+    return escape(unpacked[0], mode) ;
 }
 
 static Variant _include(const Variant &args, TemplateEvalContext &ctx) {
@@ -204,6 +244,8 @@ FunctionFactory::FunctionFactory() {
     registerFunction("first", _first);
     registerFunction("last", _last);
     registerFunction("render", _render);
+    registerFunction("raw", _raw);
+    registerFunction("safe", _raw);
 }
 
 bool FunctionFactory::hasFunction(const string &name)

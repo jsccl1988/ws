@@ -43,18 +43,8 @@ public:
     using string_t = std::string ;
     using boolean_t = bool ;
 
-    struct EscapedString {
-        EscapedString(const char *v, bool e): s_(v), escaped_(e) {}
-        EscapedString(const std::string &v, bool e): s_(v), escaped_(e) {}
-        EscapedString(std::string &&v, bool e): s_(v), escaped_(e) {}
-
-        std::string s_;
-        bool escaped_ = false ;
-    };
-
-
     enum class Type : uint8_t {
-        Undefined, Null,  Object, Array, String, Boolean, Integer, Float, Function
+        Undefined, Null,  Object, Array, String, SafeString, Boolean, Integer, Float, Function
     };
     // constructors
 
@@ -72,25 +62,21 @@ public:
 
     Variant(float_t v) noexcept: tag_(Type::Float) { data_.f_ = v ; }
 
-    Variant(const char *value): tag_(Type::String) {
-        new (&data_.s_) EscapedString(value, false) ;
+    Variant(const char *value, bool safe = false) {
+        tag_ = ( safe ) ? Type::SafeString : Type::String ;
+        new (&data_.s_) string_t(value) ;
     }
 
-    Variant(const string_t& value): tag_(Type::String) {
-        new (&data_.s_) EscapedString(value, false) ;
+    Variant(const string_t& value, bool safe = false) {
+        tag_ = ( safe ) ? Type::SafeString : Type::String ;
+        new (&data_.s_) string_t(value) ;
     }
 
-    Variant(string_t&& value): tag_(Type::String)  {
-        new (&data_.s_) EscapedString(std::move(value), false) ;
+    Variant(string_t&& value, bool safe = false)  {
+        tag_ = ( safe ) ? Type::SafeString : Type::String ;
+        new (&data_.s_) string_t(value) ;
     }
 
-    Variant(const EscapedString& value): tag_(Type::String) {
-        new (&data_.s_) EscapedString(value) ;
-    }
-
-    Variant(EscapedString&& value): tag_(Type::String)  {
-        new (&data_.s_) EscapedString(std::move(value)) ;
-    }
 
     Variant(const Object& value): tag_(Type::Object) {
         new (&data_.o_) Object(value) ;
@@ -134,7 +120,8 @@ public:
             new (&data_.a_) Array(std::move(other.data_.a_)) ;
             break;
         case Type::String:
-            new (&data_.s_) EscapedString(std::move(other.data_.s_)) ;
+        case Type::SafeString:
+            new (&data_.s_) string_t(std::move(other.data_.s_)) ;
             break;
         case Type::Boolean:
             data_.b_ = other.data_.b_ ;
@@ -189,9 +176,9 @@ public:
     bool isArray() const { return tag_ == Type::Array ; }
     bool isNull() const { return tag_ == Type::Null ; }
     bool isUndefined() const { return tag_ == Type::Undefined ; }
-    bool isEscaped() const { return ( tag_ != Type::String ) ? true : data_.s_.escaped_ ; }
+    bool isSafe() const { return ( tag_ != Type::String ) ; }
 
-    bool isString() const { return tag_ == Type::String ; }
+    bool isString() const { return  (tag_ == Type::String) || (tag_ == Type::SafeString ); }
     bool isNumber() const {
         return ( tag_ == Type::Integer ) ||
                 ( tag_ == Type::Float ) ||
@@ -201,6 +188,7 @@ public:
     // check if variant stores simple type string, number, integer or boolean
     bool isPrimitive() const {
         return ( tag_ == Type::String ||
+                 tag_ == Type::SafeString ||
                  tag_ == Type::Integer ||
                  tag_ == Type::Float ||
                  tag_ == Type::Boolean
@@ -220,7 +208,8 @@ public:
         switch (tag_)
         {
         case Type::String:
-            return data_.s_.s_;
+        case Type::SafeString:
+            return data_.s_;
         case Type::Boolean: {
             std::ostringstream strm ;
             strm << data_.b_ ;
@@ -239,8 +228,9 @@ public:
         switch (tag_)
         {
         case Type::String:
+        case Type::SafeString:
             try {
-            return std::stod(data_.s_.s_);
+            return std::stod(data_.s_);
         }
             catch ( ... ) {
             return 0.0 ;
@@ -261,8 +251,9 @@ public:
         switch (tag_)
         {
         case Type::String:
+        case Type::SafeString:
             try {
-            return std::stoi(data_.s_.s_);
+            return std::stoi(data_.s_);
         }
             catch ( ... ) {
             return 0 ;
@@ -283,12 +274,13 @@ public:
         switch (tag_)
         {
         case Type::String:
+        case Type::SafeString:
             try {
-            return boost::lexical_cast<int64_t>(data_.s_.s_);
+            return boost::lexical_cast<int64_t>(data_.s_);
         }
         catch ( boost::bad_lexical_cast & ) {
             try {
-                return boost::lexical_cast<double>(data_.s_.s_);
+                return boost::lexical_cast<double>(data_.s_);
             }
             catch ( boost::bad_lexical_cast & ) {
                 return 0 ;
@@ -311,7 +303,8 @@ public:
         switch (tag_)
         {
         case Type::String:
-            return !(data_.s_.s_.empty()) ;
+        case Type::SafeString:
+            return !(data_.s_.empty()) ;
         case Type::Boolean:
             return data_.b_ ;
         case Type::Integer:
@@ -340,8 +333,8 @@ public:
             return data_.o_.size() ;
         else if ( isArray() ) {
             return data_.a_.size() ;
-        } else if ( tag_ == Type::String )
-            return data_.s_.s_.length() ;
+        } else if ( ( tag_ == Type::String ) || ( tag_ == Type::SafeString ) )
+            return data_.s_.length() ;
         else return 0 ;
     }
 
@@ -420,8 +413,10 @@ public:
             strm << "]" ;
             break ;
         }
-        case Type::String: {
-            strm << json_escape_string(data_.s_.s_) ;
+        case Type::String:
+        case Type::SafeString:
+        {
+            strm << json_escape_string(data_.s_) ;
             break ;
         }
         case Type::Boolean: {
@@ -607,7 +602,6 @@ private:
     }
 
 
-
     const Variant &fetchKey(const std::string &key) const {
         if (!isObject() ) return undefined();
 
@@ -635,7 +629,8 @@ private:
             data_.a_.~Array() ;
             break ;
         case Type::String:
-            data_.s_.~EscapedString() ;
+        case Type::SafeString:
+            data_.s_.~string_t() ;
             break ;
         case Type::Function:
             data_.fp_.~Function() ;
@@ -654,7 +649,8 @@ private:
             new ( &data_.a_ ) Array(other.data_.a_) ;
             break;
         case Type::String:
-            new ( &data_.s_ ) EscapedString(other.data_.s_) ;
+        case Type::SafeString:
+            new ( &data_.s_ ) string_t(other.data_.s_) ;
             break;
         case Type::Function:
             new ( &data_.fp_ ) Function(other.data_.fp_) ;
@@ -681,7 +677,7 @@ private:
     union Data {
         Object    o_;
         Array     a_ ;
-        EscapedString s_ ;
+        string_t s_ ;
         boolean_t   b_ ;
         signed_integer_t   i_ ;
         float_t     f_ ;
