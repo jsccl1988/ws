@@ -4,12 +4,13 @@
 
 {% from 'forms' import input as input_field, textarea as ta %}
 
-{% set s = { name: "<html>" } %}
+{% set foo = 'foo<br />'%}
 
-{% autoescape 'html' %}
-{{ '<h1>' }}
+{{ foo|e('html') -}}
+
+{% autoescape %}
+    {{ foo }}
 {% endautoescape %}
-
 
 ------
 

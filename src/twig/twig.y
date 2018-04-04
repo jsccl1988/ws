@@ -181,10 +181,10 @@ tag_or_chars:
     }
 
 block_tag:
-    T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG
-    | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG
-    | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG_TRIM { driver.trimWhiteAfter() ;  }
-    | T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { driver.trimWhiteAfter() ;}
+T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG { $$ = $2 ; }
+    | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG { $$ = $2 ; }
+    | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG_TRIM { $$ = $2 ; driver.trimWhiteAfter() ;  }
+    | T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { $$ = $2 ; driver.trimWhiteAfter() ;}
 ;
 
 sub_tag:
@@ -494,6 +494,7 @@ value:
 
 array:
     T_LEFT_BRACKET expression_list T_RIGHT_BRACKET { $$ = make_shared<ArrayNode>(std::move($2)) ; }
+    | T_LEFT_BRACKET T_RIGHT_BRACKET { $$ = make_shared<ArrayNode>() ; }
 
 object:
     T_LEFT_BRACE key_val_list T_RIGHT_BRACE { $$ = make_shared<DictionaryNode>(std::move($2)) ; }

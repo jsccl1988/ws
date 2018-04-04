@@ -72,6 +72,7 @@ private:
 
 class ArrayNode: public ExpressionNode {
 public:
+    ArrayNode() = default ;
     ArrayNode(const std::deque<ExpressionNodePtr> &&elements): elements_(elements) {}
 
     Variant eval(TemplateEvalContext &ctx) ;

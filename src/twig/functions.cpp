@@ -220,6 +220,36 @@ static Variant _first(const Variant &args, TemplateEvalContext &) {
     else return Variant::null() ;
 }
 
+static Variant _batch(const Variant &args, TemplateEvalContext &) {
+    Variant::Array unpacked, out ;
+    unpack_args(args, { "items", "size", "fill?" }, unpacked) ;
+
+    if ( !unpacked[0].isArray() )
+        throw TemplateRuntimeException("batch filter expects an array") ;
+
+    int len = unpacked[0].length() ;
+    int size = ceil(unpacked[1].toFloat()) ;
+    int batches = ceil(unpacked[0].length()/(float)size) ;
+
+    if ( size <= 0 )
+        throw TemplateRuntimeException("batch filter size parameter should be a positive integer") ;
+
+    out.resize(batches) ;
+
+    uint idx = 0 ;
+    for ( uint k = 0 ; k<batches ; k++ ) {
+        Variant::Array ba ;
+        for( uint i = 0 ; i<size ; i++, idx++ ) {
+            if ( idx < len )
+                ba.push_back(unpacked[0].at(idx)) ;
+            else if ( !unpacked[2].isUndefined() )
+                ba.push_back(unpacked[2]) ;
+        }
+        out[k] = ba ;
+    }
+
+    return out ;
+}
 
 static Variant _render(const Variant &args, TemplateEvalContext &ctx) {
     Variant::Array unpacked ;
@@ -227,7 +257,7 @@ static Variant _render(const Variant &args, TemplateEvalContext &ctx) {
 
     string tmpl = unpacked[0].toString() ;
 
-    return ctx.rdr_.renderString(tmpl, ctx.data()) ;
+    return Variant(ctx.rdr_.renderString(tmpl, ctx.data()), true) ;
 }
 
 FunctionFactory::FunctionFactory() {
@@ -246,6 +276,7 @@ FunctionFactory::FunctionFactory() {
     registerFunction("render", _render);
     registerFunction("raw", _raw);
     registerFunction("safe", _raw);
+    registerFunction("batch", _batch);
 }
 
 bool FunctionFactory::hasFunction(const string &name)
@@ -254,4 +285,4 @@ bool FunctionFactory::hasFunction(const string &name)
 }
 
 } // namespace twig
-               } // namespace wspp
+} // namespace wspp

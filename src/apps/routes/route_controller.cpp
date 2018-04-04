@@ -76,7 +76,7 @@ public:
 
         con_.execute("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
 
-        addColumn("Title",  "<a href=\"route/edit/{{id}}\">{{title}}</a>") ;
+        addColumn("Title",  "<a href=\"route/edit/{{id}}\">{{title|e}}</a>") ;
         addColumn("Mountain", "{{mountain}}") ;
     }
 };
