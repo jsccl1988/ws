@@ -189,6 +189,8 @@ Variant::Object Form::view() const
 
     // form fields
 
+    Variant::Object fields ;
+
     for( const auto &p: fields_ ) {
         Variant::Object field_data ;
         p->fillData(field_data) ;
@@ -197,9 +199,11 @@ Variant::Object Form::view() const
         else if ( !p->initial_value_.empty() )
             field_data.insert({"value", p->initial_value_}) ;
 
-        form.insert({p->name_, field_data}) ;
+
+        fields.insert({p->name_, field_data}) ;
     }
 
+    form.insert({"fields", fields}) ;
 
     return form ;
 }

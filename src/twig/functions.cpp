@@ -260,18 +260,33 @@ static Variant _render(const Variant &args, TemplateEvalContext &ctx) {
     return Variant(ctx.rdr_.renderString(tmpl, ctx.data()), true) ;
 }
 
-static Variant _form_start(const Variant &args, TemplateEvalContext &ctx) {
+static Variant _merge(const Variant &args, TemplateEvalContext &) {
     Variant::Array unpacked ;
-    unpack_args(args, { "template" }, unpacked) ;
+    unpack_args(args, { "src", "other" }, unpacked) ;
 
-    return Variant::undefined();
-}
+    if ( unpacked[0].isArray() ) {
+        Variant::Array res ;
 
-static Variant _form_end(const Variant &args, TemplateEvalContext &ctx) {
-    Variant::Array unpacked ;
-    unpack_args(args, { "template" }, unpacked) ;
+        for( auto &&e: unpacked[0] )
+            res.emplace_back(std::move(e)) ;
 
-    return Variant::undefined();
+        for( auto &&e: unpacked[1] )
+            res.emplace_back(std::move(e)) ;
+
+        return res ;
+    } else if ( unpacked[0].isObject() ) {
+        Variant::Object res ;
+
+        for( auto it = unpacked[0].begin() ; it != unpacked[0].end() ; ++it )
+            res[it.key()] = it.value() ;
+
+        for( auto it = unpacked[1].begin() ; it != unpacked[1].end() ; ++it )
+            res[it.key()] = it.value() ;
+
+        return res ;
+    }
+
+    else return unpacked[0] ;
 }
 
 
@@ -292,9 +307,7 @@ FunctionFactory::FunctionFactory() {
     registerFunction("raw", _raw);
     registerFunction("safe", _raw);
     registerFunction("batch", _batch);
-
-    registerFunction("form_start", _form_start);
-    registerFunction("form_end", _form_end);
+    registerFunction("merge", _merge);
 }
 
 bool FunctionFactory::hasFunction(const string &name)

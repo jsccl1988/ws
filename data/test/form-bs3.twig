@@ -1,6 +1,10 @@
 
-{% macro start(form, attrs) %}
+{% macro start(form, extra_attrs) %}
+
+{% set form = form|merge(extra_attrs) %} 
+
 {% with form %}
+
  {% set method = method|upper %}
 
     {%- if method in ["GET", "POST"] -%}
@@ -8,16 +12,46 @@
     {%- else -%}
         {% set form_method = "POST" %}
     {%- endif -%}
-{{form_method}}
-    <form{% if name != '' %} name="{{ name }}"{% endif %} method="{{ form_method|lower }}"{% if action != '' %} action="{{ action }}"{% endif %}{% for attrname, attrvalue in attr %} {{ attrname }}="{{ attrvalue }}"{% endfor %}{% if enctype %} enctype="multipart/form-data"{% endif %}>
+{{method}} {{form_method}}	 	
+    <form {%- if name %} name="{{ name }}" {%- endif %} method="{{ form_method|lower }}" {%- if action %} action="{{ action }}" {%- endif -%}
+    {%- for attrname, attrvalue in attr %} {{ attrname }}="{{ attrvalue }}" {%- endfor %}{% if enctype %} enctype="multipart/form-data" {%- endif %}>
     {%- if form_method != method -%}
         <input type="hidden" name="_method" value="{{ method }}" />
     {%- endif -%}
+    
 {% endwith %}
 {% endmacro %}
 
 
 {% macro end() %}
 </form>
+{% endmacro %}
 
+{% macro field_errors(errors) %}
+
+
+{% endmacro %}
+
+{% macro input(field, extra_attrs) %}
+		
+	{% from _self import field_errors %}
+	
+	{% set field = field|merge(extra_attrs) %} 
+	
+	{% with field %}
+	
+	<div class="form-group {{ (errors) ? 'has-error has-feedback' : '' }}">
+	{% if label %}
+		<label class="control-label" for="{{id}}">{{ label }}</label>
+	{% endif %}
+
+	<input type="{{type}}" id="{{id}}" name="{{name}}" class="form-control" {% if required %}required{% endif %} {% if disabled  %}disabled{% endif %} 
+		{% if placeholder %}placeholder="{{placeholder}}"{% endif %} {% for key, val in attrs %} {{key}}="{{val}}" {% endfor %} {% if value is defined %}value="{{value}}"{% endif %} >
+
+	{{ field_errors(errors) }}
+	
+	{% endwith %}
+	
+	</div>
+	
 {% endmacro %}

@@ -1,0 +1,10 @@
+<div class="form-group {{ (errors) ? 'has-error has-feedback' : '' }}">
+{% if label %}
+	<label class="control-label" for="{{id}}">{{ label }}</label>
+{% endif %}
+
+<input type="{{type}}" id="{{id}}" name="{{name}}" class="form-control" {% if required %}required{% endif %} {% if disabled  %}disabled{% endif %} 
+{% if placeholder %}placeholder="{{placeholder}}"{% endif %} {% for key, val in attrs %} {{key}}="{{val}}" {% endfor %} {% if value is defined %}value="{{value}}"{% endif %} >
+
+{% include 'bs3/field-errors' %}
+</div>

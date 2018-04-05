@@ -1,6 +1,6 @@
 {% import 'form-bs3' as forms %}
  
 
-{{ forms.start(form) }}
-
+{{ forms.start(form, { method: 'GET', attrs: { autocomplete: 'on'} }) }}
+{{ forms.input(form.fields.username, {id: "username", label: "label"}) }}
 {{ forms.end(form) }}

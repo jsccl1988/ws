@@ -110,6 +110,7 @@ private:
 class DictionaryNode: public ExpressionNode {
 public:
 
+    DictionaryNode() = default ;
     DictionaryNode(const key_val_list_t && elements): elements_(elements) {}
 
     Variant eval(TemplateEvalContext &ctx) ;
@@ -117,6 +118,7 @@ public:
 private:
     key_val_list_t elements_ ;
 };
+
 
 class SubscriptIndexingNode: public ExpressionNode {
 public:
@@ -241,8 +243,6 @@ private:
     ExpressionNodePtr callable_ ;
     key_val_list_t args_ ;
 };
-
-
 
 class DocumentNode ;
 
@@ -429,13 +429,14 @@ public:
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
 
-    void mapArguments(const Variant &args, Variant::Object &ctx, Variant::Array &arg_list) ;
+    Variant call(TemplateEvalContext &ctx, const Variant &args) ;
+
+    void mapArguments(TemplateEvalContext &caller, const Variant &args, Variant::Object &ctx, Variant::Array &arg_list) ;
 
     std::string tagName() const override { return "macro" ; }
 
     std::string name_ ;
     identifier_list_t args_ ;
-
 };
 
 class ImportBlockNode: public ContainerNode {

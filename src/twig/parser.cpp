@@ -17,7 +17,7 @@ TwigParser::TwigParser(std::istream &strm) :
 {}
 
 void TwigParser::parse(DocumentNodePtr root, const std::string &name) {
-//    parser_.set_debug_level(14);
+  //      parser_.set_debug_level(14);
 
     root_ = root ;
     stack_.push_back(root);
@@ -35,8 +35,7 @@ void TwigParser::error(const yy::Parser::location_type &loc, const std::string& 
 }
 
 void TwigParser::addNode(ContentNodePtr node) {
-    scanner_.trim_next_raw_block_ = false ;
-    if ( scanner_.trim_previous_raw_block_ ) trimWhiteBefore() ;
+    trimWhiteBefore() ;
     current_ = node ;
 
     stack_.back()->addChild(node) ;
@@ -44,12 +43,14 @@ void TwigParser::addNode(ContentNodePtr node) {
 
 void TwigParser::popBlock(const char *start_block_name) {
 
+    trimWhiteBefore() ;
+
     auto it = stack_.rbegin() ;
 
+    current_ = nullptr ;
     while ( it != stack_.rend() ) {
         if ( (*it)->tagName() == start_block_name ) {
-            stack_.pop_back() ;
-            return ;
+            stack_.pop_back() ; return ;
         } else if ( !(*it)->shouldClose() ) {
             ++it ; stack_.pop_back() ;
         }
@@ -61,11 +62,15 @@ void TwigParser::popBlock(const char *start_block_name) {
 void TwigParser::trimWhiteBefore()
 {
     if ( !current_ ) return ;
-    if ( RawTextNode *p = dynamic_cast<RawTextNode *>(current_.get()) ) {
-        boost::trim_right(p->text_) ;
-        if ( p->text_.empty() ) { // erase child
-            stack_.back()->children_.pop_back() ;
+    scanner_.trim_next_raw_block_ = false ;
+    if ( scanner_.trim_previous_raw_block_ ) {
+        if ( RawTextNode *p = dynamic_cast<RawTextNode *>(current_.get()) ) {
+            boost::trim_right(p->text_) ;
+            if ( p->text_.empty() ) { // erase child
+                stack_.back()->children_.pop_back() ;
+            }
         }
+
     }
     scanner_.trim_previous_raw_block_ = false ;
 

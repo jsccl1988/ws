@@ -351,13 +351,10 @@ Variant TernaryExpressionNode::eval(TemplateEvalContext &ctx)
     else return negative_ ? negative_->eval(ctx) : Variant::null() ;
 }
 
-void AssignmentBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+void AssignmentBlockNode::eval(TemplateEvalContext &ctx, string &) const
 {
     Variant val = val_->eval(ctx) ;
-//    TemplateEvalContext ectx(ctx) ;
     ctx.data()[id_] = val ;
-//    for( auto &&c: children_ )
-//        c->eval(ectx, res) ;
 }
 
 void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -381,7 +378,8 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
 
     if ( f.type() == Variant::Type::Function ) {
         return f.invoke(args, ctx) ;
-    } else throw TemplateRuntimeException("function invocation of non-callable variable") ;
+    } else
+        throw TemplateRuntimeException("function invocation of non-callable variable") ;
 }
 
 
@@ -440,12 +438,14 @@ void MacroBlockNode::eval(TemplateEvalContext &, string &) const
 }
 
 // map passed arguments to context variables with the same name as macro parameters
-void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx, Variant::Array &arg_list)
+void MacroBlockNode::mapArguments(TemplateEvalContext &caller, const Variant &args, Variant::Object &ctx, Variant::Array &arg_list)
 {
     auto it = args.begin() ;
     for( auto &&arg_name: args_ ) {
-        Variant val = Variant::null() ;
-        if ( it != args.end()  )
+        Variant val = Variant::undefined() ;
+        if ( arg_name == "_context" ) {
+            val = caller.data() ;
+        } else if ( it != args.end()  )
             val = *it++ ;
 
         ctx[arg_name] = val ; // replace current contex variables with the same name
@@ -457,6 +457,22 @@ void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx, Var
     while ( it != args.end() ) {
         arg_list.push_back(*it++) ;
     }
+}
+
+Variant MacroBlockNode::call(TemplateEvalContext &ctx, const Variant &args) {
+
+    TemplateEvalContext mctx(ctx.rdr_, ctx.data_) ;
+    Variant::Array arg_list ;
+    mapArguments(ctx, args.at("args"), mctx.data(), arg_list) ;
+    mctx.data()["varargs"] = arg_list ;
+
+    string out ;
+
+    for( auto &&c: children_ ) {
+        c->eval(mctx, out) ;
+    }
+
+    return Variant(out, true) ; // macros should return safe strings
 }
 
 void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -488,12 +504,13 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
             string mapped_name ;
             if ( !mapMacro(*p_macro, mapped_name) ) continue ; // if not imported
 
-            auto macro_fn = [&, p_macro](const Variant &args, TemplateEvalContext &tctx) -> Variant {
-                // in this implementation context is always provided so no need for providing the _context parameter
+            auto macro_fn = [&ctx, p_macro](const Variant &args, TemplateEvalContext &) -> Variant {
+                return p_macro->call(ctx, args) ;
 
-                TemplateEvalContext mctx(tctx) ;
+/*
+                TemplateEvalContext mctx(ctx.rdr_, doc, ctx.data_) ;
                 Variant::Array arg_list ;
-                p_macro->mapArguments(args.at("args"), mctx.data(), arg_list) ;
+                p_macro->mapArguments(ctx, args.at("args"), mctx.data(), arg_list) ;
                 mctx.data()["varargs"] = arg_list ;
 
                 string out ;
@@ -503,6 +520,7 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
                 }
 
                 return Variant(out, true) ; // macros should return safe strings
+                */
             };
 
             closures.insert({mapped_name, Variant::Function(macro_fn)}) ;
@@ -661,13 +679,13 @@ static bool compare_numbers(double lhs, double rhs, ComparisonPredicate::Type op
 Variant ContainmentNode::eval(TemplateEvalContext &ctx)
 {
     Variant lhs = lhs_->eval(ctx) ;
-    Variant rhs = lhs_->eval(ctx) ;
+    Variant rhs = rhs_->eval(ctx) ;
 
     if ( !lhs.isPrimitive() || !rhs.isArray() )
         throw TemplateRuntimeException("wrong type of values on containment operaror") ;
 
     for( auto &&e: rhs ) {
-        if ( variant_compare(lhs, rhs, ComparisonPredicate::Equal) ) return true ;
+        if ( variant_compare(lhs, e, ComparisonPredicate::Equal) ) return true ;
     }
 
 }

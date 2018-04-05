@@ -74,6 +74,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_TILDE          "~"
 %token T_BAR            "|"
 %token T_MOD            "%"
+%token T_REFERENCE      "@"
 
 %token T_FOR            "for"
 %token T_END_FOR        "endfor"
@@ -184,7 +185,10 @@ block_tag:
 T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG { $$ = $2 ; }
     | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG { $$ = $2 ; }
     | T_START_BLOCK_TAG_TRIM tag_declaration T_END_BLOCK_TAG_TRIM { $$ = $2 ; driver.trimWhiteAfter() ;  }
-    | T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM { $$ = $2 ; driver.trimWhiteAfter() ;}
+    | T_START_BLOCK_TAG tag_declaration T_END_BLOCK_TAG_TRIM {
+    $$ = $2 ;
+    driver.trimWhiteAfter() ;
+}
 ;
 
 sub_tag:
@@ -266,6 +270,7 @@ end_for_declaration:
 
 else_declaration:
     T_ELSE {
+        driver.trimWhiteBefore() ;
         if ( ForLoopBlockNode *p = dynamic_cast<ForLoopBlockNode *>(driver.stackTop().get()) )
             p->startElseBlock() ;
         else if ( IfBlockNode *p = dynamic_cast<IfBlockNode *>(driver.stackTop().get()) )
@@ -281,18 +286,20 @@ if_declaration:
 
 else_if_declaration:
     T_ELSE_IF expression {
+        driver.trimWhiteBefore() ;
         if ( IfBlockNode *p = dynamic_cast<IfBlockNode *>(driver.stackTop().get()) )
             p->addBlock($2) ;
     }
 
 end_if_declaration:
-    T_END_IF { driver.popBlock("if") ; }
+    T_END_IF {
+        driver.popBlock("if") ; }
 
 set_declaration:
     T_SET T_IDENTIFIER T_ASSIGN expression  {
         auto node = make_shared<AssignmentBlockNode>($2, $4) ;
         driver.addNode(node) ;
-/*        driver.pushBlock(node);*/
+//        driver.pushBlock(node);
    }
 
 end_set_declaration:
@@ -356,6 +363,11 @@ import_declaration:
                 driver.addNode(node) ;
                 driver.pushBlock(node);
             }
+   | T_FROM T_SELF T_IMPORT import_list  {
+             auto node = make_shared<ImportBlockNode>(nullptr, std::move($4)) ;
+             driver.addNode(node) ;
+             driver.pushBlock(node);
+         }
 
 import_list:
     import_key_alias                        { $$.push_back(std::move($1)); }
@@ -498,6 +510,7 @@ array:
 
 object:
     T_LEFT_BRACE key_val_list T_RIGHT_BRACE { $$ = make_shared<DictionaryNode>(std::move($2)) ; }
+   | T_LEFT_BRACE T_RIGHT_BRACE { $$ = make_shared<DictionaryNode>() ; }
 
 expression_list:
     expression {  $$.push_back($1) ;  }

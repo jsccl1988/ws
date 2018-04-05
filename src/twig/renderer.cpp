@@ -10,9 +10,10 @@ using namespace detail ;
 
 string TemplateRenderer::render(const string &resource, const Variant::Object &ctx)
 {
+    auto ast = compile(resource) ;
+
     TemplateEvalContext eval_ctx(*this, ctx) ;
 
-    auto ast = compile(resource) ;
     string res ;
     ast->eval(eval_ctx, res) ;
     return res ;
@@ -20,9 +21,10 @@ string TemplateRenderer::render(const string &resource, const Variant::Object &c
 
 string TemplateRenderer::renderString(const string &str, const Variant::Object &ctx)
 {
-    TemplateEvalContext eval_ctx(*this, ctx) ;
 
     auto ast = compileString(str) ;
+
+    TemplateEvalContext eval_ctx(*this, ctx) ;
     string res ;
     ast->eval(eval_ctx, res) ;
     return res ;
