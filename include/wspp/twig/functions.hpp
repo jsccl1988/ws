@@ -11,7 +11,7 @@
 namespace wspp { namespace twig {
 
 
-using TemplateFunction = std::function<wspp::util::Variant(const wspp::util::Variant &, TemplateEvalContext &)>;
+using TemplateFunction = std::function<wspp::util::Variant(const wspp::util::Variant &)>;
 
 // Unpack positional and named arguments passed to the function to the list of expected arguments
 // The named_args is a list of arguments names. If ending with '?' argument is optional. Non supplied arguments are given undefined value.
@@ -32,7 +32,7 @@ public:
 
     bool hasFunction(const std::string &name) ;
 
-    wspp::util::Variant invoke(const std::string &name, const wspp::util::Variant &args, TemplateEvalContext &ctx) ;
+    wspp::util::Variant invoke(const std::string &name, const wspp::util::Variant &args) ;
 
     void registerFunction(const std::string &name, const TemplateFunction &f);
 

@@ -109,6 +109,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_END_BLOCK      "endblock"
 %token T_AUTOESCAPE     "autoescape"
 %token T_END_AUTOESCAPE "endautoescape"
+%token T_CONTEXT        "context"
 
 %token T_START_BLOCK_TAG        "{%"
 %token T_END_BLOCK_TAG          "%}"
@@ -470,6 +471,7 @@ expression:
         | expression T_MATCHES T_STRING                             { $$ = make_shared<MatchesNode>($1, $3, true) ; }
         | expression T_NOT T_MATCHES T_STRING                       { $$ = make_shared<MatchesNode>($1, $4, false) ; }
 
+
 filter_invoke:
     expression T_BAR T_IDENTIFIER %prec T_NO_ARGS            { $$ = make_shared<InvokeFilterNode>($1, $3) ; }
   | expression T_BAR T_IDENTIFIER T_LPAR func_args T_RPAR    { $$ = make_shared<InvokeFilterNode>($1, $3, std::move($5)) ; }
@@ -503,6 +505,7 @@ value:
     | T_TRUE         { $$ = make_shared<LiteralNode>(true) ; }
     | T_FALSE        { $$ = make_shared<LiteralNode>(false) ; }
     | T_NULL         { $$ = make_shared<LiteralNode>(Variant::null()) ; }
+    | T_CONTEXT T_LPAR T_RPAR { $$ = make_shared<ContextNode>() ; }
 
 array:
     T_LEFT_BRACKET expression_list T_RIGHT_BRACKET { $$ = make_shared<ArrayNode>(std::move($2)) ; }

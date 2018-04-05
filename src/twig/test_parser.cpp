@@ -30,12 +30,17 @@ int main(int argc, char *argv[]) {
             Variant::Object{{ "title", "aaa"}, {"body", "bbb"}, {"text", "ccc"}}
     } };
 
-    t["func"] = Variant::Function([] ( const Variant &args, TemplateEvalContext &ctx) -> Variant{
+    t["func"] = Variant::Function([] ( const Variant &args) -> Variant{
         cout << args.toJSON() << endl ;
-        cout << Variant(ctx.data()).toJSON() << endl ;
+
         return "hello from function" ;
     }) ;
 
+    FunctionFactory::instance().registerFunction("render", [&](const Variant &args) -> Variant {
+        Variant::Array unpacked ;
+        unpack_args(args, { "str", "_context" }, unpacked) ;
+        return rdr.renderString(unpacked[0].toString(), unpacked[1].toObject()) ;
+    }) ;
 
    // cout.flush() ;
     cout << rdr.render("index", t)<< endl ;

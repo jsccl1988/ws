@@ -202,6 +202,15 @@ private:
     ExpressionNodePtr condition_, positive_, negative_ ;
 };
 
+class ContextNode: public ExpressionNode {
+public:
+    ContextNode() {}
+
+    Variant eval(TemplateEvalContext &ctx) {
+        return ctx.data();
+    }
+};
+
 class InvokeFilterNode: public ExpressionNode {
 public:
     InvokeFilterNode(ExpressionNodePtr target, const std::string &name, key_val_list_t &&args ={}): target_(target), name_(name),

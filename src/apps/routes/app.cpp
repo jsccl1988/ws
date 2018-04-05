@@ -100,11 +100,13 @@ public:
         engine_.setCaching(false) ;
         i18n::instance().setLanguage("el") ;
 
-        FunctionFactory::instance().registerFunction("_", [&](const Variant &args, TemplateEvalContext &ctx) -> Variant {
+        FunctionFactory::instance().registerFunction("_", [&](const Variant &args) -> Variant {
             Variant::Array unpacked ;
-            unpack_args(args, { { "str", true } }, unpacked) ;
-            return engine_.renderString(i18n::instance().trans(unpacked[0].toString()), ctx.data()) ;
+            unpack_args(args, { "str", "_context" }, unpacked) ;
+            return engine_.renderString(i18n::instance().trans(unpacked[0].toString()),unpacked[1].toObject() ) ;
         }) ;
+
+
     }
 
     void handle(const Request &req, Response &resp) override {

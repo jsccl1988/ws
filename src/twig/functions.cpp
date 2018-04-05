@@ -10,19 +10,17 @@ using namespace std ;
 namespace wspp { namespace twig {
 
 
-Variant FunctionFactory::invoke(const string &name, const Variant &args, TemplateEvalContext &ctx)
+Variant FunctionFactory::invoke(const string &name, const Variant &args)
 {
     auto it = functions_.find(name) ;
     if ( it == functions_.end() )
         throw TemplateRuntimeException("Unknown function or filter: " + name) ;
 
-    Variant res = (it->second)(args, ctx) ;
-    return res ;
+    return (it->second)(args) ;
 }
 
-void FunctionFactory::registerFunction(const string &name, const TemplateFunction &f)
-{
-    functions_[name] = f;
+void FunctionFactory::registerFunction(const string &name, const TemplateFunction &f) {
+    functions_[name] = f ;
 }
 
 
@@ -60,6 +58,7 @@ void unpack_args(const Variant &args, const std::vector<std::string> &named_args
         }
     }
 
+
     uint required = std::count_if(named_args.begin(), named_args.end(), [](const string &b) { return b.back() != '?' ;});
 
     if ( std::count(provided.begin(), provided.end(), true) < required ) {
@@ -67,7 +66,7 @@ void unpack_args(const Variant &args, const std::vector<std::string> &named_args
     }
 }
 
-static Variant _join(const Variant &args, TemplateEvalContext &) {
+static Variant _join(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "string_list", "sep?", "key?" },  unpacked) ;
 
@@ -88,25 +87,25 @@ static Variant _join(const Variant &args, TemplateEvalContext &) {
 
 }
 
-static Variant _lower(const Variant &args, TemplateEvalContext &) {
+static Variant _lower(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "str" }, unpacked) ;
     return boost::to_lower_copy(unpacked[0].toString()) ;
 }
 
-static Variant _upper(const Variant &args, TemplateEvalContext &) {
+static Variant _upper(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "str" }, unpacked) ;
     return boost::to_upper_copy(unpacked[0].toString()) ;
 }
 
-static Variant _default(const Variant &args, TemplateEvalContext &) {
+static Variant _default(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "str", "default" }, unpacked) ;
     return ( unpacked[0].isUndefined() || unpacked[0].isNull() ) ? unpacked[1] : unpacked[0] ;
 }
 
-static Variant _raw(const Variant &args, TemplateEvalContext &) {
+static Variant _raw(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "str" }, unpacked) ;
 
@@ -141,7 +140,7 @@ Variant escape(const Variant &src, const string &escape_mode)
     else return src ;
 }
 
-static Variant _escape(const Variant &args, TemplateEvalContext &) {
+static Variant _escape(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "str", "mode?" }, unpacked) ;
 
@@ -150,20 +149,13 @@ static Variant _escape(const Variant &args, TemplateEvalContext &) {
     return escape(unpacked[0], mode) ;
 }
 
-static Variant _include(const Variant &args, TemplateEvalContext &ctx) {
-    Variant::Array unpacked ;
-    unpack_args(args, { "template" }, unpacked ) ;
-    string resource = unpacked[0].toString() ;
-    return ctx.rdr_.render(resource, ctx.data()) ;
-}
-
-static Variant _defined(const Variant &args, TemplateEvalContext &ctx) {
+static Variant _defined(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "variable" }, unpacked) ;
     return !(unpacked[0].isUndefined() ) ;
 }
 
-static Variant _range(const Variant &args, TemplateEvalContext &) {
+static Variant _range(const Variant &args) {
     Variant::Array unpacked, result ;
     unpack_args(args, { "start", "end", "step?" }, unpacked) ;
 
@@ -183,14 +175,14 @@ static Variant _range(const Variant &args, TemplateEvalContext &) {
     return result ;
 }
 
-static Variant _length(const Variant &args, TemplateEvalContext &) {
+static Variant _length(const Variant &args) {
     Variant::Array unpacked, result ;
     unpack_args(args, { "value" }, unpacked) ;
 
     return unpacked[0].length() ;
 }
 
-static Variant _last(const Variant &args, TemplateEvalContext &) {
+static Variant _last(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "value" }, unpacked) ;
 
@@ -205,7 +197,7 @@ static Variant _last(const Variant &args, TemplateEvalContext &) {
     else return Variant::null() ;
 }
 
-static Variant _first(const Variant &args, TemplateEvalContext &) {
+static Variant _first(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "value" }, unpacked) ;
 
@@ -220,7 +212,7 @@ static Variant _first(const Variant &args, TemplateEvalContext &) {
     else return Variant::null() ;
 }
 
-static Variant _batch(const Variant &args, TemplateEvalContext &) {
+static Variant _batch(const Variant &args) {
     Variant::Array unpacked, out ;
     unpack_args(args, { "items", "size", "fill?" }, unpacked) ;
 
@@ -251,16 +243,7 @@ static Variant _batch(const Variant &args, TemplateEvalContext &) {
     return out ;
 }
 
-static Variant _render(const Variant &args, TemplateEvalContext &ctx) {
-    Variant::Array unpacked ;
-    unpack_args(args, { "template" }, unpacked) ;
-
-    string tmpl = unpacked[0].toString() ;
-
-    return Variant(ctx.rdr_.renderString(tmpl, ctx.data()), true) ;
-}
-
-static Variant _merge(const Variant &args, TemplateEvalContext &) {
+static Variant _merge(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "src", "other" }, unpacked) ;
 
@@ -289,7 +272,6 @@ static Variant _merge(const Variant &args, TemplateEvalContext &) {
     else return unpacked[0] ;
 }
 
-
 FunctionFactory::FunctionFactory() {
     registerFunction("join", _join);
     registerFunction("lower", _lower);
@@ -297,13 +279,11 @@ FunctionFactory::FunctionFactory() {
     registerFunction("default", _default);
     registerFunction("e", _escape);
     registerFunction("escape", _escape);
-    registerFunction("include", _include);
     registerFunction("defined", _defined);
     registerFunction("range", _range);
     registerFunction("length", _length);
     registerFunction("first", _first);
     registerFunction("last", _last);
-    registerFunction("render", _render);
     registerFunction("raw", _raw);
     registerFunction("safe", _raw);
     registerFunction("batch", _batch);

@@ -104,8 +104,8 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
     if ( FunctionFactory::instance().hasFunction(name_) ) {
-        return Variant(Variant::Function([=](const Variant &args, TemplateEvalContext &cc) {
-            return FunctionFactory::instance().invoke(name_, args, cc) ;
+        return Variant(Variant::Function([=](const Variant &args) {
+            return FunctionFactory::instance().invoke(name_, args) ;
         })) ;
     }
     else {
@@ -258,7 +258,7 @@ static Variant evalFilter(const string &name, const key_val_list_t &args, const 
 
     Variant evargs ;
     evalArgs(args, evargs, ctx, target) ;
-    return FunctionFactory::instance().invoke(name, evargs, ctx) ;
+    return FunctionFactory::instance().invoke(name, evargs) ;
 }
 
 Variant InvokeFilterNode::eval(TemplateEvalContext &ctx)
@@ -377,7 +377,7 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
     evalArgs(args_, args, ctx) ;
 
     if ( f.type() == Variant::Type::Function ) {
-        return f.invoke(args, ctx) ;
+        return f.invoke(args) ;
     } else
         throw TemplateRuntimeException("function invocation of non-callable variable") ;
 }
@@ -389,10 +389,10 @@ void NamedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     auto it = ctx.blocks_.find(name_) ;
     if ( it != ctx.blocks_.end() ) {
         TemplateEvalContext cctx(ctx) ;
-        cctx.data()["parent"] = Variant([&](const Variant &, TemplateEvalContext &cc) -> Variant {
+        cctx.data()["parent"] = Variant([&](const Variant &) -> Variant {
             string pp ;
             for( auto &&c: children_ ) {
-                c->eval(cc, pp) ;
+                c->eval(cctx, pp) ;
             }
             return Variant(pp) ;
         }) ;
@@ -504,7 +504,7 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
             string mapped_name ;
             if ( !mapMacro(*p_macro, mapped_name) ) continue ; // if not imported
 
-            auto macro_fn = [&ctx, p_macro](const Variant &args, TemplateEvalContext &) -> Variant {
+            auto macro_fn = [&ctx, p_macro](const Variant &args) -> Variant {
                 return p_macro->call(ctx, args) ;
 
 /*

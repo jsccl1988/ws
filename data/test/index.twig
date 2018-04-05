@@ -1,19 +1,9 @@
-{% extends 'layout' %}
-
-{% block content %}
-
 {% from 'forms' import input as input_field, textarea as ta %}
 
-{% set foo = 'foo<br />'%}
-
-{{ foo|e('html') -}}
-
-{% autoescape %}
-    {{ foo }}
-{% endautoescape %}
+{% set foo = 'foo'%}
 
 ------
-
+{{render('{{foo}}', context()) }}
 <dl> 
     <dt>Username</dt>
     <dd>{{ input_field('username') }}</dd>
@@ -28,4 +18,4 @@
         <p>{{ entry.body }}</p>
     {% endfor %}
 
-{% endblock %}
+{

@@ -29,6 +29,10 @@ struct TemplateEvalContext {
         return data_ ;
     }
 
+    const wspp::util::Variant::Object &data() const {
+        return data_ ;
+    }
+
     void addBlock(detail::NamedBlockNodePtr node) ;
 
     wspp::util::Variant::Object data_ ;

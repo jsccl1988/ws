@@ -35,7 +35,7 @@ public:
 
     using Object = std::map<std::string, Variant> ;
     using Array = std::vector<Variant> ;
-    using Function = std::function<Variant(const Variant &, twig::TemplateEvalContext &)> ;
+    using Function = std::function<Variant(const Variant &)> ;
 
     using signed_integer_t = int64_t ;
     using unsigned_integer_t = uint64_t ;
@@ -169,6 +169,17 @@ public:
     // Parse JSON string into Variant. May optionaly throw a JSONParseException or otherwise return a Null ;
     static Variant fromJSONString(const std::string &src, bool throw_exception = false) ;
     static Variant fromJSONFile(const std::string &path, bool throw_exception = false) ;
+
+
+    void append(const std::string &key, const Variant &val) {
+        if ( isObject() )
+            data_.o_.insert({key, val}) ;
+    }
+
+    void append(const Variant &val) {
+        if ( isArray() )
+            data_.a_.push_back(val) ;
+    }
 
     // check object type
 
@@ -313,6 +324,17 @@ public:
             return data_.f_ != 0 ;
         default:
             return false;
+        }
+    }
+
+    Object toObject() const {
+        switch (tag_)
+        {
+        case Type::Object:
+            return data_.o_ ;
+
+        default:
+            return Object();
         }
     }
 
@@ -558,9 +580,9 @@ public:
         return undefined_value ;
     }
 
-    Variant invoke(const Variant &args, twig::TemplateEvalContext &ctx) {
+    Variant invoke(const Variant &args) {
         if ( tag_ != Type::Function ) return undefined() ;
-        else return (data_.fp_)(args, ctx) ;
+        else return (data_.fp_)(args) ;
     }
 
 private:

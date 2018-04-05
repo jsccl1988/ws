@@ -63,6 +63,7 @@ using namespace std ;
   "in"          return TOKEN(T_IN);
   "is"          return TOKEN(T_IS);
   "matches"     return TOKEN(T_MATCHES);
+
   "autoescape"  return TOKEN(T_AUTOESCAPE);
   "endautoescape"  return TOKEN(T_END_AUTOESCAPE);
   "%}"          { BEGIN(INITIAL) ;  return TOKEN(T_END_BLOCK_TAG) ; }
@@ -86,6 +87,7 @@ using namespace std ;
 "true"  return TOKEN(T_TRUE);
 "false" return TOKEN(T_FALSE);
 "null"  return TOKEN(T_NULL);
+"context"     return TOKEN(T_CONTEXT);
 
 "="     return TOKEN(T_ASSIGN) ;
 "=="    return TOKEN(T_EQUAL) ;
@@ -139,9 +141,6 @@ using namespace std ;
 "#"[^\n]*\n { yylloc->step();}
 
 "/*" { BEGIN(COMMENT); }
-
-
-
 }
 
 <SUBS>{
