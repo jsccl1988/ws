@@ -354,10 +354,10 @@ Variant TernaryExpressionNode::eval(TemplateEvalContext &ctx)
 void AssignmentBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 {
     Variant val = val_->eval(ctx) ;
-    TemplateEvalContext ectx(ctx) ;
-    ectx.data()[id_] = val ;
-    for( auto &&c: children_ )
-        c->eval(ectx, res) ;
+//    TemplateEvalContext ectx(ctx) ;
+    ctx.data()[id_] = val ;
+//    for( auto &&c: children_ )
+//        c->eval(ectx, res) ;
 }
 
 void FilterBlockNode::eval(TemplateEvalContext &ctx, string &res) const

@@ -260,6 +260,21 @@ static Variant _render(const Variant &args, TemplateEvalContext &ctx) {
     return Variant(ctx.rdr_.renderString(tmpl, ctx.data()), true) ;
 }
 
+static Variant _form_start(const Variant &args, TemplateEvalContext &ctx) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "template" }, unpacked) ;
+
+    return Variant::undefined();
+}
+
+static Variant _form_end(const Variant &args, TemplateEvalContext &ctx) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "template" }, unpacked) ;
+
+    return Variant::undefined();
+}
+
+
 FunctionFactory::FunctionFactory() {
     registerFunction("join", _join);
     registerFunction("lower", _lower);
@@ -277,6 +292,9 @@ FunctionFactory::FunctionFactory() {
     registerFunction("raw", _raw);
     registerFunction("safe", _raw);
     registerFunction("batch", _batch);
+
+    registerFunction("form_start", _form_start);
+    registerFunction("form_end", _form_end);
 }
 
 bool FunctionFactory::hasFunction(const string &name)

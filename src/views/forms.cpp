@@ -167,16 +167,28 @@ void Form::addField(const FormField::Ptr &field) {
 
 Variant::Object Form::view() const
 {
-    Variant::Object form_data ;
+
+    Variant::Object form ;
+    if ( !enctype_.empty() )
+        form.insert({"enctype", enctype_}) ;
+    if ( !action_.empty() )
+        form.insert({"action", action_}) ;
+    if ( !method_.empty() )
+        form.insert({"method", method_}) ;
+
+    form.insert({"button", Variant::Object{{"name", button_name_}, {"title", button_title_}}}) ;
+
+    // form global errors
 
     if ( !errors_.empty() ) {
         Variant::Array errors ;
         for( const string &msg: errors_ )
-            errors.emplace_back(Variant::Object{{"message", msg}}) ;
-        form_data.insert({"global_errors", errors}) ;
+            errors.emplace_back(msg) ;
+        form.insert({"errors", errors}) ;
     }
 
-    Variant::Array field_data_list ;
+    // form fields
+
     for( const auto &p: fields_ ) {
         Variant::Object field_data ;
         p->fillData(field_data) ;
@@ -185,24 +197,21 @@ Variant::Object Form::view() const
         else if ( !p->initial_value_.empty() )
             field_data.insert({"value", p->initial_value_}) ;
 
-        field_data_list.push_back(field_data) ;
+        form.insert({p->name_, field_data}) ;
     }
 
-    form_data.insert({"fields", field_data_list}) ;
 
-    return form_data ;
+    return form ;
 }
 
 Variant::Object Form::errors() const
 {
     Variant::Object e ;
 
-    e.insert({"global_errors", Variant::fromVector(errors_)}) ;
-    Variant::Object fe ;
+    e.insert({"errors", Variant::fromVector(errors_)}) ;
     for( const auto &f: fields_ ) {
-        fe.insert({f->name_, Variant::fromVector(f->error_messages_)}) ;
+        e.insert({f->name_, Variant::fromVector(f->error_messages_)}) ;
     }
-    e.insert({"field_errors", fe}) ;
 
     return e ;
 }
@@ -216,19 +225,8 @@ string Form::getValue(const string &field_name)
 
 std::string Form::render(TemplateRenderer &e) {
 
-    Variant::Object form ;
-    if ( !enctype_.empty() )
-        form.insert({"enctype", enctype_}) ;
-    if ( !action_.empty() )
-        form.insert({"action", action_}) ;
-    if ( !method_.empty() )
-        form.insert({"method", method_}) ;
 
-    form.insert({"button", Variant::Object{{"name", button_name_}, {"title", button_title_}}}) ;
-
-    form.insert({"data", view()}) ;
-
-    return e.render(form_template_, form) ;
+    return e.render(form_template_, view()) ;
 }
 
 void Form::handle(const Request &request, Response &response, TemplateRenderer &engine)

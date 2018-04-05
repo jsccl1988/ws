@@ -62,7 +62,11 @@ int main(int argc, char *argv[]) {
 
     LoginForm form ;
 
-    cout << rdr.render("form", form.view()) << endl ;
+    form.setMethod("POST");
+
+    cout << Variant(Variant::Object{{ "form", form.view() }}).toJSON() << endl ;
+
+    cout << rdr.render("myform", {{ "form", form.view() }}) << endl ;
 
 
 }

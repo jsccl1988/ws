@@ -292,7 +292,7 @@ set_declaration:
     T_SET T_IDENTIFIER T_ASSIGN expression  {
         auto node = make_shared<AssignmentBlockNode>($2, $4) ;
         driver.addNode(node) ;
-        driver.pushBlock(node);
+/*        driver.pushBlock(node);*/
    }
 
 end_set_declaration:
