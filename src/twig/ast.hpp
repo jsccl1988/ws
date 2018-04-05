@@ -440,7 +440,7 @@ public:
 
     Variant call(TemplateEvalContext &ctx, const Variant &args) ;
 
-    void mapArguments(TemplateEvalContext &caller, const Variant &args, Variant::Object &ctx, Variant::Array &arg_list) ;
+    void mapArguments(const Variant &args, Variant::Object &ctx) ;
 
     std::string tagName() const override { return "macro" ; }
 

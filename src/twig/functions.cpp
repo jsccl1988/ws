@@ -221,7 +221,7 @@ static Variant _batch(const Variant &args) {
 
     int len = unpacked[0].length() ;
     int size = ceil(unpacked[1].toFloat()) ;
-    int batches = ceil(unpacked[0].length()/(float)size) ;
+    int batches = ceil(len/(float)size) ;
 
     if ( size <= 0 )
         throw TemplateRuntimeException("batch filter size parameter should be a positive integer") ;
