@@ -54,7 +54,7 @@ void TwigParser::popBlock(const char *start_block_name) {
         } else if ( !(*it)->shouldClose() ) {
             ++it ; stack_.pop_back() ;
         }
-        else throw TemplateCompileException("unmatched tag: " + (*it)->tagName()) ;
+        else throw TemplateCompileException(str(boost::format("%s: unmatched tag (%s)") % script_ % (*it)->tagName())) ;
     }
 
 }

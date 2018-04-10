@@ -12,34 +12,14 @@ using namespace wspp::twig ;
 
 namespace wspp { namespace web {
 
-
-string FormField::getAlias() const
-{
-    if ( !alias_.empty() ) return alias_ ;
-    else if ( !label_.empty() ) {
-        return boost::to_lower_copy(label_) ;
-    }
-    else
-        return boost::to_lower_copy(name_) ;
-}
-
 void FormField::fillData(Variant::Object &res) const {
 
-    if ( !label_.empty() ) res.insert({"label", label_}) ;
     if ( !name_.empty() ) res.insert({"name", name_}) ;
 
     if ( !value_.empty() ) res.insert({"value", value_}) ;
     else if ( !initial_value_.empty() ) res.insert({"value", initial_value_}) ;
 
-    res.insert({"id", id_}) ;
-
-    if ( !place_holder_.empty() ) res.insert({"placeholder", place_holder_}) ;
-    if ( !help_text_.empty() ) res.insert({"help_text", help_text_}) ;
-    res.insert({"required", required_}) ;
-    res.insert({"disabled", disabled_}) ;
-   // if ( !extra_classes_.empty() ) res.insert({"extra_classes", extra_classes_}) ;
-    if ( !attrs_.empty() ) res.insert({"attrs", Variant::fromDictionary(attrs_)}) ;
-    if ( !error_messages_.empty() ) res.insert({"errors", Variant::fromVector(error_messages_)}) ;
+    if ( !errors_.empty() ) res.insert({"errors", Variant::fromVector(errors_)}) ;
 }
 
 bool FormField::validate(const string &value)
@@ -66,26 +46,26 @@ bool FormField::validate(const string &value)
     is_valid_ = true ;
     return true ;
 }
-
+#if 0
 void InputField::fillData(Variant::Object &base) const
 {
-    FormField::fillData(base) ;
+    FormHandlerField::fillData(base) ;
     base.insert({"type", type_}) ;
     base.insert({"widget", "input-field"}) ;
 }
 
-FileUploadField::FileUploadField(const string &name): FormField(name) {}
+FileUploadField::FileUploadField(const string &name): FormHandlerField(name) {}
 
 void FileUploadField::fillData(Variant::Object &base) const {
-    FormField::fillData(base) ;
+    FormHandlerField::fillData(base) ;
     base.insert({"type", "file"}) ;
     base.insert({"widget", "file-upload-field"}) ;
     if ( max_file_size_ ) base.insert({"max_file_size", max_file_size_}) ;
     if ( !accept_.empty() ) base.insert({"accept", accept_}) ;
 }
 
-SelectField::SelectField(const string &name, std::shared_ptr<OptionsModel> options, bool multi): FormField(name), options_(options), multiple_(multi) {
-    addValidator([&](const string &val, const FormField &) {
+SelectField::SelectField(const string &name, std::shared_ptr<OptionsModel> options, bool multi): FormHandlerField(name), options_(options), multiple_(multi) {
+    addValidator([&](const string &val, const FormHandlerField &) {
         Dictionary options = options_->fetch() ;
         if ( multiple_ ) {
             boost::char_separator<char> sep(" ");
@@ -93,13 +73,13 @@ SelectField::SelectField(const string &name, std::shared_ptr<OptionsModel> optio
 
             for( const string &s: tokens ) {
                 if ( !options.contains(s) ) {
-                    throw FormFieldValidationError("Supplied value: " + val + " is not in option list") ;
+                    throw FormHandlerFieldValidationError("Supplied value: " + val + " is not in option list") ;
                 }
             }
         }
         else {
             if ( !options.contains(val) ) {
-                throw FormFieldValidationError("Supplied value: " + val + " is not in option list") ;
+                throw FormHandlerFieldValidationError("Supplied value: " + val + " is not in option list") ;
             }
         }
     }) ;
@@ -108,7 +88,7 @@ SelectField::SelectField(const string &name, std::shared_ptr<OptionsModel> optio
 
 void SelectField::fillData(Variant::Object &base) const
 {
-    FormField::fillData(base) ;
+    FormHandlerField::fillData(base) ;
     base.insert({"multiselect", multiple_}) ;
     base.insert({"widget", "select-field"}) ;
     if ( options_ ) {
@@ -122,12 +102,12 @@ void SelectField::fillData(Variant::Object &base) const
 }
 
 
-CheckBoxField::CheckBoxField(const string &name, bool is_checked): FormField(name), is_checked_(is_checked) {
+CheckBoxField::CheckBoxField(const string &name, bool is_checked): FormHandlerField(name), is_checked_(is_checked) {
 
 }
 
 void CheckBoxField::fillData(Variant::Object &res) const {
-    FormField::fillData(res) ;
+    FormHandlerField::fillData(res) ;
     if ( is_checked_ ) res.insert({"checked", "checked"}) ;
     res.insert({"template", "checkbox"}) ;
     res.insert({"widget", "checkbox-field"}) ;
@@ -154,31 +134,23 @@ CSRFField::CSRFField(const string &name,  Session &session): InputField(name, "h
 }
 */
 
+#endif
+FormHandler::FormHandler() {}
 
-Form::Form() {}
-
-void Form::addField(const FormField::Ptr &field) {
+void FormHandler::addField(const FormField::Ptr &field) {
  //   field->id(field_prefix_ + field->name_ + field_suffix_) ;
-    field->count_ = fields_.size() ;
+ //   field->count_ = fields_.size() ;
     fields_.push_back(field) ;
-    field_map_.insert({field->name_, field}) ;
+    field_map_.insert({field->getName(), field}) ;
 }
 
 
-Variant::Object Form::view() const
+Variant::Object FormHandler::view() const
 {
 
     Variant::Object form ;
-    if ( !enctype_.empty() )
-        form.insert({"enctype", enctype_}) ;
-    if ( !action_.empty() )
-        form.insert({"action", action_}) ;
-    if ( !method_.empty() )
-        form.insert({"method", method_}) ;
 
-    form.insert({"button", Variant::Object{{"name", button_name_}, {"title", button_title_}}}) ;
-
-    // form global errors
+    // FormHandler global errors
 
     if ( !errors_.empty() ) {
         Variant::Array errors ;
@@ -187,7 +159,7 @@ Variant::Object Form::view() const
         form.insert({"errors", errors}) ;
     }
 
-    // form fields
+    // FormHandler fields
 
     Variant::Object fields ;
 
@@ -199,7 +171,6 @@ Variant::Object Form::view() const
         else if ( !p->initial_value_.empty() )
             field_data.insert({"value", p->initial_value_}) ;
 
-
         fields.insert({p->name_, field_data}) ;
     }
 
@@ -208,32 +179,28 @@ Variant::Object Form::view() const
     return form ;
 }
 
-Variant::Object Form::errors() const
+Variant::Object FormHandler::errors() const
 {
-    Variant::Object e ;
+    Variant::Object e, fields ;
 
-    e.insert({"errors", Variant::fromVector(errors_)}) ;
+    e.insert({"global_errors", Variant::fromVector(errors_)}) ;
     for( const auto &f: fields_ ) {
-        e.insert({f->name_, Variant::fromVector(f->error_messages_)}) ;
+        fields.insert({f->name_, Variant::fromVector(f->errors_)}) ;
     }
+    e.insert({"field_errors", fields}) ;
 
     return e ;
 }
 
-string Form::getValue(const string &field_name)
+string FormHandler::getValue(const string &field_name)
 {
     const auto &it = field_map_.find(field_name) ;
     assert ( it != field_map_.end() ) ;
     return it->second->value_ ;
 }
 
-std::string Form::render(TemplateRenderer &e) {
 
-
-    return e.render(form_template_, view()) ;
-}
-
-void Form::handle(const Request &request, Response &response, TemplateRenderer &engine)
+void FormHandler::handle(const Request &request, Response &response, TemplateRenderer &engine)
 {
     if ( request.method_ == "POST" ) {
 
@@ -244,16 +211,16 @@ void Form::handle(const Request &request, Response &response, TemplateRenderer &
             response.writeJSONVariant(Variant::Object{{"success", true}}) ;
         }
         else {
-            response.writeJSONVariant(Variant::Object{{"success", false}, {"content", render(engine) }});
+            response.writeJSONVariant(Variant::Object{{"success", false}, {"errors", errors() }});
         }
     }
     else {
         onGet(request) ;
-        response.write(render(engine)) ;
+        response.writeJSONVariant(Variant::Object{{"result", view() }});
     }
 }
 
-bool Form::validate(const Request &req) {
+bool FormHandler::validate(const Request &req) {
     bool failed = false ;
 
     // validate POST params
@@ -282,7 +249,7 @@ bool Form::validate(const Request &req) {
     return is_valid_ ;
 }
 
-void Form::init(const Dictionary &vals) {
+void FormHandler::init(const Dictionary &vals) {
     for( const auto &p: vals ) {
         auto it = field_map_.find(p.first) ;
         if ( it != field_map_.end() ) {

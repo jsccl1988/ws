@@ -12,13 +12,13 @@ using namespace wspp::web ;
 using namespace wspp::server ;
 using namespace wspp::db ;
 
-class WaypointUpdateForm: public wspp::web::Form {
+class WaypointUpdateForm: public wspp::web::FormHandler {
 public:
     WaypointUpdateForm(RouteModel &routes, const std::string &route_id): routes_(routes), route_id_(route_id) {
-        field<InputField>("name", "text").label("Name").required()
+        field("name").alias("Name")
             .addValidator<NonEmptyValidator>() ;
 
-        field<InputField>("desc", "text").label("Description") ;
+        field("desc").alias("Description") ;
     }
 
     void onSuccess(const wspp::server::Request &request) override {

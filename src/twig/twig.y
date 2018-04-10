@@ -87,6 +87,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_FILTER         "filter"
 %token T_END_FILTER     "endfilter"
 %token T_EXTENDS        "extends"
+%token T_END_EXTENDS        "endextends"
 %token T_EMBED          "embed"
 %token T_END_EMBED      "endembed"
 %token T_MACRO          "macro"
@@ -136,7 +137,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %type <wspp::twig::detail::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
 %type <wspp::twig::detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
 %type <wspp::twig::detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
-%type <wspp::twig::detail::ContentNodePtr> extends_declaration macro_declaration end_macro_declaration import_declaration
+%type <wspp::twig::detail::ContentNodePtr> extends_declaration end_extends_declaration macro_declaration end_macro_declaration import_declaration
 %type <wspp::twig::detail::ContentNodePtr> include_declaration with_declaration end_with_declaration auto_escape_declaration end_auto_escape_declaration
 %type <bool> ignore_missing_flag only_flag
 %type <wspp::twig::detail::key_alias_list_t> import_list
@@ -225,6 +226,7 @@ tag_declaration:
    | filter_declaration         { $$ = $1 ; }
    | end_filter_declaration     { $$ = $1 ; }
    | extends_declaration        { $$ = $1 ; }
+   | end_extends_declaration    { $$ = $1 ; }
    | macro_declaration          { $$ = $1 ; }
    | end_macro_declaration      { $$ = $1 ; }
    | import_declaration         { $$ = $1 ; }
@@ -330,6 +332,9 @@ extends_declaration:
             driver.addNode(node) ;
             driver.pushBlock(node);
        }
+
+end_extends_declaration:
+           T_END_EXTENDS { driver.popBlock("extends") ; }
 
 macro_declaration:
     T_MACRO T_IDENTIFIER T_LPAR identifier_list T_RPAR  {

@@ -13,7 +13,7 @@ using namespace wspp::web ;
 using namespace wspp::server ;
 using namespace wspp::db ;
 
-class UserModifyForm: public wspp::web::Form {
+class UserModifyForm: public wspp::web::FormHandler {
 public:
     UserModifyForm(User &user, const string &id ) ;
 
@@ -31,7 +31,7 @@ private:
     string id_ ;
 };
 
-class UserCreateForm: public wspp::web::Form {
+class UserCreateForm: public wspp::web::FormHandler {
 public:
     UserCreateForm(User &user) ;
 
@@ -49,7 +49,7 @@ private:
 
 UserCreateForm::UserCreateForm(User &auth): user_(auth) {
 
-    field<InputField>("username", "text").required().label("Username")
+    field("username").alias("Username")
         .setNormalizer([&] (const string &val) {
             return User::sanitizeUserName(val) ;
         })
@@ -59,14 +59,14 @@ UserCreateForm::UserCreateForm(User &auth): user_(auth) {
                 throw FormFieldValidationError("username already exists") ;
         }) ;
 
-    InputField &password_field =  field<InputField>("password", "password") ;
-    password_field.required().label("Password")
+    FormField &password_field =  field("password") ;
+    password_field.alias("Password")
         .setNormalizer([] (const string &val) {
             return User::sanitizePassword(val) ;
         })
         .addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("cpassword", "password").required().label("Confirm Password")
+    field("cpassword")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
@@ -76,20 +76,20 @@ UserCreateForm::UserCreateForm(User &auth): user_(auth) {
         });
 
 
-    field<SelectField>("role", std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
-    .required().label("Role") ;
+  //  field("role", std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
+   // .required().label("Role") ;
 }
 
 UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(id) {
 
-    InputField &password_field =  field<InputField>("password", "password") ;
-    password_field.required().label("New Password")
+    FormField &password_field =  field("password") ;
+    password_field.alias("New Password")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
         .addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("password", "password").required().label("Confirm Password")
+    field("cpassword").alias("Confirm Password")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
@@ -98,8 +98,7 @@ UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(i
                 throw FormFieldValidationError("Passwords don't match") ;
         }) ;
 
-    field<SelectField>("role", std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
-    .required().label("Role") ;
+    field("role").alias("Role") ;//, std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
 }
 
 

@@ -20,12 +20,15 @@ AttachmentCreateForm::AttachmentCreateForm(const Request &req, RouteModel &route
                                            const string &upload_folder):
     request_(req), routes_(routes), upload_folder_(upload_folder), route_id_(route_id) {
 
-    field<SelectField>("type", std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
+    field("type").alias("Type") ;
+
+    /*, std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
     .required().label("Type") ;
+*/
 
     const size_t max_attachment_file_size = 5 * 1024 * 1024;
 
-    field<FileUploadField>("attachment-file").maxFileSize(max_attachment_file_size).label("Attachment").required()
+    field("attachment-file").alias("Attachment") //.maxFileSize(max_attachment_file_size).label("Attachment").required()
         .addValidator([&] (const string &val, const FormField &f) {
             auto it = request_.FILE_.find("attachment-file") ;
             if ( it == request_.FILE_.end() )
@@ -44,11 +47,10 @@ void AttachmentCreateForm::onSuccess(const Request &request)
 AttachmentUpdateForm::AttachmentUpdateForm(RouteModel &routes, const string &route_id):
     route_id_(route_id), routes_(routes) {
 
-    field<InputField>("name", "text").label("Name").required()
+    field("name").alias("Name")
         .addValidator<NonEmptyValidator>() ;
 
-    field<SelectField>("type", std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
-            .required().label("Type") ;
+    field("type").alias("Type") ;//, std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
 }
 
 void AttachmentUpdateForm::onSuccess(const Request &request) {

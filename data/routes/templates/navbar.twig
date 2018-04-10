@@ -42,5 +42,16 @@
                   </ul>
         </div>
 </nav>
- 
- <div id="login-modal"></div>
+
+{% with { id: "login-modal", title: "Login" } %}
+{% extends 'modal' %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.input('username', type='text', label='Username', required = true) }}
+{{ forms.input('password', type='password', label='Password', required = true) }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endextends %}
+{% endwith %}

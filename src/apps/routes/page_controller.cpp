@@ -14,11 +14,9 @@ using namespace wspp::db ;
 
 PageCreateForm::PageCreateForm(Connection &con): con_(con) {
 
-    field<InputField>("title", "text").label("Title").required()
-        .addValidator<NonEmptyValidator>() ;
+    field("title").alias("Title").addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("slug", "text").label("Slug").required()
-        .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
+    field("slug").alias("Slug").addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
         .addValidator([&] (const string &val, const FormField &f) {
 
             bool error = con_.query("SELECT count(*) FROM pages WHERE permalink = ?", val).getOne()[0].as<int>() ;
@@ -35,10 +33,9 @@ void PageCreateForm::onSuccess(const Request &request) {
 
 
 PageUpdateForm::PageUpdateForm(Connection &con, const string &id): con_(con), id_(id) {
-    field<InputField>("title", "text").label("Title").required()
-        .addValidator<NonEmptyValidator>() ;
+    field("title").alias("Title").addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("slug", "text").label("Slug").required()
+    field("slug").alias("Slug")
         .addValidator<RegexValidator>(boost::regex("[a-z0-9]+(?:-[a-z0-9]+)*"), "{field} can only contain alphanumeric words delimited by - ")
         .addValidator([&] (const string &val, const FormField &f) {
 

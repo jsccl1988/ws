@@ -13,7 +13,7 @@
 		<table class="table table-striped table-bordered table-list">
 			<thead>
 				 <tr>
-					 {% for h in headers %}
+				 {% for h in headers %}
 	    			    <th class="col-{{h.id}}">{{h.name}}</th>
 	    			 {% endfor %}   
 	    			 <th class="col-action-buttons" align="center"><em class="fa fa-cog"></em></th>
@@ -26,7 +26,7 @@
 					
 					{% with row.data %}
 					{% for h in headers %}
-						<td>{{ render(h.widget) }}</td>	
+						<td>{{ render(h.widget, context()) }}</td>	
 					{% endfor %}		
 					{% endwith %}
 						<td align="center" style="width: 100px;">

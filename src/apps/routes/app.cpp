@@ -106,6 +106,11 @@ public:
             return engine_.renderString(i18n::instance().trans(unpacked[0].toString()),unpacked[1].toObject() ) ;
         }) ;
 
+        FunctionFactory::instance().registerFunction("render", [&](const Variant &args) -> Variant {
+            Variant::Array unpacked ;
+            unpack_args(args, { "str", "context" }, unpacked) ;
+            return Variant(engine_.renderString(unpacked[0].toString(), unpacked[1].toObject() ), true) ;
+        }) ;
 
     }
 
@@ -173,7 +178,7 @@ int main(int argc, char *argv[]) {
     i18n::instance().addDomain("messages") ;
     i18n::instance().addPath(".") ;
 
-    Server server("vision.iti.gr", "5000") ;
+    Server server("127.0.0.1", "5000") ;
   //  Server server("127.0.0.1", "5000") ;
 
     FileSystemSessionHandler sh ;

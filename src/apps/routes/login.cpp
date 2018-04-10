@@ -17,7 +17,7 @@ using namespace wspp::util ;
 using namespace wspp::server ;
 using namespace wspp::web ;
 
-class LoginForm: public Form {
+class LoginForm: public FormHandler {
 public:
     LoginForm(User &auth) ;
 
@@ -32,25 +32,25 @@ private:
 
 LoginForm::LoginForm(User &auth): auth_(auth) {
 
-    field<InputField>("username", "text").required().label(_("Username"))
+    field("username").alias("Username")
         .setNormalizer([&] (const string &val) {
             return User::sanitizeUserName(val) ;
         })
         .addValidator<NonEmptyValidator>();
 
-    field<InputField>("password", "password").required().label(_("Password"))
+    field("password").alias("Password")
         .setNormalizer([&] (const string &val) {
             return User::sanitizePassword(val) ;
         })
         .addValidator<NonEmptyValidator>() ;
 
-    field<InputField>("csrf_token", "hidden").initial(auth_.token()) ;
+    field("csrf_token").initial(auth_.token()) ;
 
-    field<CheckBoxField>("remember-me").label(_("Remember Me:")) ;
+    field("remember-me").alias("Remember Me:") ;
 }
 
 bool LoginForm::validate(const Request &vals) {
-    if ( !Form::validate(vals) ) return false ;
+    if ( !FormHandler::validate(vals) ) return false ;
 
     if ( !hashCompare(getValue("csrf_token"), auth_.token()) )
         throw std::runtime_error("Security exception" ) ;
@@ -59,7 +59,7 @@ bool LoginForm::validate(const Request &vals) {
     string password = getValue("password") ;
 
     if ( !auth_.userNameExists(username) ) {
-        errors_.push_back(_("Username does not exist")) ;
+        errors_.push_back("Username does not exist") ;
         return false ;
     }
 
@@ -67,7 +67,7 @@ bool LoginForm::validate(const Request &vals) {
     auth_.load(username, user_id, stored_password, role) ;
 
     if ( !auth_.verifyPassword(password, stored_password) ) {
-        errors_.push_back(_("Password mismatch")) ;
+        errors_.push_back("Password mismatch") ;
         return false ;
     }
 

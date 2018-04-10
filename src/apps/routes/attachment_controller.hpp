@@ -19,7 +19,7 @@ using wspp::server::Session ;
 using std::string ;
 using wspp::twig::TemplateRenderer ;
 
-class AttachmentCreateForm: public wspp::web::Form {
+class AttachmentCreateForm: public wspp::web::FormHandler {
 public:
     AttachmentCreateForm(const Request &req, RouteModel &routes, const std::string &route_id, const string &upload_folder) ;
 
@@ -32,7 +32,7 @@ private:
     const string route_id_ ;
 };
 
-class AttachmentUpdateForm: public wspp::web::Form {
+class AttachmentUpdateForm: public wspp::web::FormHandler {
 public:
     AttachmentUpdateForm(RouteModel &routes, const string &route_id) ;
 

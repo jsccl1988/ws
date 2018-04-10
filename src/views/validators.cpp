@@ -95,6 +95,12 @@ void RegexValidator::validate(const std::string &val, const FormField &field) co
     }
 }
 
+void SelectionValidator::validate(const std::string &val, const FormField &field) const
+{
+    if ( std::find(keys_.begin(), keys_.end(), val) == keys_.end() )
+        throw FormFieldValidationError( FormFieldValidator::interpolateMessage(msg_, val, field) ) ;
+}
+
 
 }
 }

@@ -46,6 +46,7 @@ using namespace std ;
   "filter"      return TOKEN(T_FILTER) ;
   "endfilter"   return TOKEN(T_END_FILTER) ;
   "extends"     return TOKEN(T_EXTENDS) ;
+  "endextends"  return TOKEN(T_END_EXTENDS) ;
   "embed"       return TOKEN(T_EMBED) ;
   "endembed"    return TOKEN(T_END_EMBED) ;
   "macro"       return TOKEN(T_MACRO) ;

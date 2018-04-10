@@ -15,13 +15,12 @@ using namespace wspp::server ;
 
 RouteCreateForm::RouteCreateForm(const Request &req, RouteModel &routes): request_(req), routes_(routes) {
 
-    field<InputField>("title", "text").label("Title").required()
+    field("title").alias("Title")
         .addValidator<NonEmptyValidator>() ;
 
-    field<SelectField>("mountain", std::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
-    .required().label("Mountain") ;
+    field("mountain").alias("Mountain").addValidator<SelectionValidator>(routes_.getMountainsDict().keys()) ;
 
-    field<FileUploadField>("gpx-file").label("GPX file").required()
+    field("gpx-file").alias("GPX file")
         .addValidator([&] (const string &val, const FormField &f) {
 
             auto it = request_.FILE_.find("gpx-file") ;
@@ -42,11 +41,10 @@ void RouteCreateForm::onSuccess(const Request &request) {
 
 RouteUpdateForm::RouteUpdateForm(Connection &con, RouteModel &routes): con_(con), routes_(routes) {
 
-    field<InputField>("title", "text").label("Title").required()
+    field("title").alias("Title")
         .addValidator<NonEmptyValidator>() ;
 
-    field<SelectField>("mountain", std::make_shared<DictionaryOptionsModel>(routes_.getMountainsDict()))
-    .required().label("Mountain") ;
+    field("mountain").alias("Mountain").addValidator<SelectionValidator>(routes_.getMountainsDict().keys()) ;
 }
 
 void RouteUpdateForm::onSuccess(const Request &request) {
@@ -102,7 +100,8 @@ void RouteController::query() {
 void RouteController::edit()
 {
     Variant::Object ctx{
-        { "page", page_.data("edit_routes", "Edit routes") }
+        { "page", page_.data("edit_routes", "Edit routes") },
+        { "mountains", Variant::fromDictionary(routes_.getMountainsDict()) }
     } ;
 
     response_.write(engine_.render("routes-edit", ctx)) ;

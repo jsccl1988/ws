@@ -106,6 +106,19 @@ private:
     const static std::string validation_msg_ ;
 };
 
+class SelectionValidator: public FormFieldValidator {
+public:
+
+    SelectionValidator(const std::vector<std::string> &keys, const std::string &msg = std::string()): keys_(keys), msg_(msg) {}
+
+    virtual void validate(const std::string &val, const FormField &field) const override ;
+protected:
+    std::vector<std::string> keys_ ;
+    std::string msg_ ;
+private:
+    const static std::string validation_msg_ ;
+};
+
 }
 }
 

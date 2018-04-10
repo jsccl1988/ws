@@ -10,9 +10,7 @@
     	var item = this ;
     	
     	var table = $('<div id="grid"></div>').appendTo(item) ;
-    	$('<div id="create-form"></div>').appendTo(item).formModal('create', {title: 'New Record'}) ;
-    	$('<div id="edit-form"></div>').appendTo(item).formModal('create', {title: 'Edit Record'}) ;
-    	
+
     	function onNewRecord() 	{
     		item.find('#create-form').formModal('show', {url: options.addUrl, onSuccess: function() { reload() ; }}) ;
 		} ;

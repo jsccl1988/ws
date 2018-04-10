@@ -18,8 +18,6 @@
 					$(this).removeClass("has-error has-feedback") ;
 					$('#errors', this).remove() ;
 				}) ;
-				
-			
 			}
 			
 			form.submit(function(e) {
@@ -27,16 +25,20 @@
 				for ( var key in params.data ) {
     				form_data.append(key, params.data[key]);
 				}	
+				e.preventDefault() ;
 
 				$.ajax({
 					type: "POST",
 					dataType: "json",
 					url: params.url,
 					processData: false,
-				    contentType: false,
+				    	contentType: false,
 //					data: form.serialize(), // serializes the form's elements.
 					data: form_data,
-					success: function(data)	{
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.log(jqXHR.status);
+                    },
+                    success: function(data)	{
 						if ( data.success ) 
 							params.onSuccess() ;
 						else {
@@ -44,15 +46,16 @@
 								form.html(data.content) ;
 							else { // render errors	only
 								clearErrors() ;
-								if ( data.errors['global-errors'].length > 0 ) {
+								var errors = data.errors ;
+								if ( errors.global_errors.length > 0 ) {
 									var et = $('<div id="global-errors" class="alert alert-danger"><a class="close" data-dismiss="alert">&times;</a></div>') ;
 									et.prependTo(form);
-									for( item in data.errors['global-errors'] ) {
-										et.append('<p>' + data.errors['global-errors'][item] + '</p>') ;
+									for( item in errors.global_errors ) {
+										et.append('<p>' + errors.global_errors[item] + '</p>') ;
     	    						}
 								}
-								for( key in data.errors['field-errors'] ) {
-									var error_list = data.errors['field-errors'][key] ;
+								for( key in errors.field_errors ) {
+									var error_list = errors.field_errors[key] ;
 									if ( error_list.length > 0 ) {
 										var et = $('.form-group [name=' + key + ']', form).parent() ;
 										et.addClass("has-error has-feedback") ;
@@ -73,7 +76,7 @@
 					} 
 				});
 								
-				e.preventDefault() ;
+				
 			}) ;
 			
 	
@@ -81,9 +84,7 @@
 		
 		return this ;
 	};
-	
-	var bs_modal_html='<div class="modal-dialog"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title"></h4></div><div class="modal-body"></div></div></div>' ;
-	
+
 	$.fn.formModal = function(cmd, params) { 
 	
 		var defaults = { onSuccess: function () {}, data: {} } ;
@@ -94,28 +95,20 @@
 		function load() {
 	
 			var content = that.find('.modal-body') ;
-			 $(content).load(params.url + '?' + $.param(params.data),
-				function(response, status, xhr) {
-					    
-				var form = content.form({ 
-					url: params.url,
-					data: params.data,
-					onSuccess: function() {
-						params.onSuccess() ;
-						that.modal('hide') ;
-					}
-				}) ; 
-				that.modal('show') ;
-			}) ;
+            var form = content.form({
+                url: params.url,
+                data: params.data,
+                onSuccess: function() {
+                    params.onSuccess() ;
+                    that.modal('hide') ;
+                }
+            }) ;
+            that.modal('show') ;
+			
 		} ;
 		
 		this.each(function() {
-			var that = $(this);
-			if ( cmd == 'create' ) {
-				that.addClass("modal fade").attr("role", "dialog") ;
-				that.append(bs_modal_html) ;
-				$('.modal-title', that).html(params.title) ;
-			} else if ( cmd == 'show' ) {
+            if ( cmd === 'show' ) {
 				load() ;
 			}	
 		});

@@ -20,7 +20,7 @@ using wspp::server::Session ;
 using std::string ;
 using wspp::twig::TemplateRenderer ;
 
-class RouteCreateForm: public wspp::web::Form {
+class RouteCreateForm: public wspp::web::FormHandler {
 public:
     RouteCreateForm(const Request &req, RouteModel &routes) ;
 
@@ -35,7 +35,7 @@ private:
     RouteModel &routes_ ;
 };
 
-class RouteUpdateForm: public wspp::web::Form {
+class RouteUpdateForm: public wspp::web::FormHandler {
 public:
     RouteUpdateForm(Connection &con, RouteModel &routes) ;
 

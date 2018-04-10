@@ -19,7 +19,7 @@ using wspp::server::Session ;
 using std::string ;
 using wspp::twig::TemplateRenderer ;
 
-class PageCreateForm: public wspp::web::Form {
+class PageCreateForm: public wspp::web::FormHandler {
 public:
     PageCreateForm(Connection &con) ;
 
@@ -29,7 +29,7 @@ private:
     Connection &con_ ;
 };
 
-class PageUpdateForm: public wspp::web::Form {
+class PageUpdateForm: public wspp::web::FormHandler {
 public:
     PageUpdateForm(Connection &con, const std::string &id) ;
 

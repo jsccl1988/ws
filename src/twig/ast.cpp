@@ -98,9 +98,6 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 }
 
 
-
-
-
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
     if ( FunctionFactory::instance().hasFunction(name_) ) {
@@ -376,9 +373,9 @@ Variant InvokeFunctionNode::eval(TemplateEvalContext &ctx)
     Variant args ;
     evalArgs(args_, args, ctx) ;
 
-    if ( f.type() == Variant::Type::Function ) {
+    if ( f.type() == Variant::Type::Function )
         return f.invoke(args) ;
-    } else
+    else
         throw TemplateRuntimeException("function invocation of non-callable variable") ;
 }
 
@@ -436,50 +433,7 @@ void MacroBlockNode::eval(TemplateEvalContext &, string &) const
 {
 
 }
-/*
- *
-void unpack_args(const Variant &args, const std::vector<std::string> &named_args, Variant::Array &res) {
 
-    uint n_args = named_args.size() ;
-
-    res.resize(n_args, Variant::undefined()) ;
-
-    std::vector<bool> provided(n_args, false) ;
-
-    const Variant &pos_args = args["args"] ;
-
-    for ( uint pos = 0 ; pos < n_args && pos < pos_args.length() ; pos ++ )  {
-        res[pos] = pos_args.at(pos) ;
-        provided[pos] = true ;
-    }
-
-    const Variant &kw_args = args["kw"] ;
-
-    for ( auto it = kw_args.begin() ; it != kw_args.end() ; ++it ) {
-        string key = it.key() ;
-        const Variant &val = it.value() ;
-
-        for( uint k=0 ; k<named_args.size() ; k++ ) {
-            const auto &named_arg = named_args[k] ;
-            string arg_name ;
-            if ( named_arg.back() == '?') arg_name = named_arg.substr(0, named_arg.length() - 1) ;
-            else arg_name = named_arg ;
-
-            if ( key == arg_name && !provided[k] ) {
-                res[k] = val ;
-                provided[k] = true ;
-            }
-        }
-    }
-
-
-    uint required = std::count_if(named_args.begin(), named_args.end(), [](const string &b) { return b.back() != '?' ;});
-
-    if ( std::count(provided.begin(), provided.end(), true) < required ) {
-        throw TemplateRuntimeException("function call missing required arguments") ;
-    }
-}
-*/
 // map passed arguments to context variables with the same name as macro parameters
 void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx)
 {
@@ -507,11 +461,15 @@ void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx)
                 ctx[arg_name] = val ;
         }
     }
+
+    // store arguments in context
+    ctx["_args_"] = pos_args ;
+    ctx["_kw_"] = kw_args ;
 }
 
 Variant MacroBlockNode::call(TemplateEvalContext &ctx, const Variant &args) {
 
-    TemplateEvalContext mctx(ctx) ;
+    TemplateEvalContext mctx(ctx.rdr_, {}) ;
 
     mapArguments(args, mctx.data()) ;
 
@@ -555,21 +513,6 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
             auto macro_fn = [&ctx, p_macro](const Variant &args) -> Variant {
                 return p_macro->call(ctx, args) ;
-
-/*
-                TemplateEvalContext mctx(ctx.rdr_, doc, ctx.data_) ;
-                Variant::Array arg_list ;
-                p_macro->mapArguments(ctx, args.at("args"), mctx.data(), arg_list) ;
-                mctx.data()["varargs"] = arg_list ;
-
-                string out ;
-
-                for( auto &&c: p_macro->children_ ) {
-                    c->eval(mctx, out) ;
-                }
-
-                return Variant(out, true) ; // macros should return safe strings
-                */
             };
 
             closures.insert({mapped_name, Variant::Function(macro_fn)}) ;
@@ -806,4 +749,4 @@ void TemplateEvalContext::addBlock(detail::NamedBlockNodePtr node) {
 }
 
 } // namespace twig
-               } // namespace wspp
+} // namespace wspp

@@ -11,8 +11,36 @@
 {% endblock %}
 
 {% block contents %}
-		<div id="routes-list-view">
-		</div>
+<div id="routes-list-view">
+
+{% with { id: "create-form", title: "Create New Route" } %}
+{% extends 'modal' %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.input('title', type='text', label='Title', required = true) }}
+{{ forms.select('mountain', mountains, label='Mountains', required = true) }}
+{{ forms.upload('gpx-file', label='GPX File', required = true) }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endextends %}
+{% endwith %}
+      
+{% with { id: "edit-form", title: "Update Route" } %}
+{% extends 'modal' %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.input('title', type='text', label='Title', required = true) }}
+{{ forms.select('mountain', mountains, label='Mountains', required = true) }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endextends %}
+{% endwith %}
+
+</div>
 {% endblock %}
 
 {% block extra_footers %}
