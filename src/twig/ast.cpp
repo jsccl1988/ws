@@ -28,7 +28,6 @@ Variant BooleanOperator::eval(TemplateEvalContext &ctx)
     }
 }
 
-
 static bool compare_numbers(int64_t lhs, int64_t rhs, ComparisonPredicate::Type op) {
     switch ( op ) {
     case ComparisonPredicate::Equal:
@@ -96,10 +95,6 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 
     return variant_compare(lhs, rhs, op_);
 }
-
-
-
-
 
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
@@ -176,7 +171,6 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     case '~':
         return op1.toString() + op2.toString() ;
     }
-
 }
 
 
@@ -188,9 +182,7 @@ Variant UnaryOperator::eval(TemplateEvalContext &ctx)
         return arithmetic(0, val, '-') ;
     }
     else return val ;
-
 }
-
 
 Variant ArrayNode::eval(TemplateEvalContext &ctx)
 {
@@ -327,7 +319,6 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
             children_[count]->eval(ctx, res) ;
         }
     }
-
 }
 
 void IfBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -436,50 +427,7 @@ void MacroBlockNode::eval(TemplateEvalContext &, string &) const
 {
 
 }
-/*
- *
-void unpack_args(const Variant &args, const std::vector<std::string> &named_args, Variant::Array &res) {
 
-    uint n_args = named_args.size() ;
-
-    res.resize(n_args, Variant::undefined()) ;
-
-    std::vector<bool> provided(n_args, false) ;
-
-    const Variant &pos_args = args["args"] ;
-
-    for ( uint pos = 0 ; pos < n_args && pos < pos_args.length() ; pos ++ )  {
-        res[pos] = pos_args.at(pos) ;
-        provided[pos] = true ;
-    }
-
-    const Variant &kw_args = args["kw"] ;
-
-    for ( auto it = kw_args.begin() ; it != kw_args.end() ; ++it ) {
-        string key = it.key() ;
-        const Variant &val = it.value() ;
-
-        for( uint k=0 ; k<named_args.size() ; k++ ) {
-            const auto &named_arg = named_args[k] ;
-            string arg_name ;
-            if ( named_arg.back() == '?') arg_name = named_arg.substr(0, named_arg.length() - 1) ;
-            else arg_name = named_arg ;
-
-            if ( key == arg_name && !provided[k] ) {
-                res[k] = val ;
-                provided[k] = true ;
-            }
-        }
-    }
-
-
-    uint required = std::count_if(named_args.begin(), named_args.end(), [](const string &b) { return b.back() != '?' ;});
-
-    if ( std::count(provided.begin(), provided.end(), true) < required ) {
-        throw TemplateRuntimeException("function call missing required arguments") ;
-    }
-}
-*/
 // map passed arguments to context variables with the same name as macro parameters
 void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx)
 {
@@ -555,21 +503,6 @@ void ImportBlockNode::eval(TemplateEvalContext &ctx, string &res) const
 
             auto macro_fn = [&ctx, p_macro](const Variant &args) -> Variant {
                 return p_macro->call(ctx, args) ;
-
-/*
-                TemplateEvalContext mctx(ctx.rdr_, doc, ctx.data_) ;
-                Variant::Array arg_list ;
-                p_macro->mapArguments(ctx, args.at("args"), mctx.data(), arg_list) ;
-                mctx.data()["varargs"] = arg_list ;
-
-                string out ;
-
-                for( auto &&c: p_macro->children_ ) {
-                    c->eval(mctx, out) ;
-                }
-
-                return Variant(out, true) ; // macros should return safe strings
-                */
             };
 
             closures.insert({mapped_name, Variant::Function(macro_fn)}) ;
@@ -795,6 +728,92 @@ void AutoEscapeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     cctx.escape_mode_ = mode_ ;
     for( auto &&c: children_ )
         c->eval(cctx, res) ;
+}
+
+void EmbedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    vector<string> templates ;
+    Variant source = source_->eval(ctx) ;
+
+    if ( source.isArray() ) {
+        for( auto &&e: source )
+            templates.emplace_back(e.toString()) ;
+    }
+    else
+        templates.emplace_back(source.toString()) ;
+
+    // try to load one of the templates
+
+    DocumentNodePtr doc ;
+
+    for( auto &&tmpl: templates ) {
+        try {
+            doc = ctx.rdr_.compile(tmpl) ;
+            break ;
+        }
+        catch ( TemplateLoadException & ) {
+
+        }
+        catch ( TemplateCompileException &e ) {
+            throw e ;
+        }
+
+    }
+
+    // check whether not found
+
+    if ( !doc ) {
+        if ( !ignore_missing_ ) // non found
+            throw TemplateRuntimeException("Failed to load included template: " + templates[0]) ;
+        else
+            return ;
+    }
+
+    // template is compiled so render it with the appropriate context
+
+    Variant::Object ctx_extension ;
+
+    // if there is a with statment we collect the variables
+
+    if ( with_ ) {
+        Variant with = with_->eval(ctx) ;
+        if ( with.isObject() ) {
+            for ( auto it = with.begin() ; it != with.end() ; ++it ) {
+                ctx_extension[it.key()] = it.value() ;
+            }
+        }
+    }
+
+    // create new context either inheriting parent one or empty and extend with key/values if any
+
+    if ( only_flag_ ) {
+        TemplateEvalContext cctx(ctx.rdr_, {}) ;
+        cctx.data().insert(ctx_extension.begin(), ctx_extension.end()) ;
+
+        for( auto &&c: children_ ) {
+            NamedBlockNodePtr block = std::dynamic_pointer_cast<NamedBlockNode>(c) ;
+            if ( block )
+                cctx.addBlock(block) ;
+        }
+
+        doc->eval(cctx, res) ;
+    } else {
+        TemplateEvalContext cctx(ctx) ;
+
+
+        for( auto &&e: ctx_extension )
+            cctx.data()[e.first] = e.second ;
+
+
+        for( auto &&c: children_ ) {
+            NamedBlockNodePtr block = std::dynamic_pointer_cast<NamedBlockNode>(c) ;
+            if ( block )
+                cctx.addBlock(block) ;
+        }
+
+        doc->eval(cctx, res) ;
+    }
+
 }
 
 
