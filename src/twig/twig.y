@@ -137,7 +137,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %type <wspp::twig::detail::ContentNodePtr> block_tag sub_tag tag_or_chars tag_declaration
 %type <wspp::twig::detail::ContentNodePtr> block_declaration end_block_declaration for_loop_declaration end_for_declaration else_declaration if_declaration
 %type <wspp::twig::detail::ContentNodePtr> else_if_declaration end_if_declaration set_declaration end_set_declaration filter_declaration end_filter_declaration
-%type <wspp::twig::detail::ContentNodePtr> extends_declaration end_extends_declaration macro_declaration end_macro_declaration import_declaration
+%type <wspp::twig::detail::ContentNodePtr> extends_declaration end_extends_declaration macro_declaration end_macro_declaration import_declaration embed_declaration end_embed_declaration
 %type <wspp::twig::detail::ContentNodePtr> include_declaration with_declaration end_with_declaration auto_escape_declaration end_auto_escape_declaration
 %type <bool> ignore_missing_flag only_flag
 %type <wspp::twig::detail::key_alias_list_t> import_list
@@ -231,6 +231,8 @@ tag_declaration:
    | end_macro_declaration      { $$ = $1 ; }
    | import_declaration         { $$ = $1 ; }
    | include_declaration        { $$ = $1 ; }
+   | embed_declaration          { $$ = $1 ; }
+   | end_embed_declaration      { $$ = $1 ; }
    | with_declaration           { $$ = $1 ; }
    | end_with_declaration       { $$ = $1 ; }
    | auto_escape_declaration           { $$ = $1 ; }
@@ -400,6 +402,18 @@ with_expression:
 only_flag:
     %empty { $$ = false ; }
     | T_ONLY { $$ = true ; }
+
+
+embed_declaration:
+        T_EMBED expression ignore_missing_flag with_expression only_flag {
+            auto node = make_shared<EmbedBlockNode>($2, $3, $4, $5) ;
+            driver.addNode(node) ;
+            driver.pushBlock(node) ;
+        }
+end_embed_declaration:
+            T_END_EMBED { driver.popBlock("embed") ; }
+
+
 
 with_declaration:
     T_WITH only_flag {

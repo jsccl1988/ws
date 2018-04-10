@@ -351,6 +351,18 @@ public:
     bool ignore_missing_, only_flag_ ;
 };
 
+class EmbedBlockNode: public ContainerNode {
+public:
+
+    EmbedBlockNode(ExpressionNodePtr source, bool ignore_missing, ExpressionNodePtr with_expr, bool only):
+        source_(source), ignore_missing_(ignore_missing), with_(with_expr), only_flag_(only) {}
+
+    void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+
+    ExpressionNodePtr source_, with_ ;
+    bool ignore_missing_, only_flag_ ;
+};
+
 class WithBlockNode: public ContainerNode {
 public:
 

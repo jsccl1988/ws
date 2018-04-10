@@ -28,7 +28,6 @@ Variant BooleanOperator::eval(TemplateEvalContext &ctx)
     }
 }
 
-
 static bool compare_numbers(int64_t lhs, int64_t rhs, ComparisonPredicate::Type op) {
     switch ( op ) {
     case ComparisonPredicate::Equal:
@@ -96,7 +95,6 @@ Variant ComparisonPredicate::eval(TemplateEvalContext &ctx)
 
     return variant_compare(lhs, rhs, op_);
 }
-
 
 Variant IdentifierNode::eval(TemplateEvalContext &ctx)
 {
@@ -173,7 +171,6 @@ Variant BinaryOperator::eval(TemplateEvalContext &ctx)
     case '~':
         return op1.toString() + op2.toString() ;
     }
-
 }
 
 
@@ -185,9 +182,7 @@ Variant UnaryOperator::eval(TemplateEvalContext &ctx)
         return arithmetic(0, val, '-') ;
     }
     else return val ;
-
 }
-
 
 Variant ArrayNode::eval(TemplateEvalContext &ctx)
 {
@@ -324,7 +319,6 @@ void ForLoopBlockNode::eval(TemplateEvalContext &ctx, string &res) const
             children_[count]->eval(ctx, res) ;
         }
     }
-
 }
 
 void IfBlockNode::eval(TemplateEvalContext &ctx, string &res) const
@@ -738,6 +732,92 @@ void AutoEscapeBlockNode::eval(TemplateEvalContext &ctx, string &res) const
     cctx.escape_mode_ = mode_ ;
     for( auto &&c: children_ )
         c->eval(cctx, res) ;
+}
+
+void EmbedBlockNode::eval(TemplateEvalContext &ctx, string &res) const
+{
+    vector<string> templates ;
+    Variant source = source_->eval(ctx) ;
+
+    if ( source.isArray() ) {
+        for( auto &&e: source )
+            templates.emplace_back(e.toString()) ;
+    }
+    else
+        templates.emplace_back(source.toString()) ;
+
+    // try to load one of the templates
+
+    DocumentNodePtr doc ;
+
+    for( auto &&tmpl: templates ) {
+        try {
+            doc = ctx.rdr_.compile(tmpl) ;
+            break ;
+        }
+        catch ( TemplateLoadException & ) {
+
+        }
+        catch ( TemplateCompileException &e ) {
+            throw e ;
+        }
+
+    }
+
+    // check whether not found
+
+    if ( !doc ) {
+        if ( !ignore_missing_ ) // non found
+            throw TemplateRuntimeException("Failed to load included template: " + templates[0]) ;
+        else
+            return ;
+    }
+
+    // template is compiled so render it with the appropriate context
+
+    Variant::Object ctx_extension ;
+
+    // if there is a with statment we collect the variables
+
+    if ( with_ ) {
+        Variant with = with_->eval(ctx) ;
+        if ( with.isObject() ) {
+            for ( auto it = with.begin() ; it != with.end() ; ++it ) {
+                ctx_extension[it.key()] = it.value() ;
+            }
+        }
+    }
+
+    // create new context either inheriting parent one or empty and extend with key/values if any
+
+    if ( only_flag_ ) {
+        TemplateEvalContext cctx(ctx.rdr_, {}) ;
+        cctx.data().insert(ctx_extension.begin(), ctx_extension.end()) ;
+
+        for( auto &&c: children_ ) {
+            NamedBlockNodePtr block = std::dynamic_pointer_cast<NamedBlockNode>(c) ;
+            if ( block )
+                cctx.addBlock(block) ;
+        }
+
+        doc->eval(cctx, res) ;
+    } else {
+        TemplateEvalContext cctx(ctx) ;
+
+
+        for( auto &&e: ctx_extension )
+            cctx.data()[e.first] = e.second ;
+
+
+        for( auto &&c: children_ ) {
+            NamedBlockNodePtr block = std::dynamic_pointer_cast<NamedBlockNode>(c) ;
+            if ( block )
+                cctx.addBlock(block) ;
+        }
+
+        doc->eval(cctx, res) ;
+    }
+
 }
 
 
