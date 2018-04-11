@@ -87,7 +87,8 @@ void TableView::render(const server::Request &request, server::Response &respons
 
     const Variant::Object &data = fetch(offset, results_per_page) ;
 
-    response.write(engine.render("table-view", data )) ;
+ //   response.write(engine.render("table-view", data )) ;
+    response.writeJSONVariant(data) ;
 }
 
 SQLTableView::SQLTableView(Connection &con, const string &table, const string &id_column):

@@ -87,7 +87,9 @@ void RouteController::fetch() {
 
     const Variant::Object &data = view.fetch(offset, results_per_page) ;
 
-    response_.write(engine_.render("pages-table-view", data )) ;
+   // response_.write(engine_.render("pages-table-view", data )) ;
+
+   response_.writeJSONVariant(data) ;
 }
 
 void RouteController::query() {
@@ -336,6 +338,7 @@ void RouteController::browse(const string &mountain)
 
 void RouteController::list() {
     RouteTableView view(con_) ;
+
     view.render(request_, response_, engine_) ;
 }
 

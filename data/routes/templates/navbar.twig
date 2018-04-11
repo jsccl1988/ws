@@ -43,8 +43,7 @@
         </div>
 </nav>
 
-{% with { id: "login-modal", title: "Login" } %}
-{% extends 'modal' %}
+{% embed 'modal' with { id: "login-modal", title: "Login" } only %}
 {% block body %}
 {% import 'bs3-forms' as forms %}
 {{ forms.start() }}
@@ -53,5 +52,5 @@
 {{ forms.button('Submit') }}
 {{ forms.end() }}
 {% endblock %}
-{% endextends %}
-{% endwith %}
+{% endembed %}
+

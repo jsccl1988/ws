@@ -358,6 +358,7 @@ public:
         source_(source), ignore_missing_(ignore_missing), with_(with_expr), only_flag_(only) {}
 
     void eval(TemplateEvalContext &ctx, std::string &res) const override ;
+    std::string tagName() const override { return "embed" ; }
 
     ExpressionNodePtr source_, with_ ;
     bool ignore_missing_, only_flag_ ;

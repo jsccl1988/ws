@@ -11,10 +11,13 @@
 {% endblock %}
 
 {% block contents %}
+
+
 <div id="routes-list-view">
 
-{% with { id: "create-form", title: "Create New Route" } %}
-{% extends 'modal' %}
+{% include 'table-view' with { title: "Routes", columns: { title: 'Title', mountain: 'Mountain' } } only %}
+
+{% embed 'modal' with { id: "create-form", title: "Create New Route" } only %}
 {% block body %}
 {% import 'bs3-forms' as forms %}
 {{ forms.start() }}
@@ -24,11 +27,9 @@
 {{ forms.button('Submit') }}
 {{ forms.end() }}
 {% endblock %}
-{% endextends %}
-{% endwith %}
+{% endembed %}
       
-{% with { id: "edit-form", title: "Update Route" } %}
-{% extends 'modal' %}
+{% embed 'modal' with { id: "edit-form", title: "Update Route" } %}
 {% block body %}
 {% import 'bs3-forms' as forms %}
 {{ forms.start() }}
@@ -37,22 +38,18 @@
 {{ forms.button('Submit') }}
 {{ forms.end() }}
 {% endblock %}
-{% endextends %}
-{% endwith %}
+{% endembed %}
 
 </div>
 {% endblock %}
 
 {% block extra_footers %}
-		<script src="js/tableview.js"></script>
-        <script type="text/javascript">
-  			$(document).ready(function() {
-  			
-  				$('#routes-list-view').tableview({ 
-  					listUrl:"routes/list/",  
-  					addUrl: "routes/add/",
-  					updateUrl: "routes/update/",
-  					deleteUrl: "routes/delete/"
+    <script src="js/tableview.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+
+               $('#routes-list-view').tableview({
+  					url:"routes/"
   				}) ;
 			});
 		</script>

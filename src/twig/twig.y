@@ -121,13 +121,13 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_DOUBLE_RIGHT_BRACE     "}}"
 %token T_DOUBLE_LEFT_BRACE_TRIM "{{-"
 %token T_DOUBLE_RIGHT_BRACE_TRIM "-}}"
-%token T_END  0  "end of file";
+%token T_END  0  "end of file"
 
-%token <std::string> T_IDENTIFIER       "identifier";
-%token <std::string> T_RAW_CHARACTERS  "raw characters";
-%token <int64_t>     T_INTEGER         "integer";
-%token <double>      T_FLOAT           "float";
-%token <std::string> T_STRING          "string literal";
+%token <std::string> T_IDENTIFIER       "identifier"
+%token <std::string> T_RAW_CHARACTERS  "raw characters"
+%token <int64_t>     T_INTEGER         "integer"
+%token <double>      T_FLOAT           "float"
+%token <std::string> T_STRING          "string literal"
 
 %type <wspp::twig::detail::ExpressionNodePtr> expression value array object function_call with_expression filter_invoke test_call
 %type <wspp::twig::detail::expr_list_t> expression_list

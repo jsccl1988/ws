@@ -706,7 +706,7 @@ MatchesNode::MatchesNode(ExpressionNodePtr lhs, const string &rx, bool positive)
     }
 
     ++p ;
-    rx_.assign(p, q) ;
+    rx_.assign(p, q, flags) ;
 
 
 }

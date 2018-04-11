@@ -2,13 +2,19 @@
 
 (function($) {
 	$.fn.form = function(params) { 
-	var defaults = { data: {}, onSuccess: function() {} } ;
+		var defaults = { data: {}, onSuccess: function() {} } ;
 		var params = $.extend( {}, defaults, params );
 	
 		// traverse all nodes
 		this.each(function() {
 			var that = $(this);
 			var form = that.find('form') ;
+			
+			if ( params.values ) {
+				for( var key in params.values ) {
+					form.find( "[name*='" + key + "']" ).val( params.values[key] );
+				}
+			}
 			
 			
 			function clearErrors() {
@@ -32,7 +38,7 @@
 					dataType: "json",
 					url: params.url,
 					processData: false,
-				    	contentType: false,
+				   	contentType: false,
 //					data: form.serialize(), // serializes the form's elements.
 					data: form_data,
                     error: function(jqXHR, textStatus, errorThrown) {
@@ -92,12 +98,15 @@
 		
 		var that = this ;
 		
-		function load() {
+		function load(data_values) {
 	
+			values = $.extend( {}, {}, data_values );
 			var content = that.find('.modal-body') ;
+			
             var form = content.form({
                 url: params.url,
                 data: params.data,
+                values: values,
                 onSuccess: function() {
                     params.onSuccess() ;
                     that.modal('hide') ;
@@ -109,7 +118,23 @@
 		
 		this.each(function() {
             if ( cmd === 'show' ) {
-				load() ;
+    			if ( params.init ) {
+					$.ajax({
+						type: "GET",
+						dataType: "json",
+						data: params.data,
+						url: params.url,
+            	        error: function(jqXHR, textStatus, errorThrown) {
+            	            console.log(jqXHR.status);
+            	        },
+            	        success: function(data)	{
+							if ( data ) 
+								load(data) ;
+						}
+					}) ;
+				}
+				else
+					load() ;
 			}	
 		});
 		
