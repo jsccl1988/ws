@@ -60,7 +60,8 @@ void PageUpdateForm::onGet(const Request &request) {
 
     QueryResult res = con_.query("SELECT title, permalink as slug FROM pages WHERE id = ? LIMIT 1", id) ;
 
-    init(res.getAll()) ;
+    if ( res.next() )
+        init(res.getAll()) ;
 }
 
 

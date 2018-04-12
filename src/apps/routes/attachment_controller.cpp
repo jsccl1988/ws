@@ -11,29 +11,21 @@ using namespace wspp::util ;
 using namespace wspp::web ;
 using namespace wspp::server ;
 
-static Route route_list("/attachments/list/{id:\\d+}") ;
-static Route route_add("/attachments/add/{id:\\d+}") ;
-static Route route_update("/attachments/update/{id:\\d+}") ;
-static Route route_delete("/attachments/delete/{id:\\d+}") ;
+static Route route_list("/attachments/{id:\\d+}/list") ;
+static Route route_add("/attachments/{id:\\d+}/add") ;
+static Route route_update("/attachments/{id:\\d+}/update") ;
+static Route route_delete("/attachments/{id:\\d+}/delete") ;
 
 AttachmentCreateForm::AttachmentCreateForm(const Request &req, RouteModel &routes, const string &route_id,
                                            const string &upload_folder):
     request_(req), routes_(routes), upload_folder_(upload_folder), route_id_(route_id) {
 
-    field("type").alias("Type") ;
-
-    /*, std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
-    .required().label("Type") ;
-*/
+    field("type").alias("Type").addValidator<SelectionValidator>(routes_.getAttachmentsDict().keys()) ;
 
     const size_t max_attachment_file_size = 5 * 1024 * 1024;
 
     field("attachment-file").alias("Attachment") //.maxFileSize(max_attachment_file_size).label("Attachment").required()
-        .addValidator([&] (const string &val, const FormField &f) {
-            auto it = request_.FILE_.find("attachment-file") ;
-            if ( it == request_.FILE_.end() )
-                throw FormFieldValidationError("No file received") ;
-    }) ;
+       .addValidator<UploadedFileValidator>(req.FILE_, max_attachment_file_size) ;
 }
 
 void AttachmentCreateForm::onSuccess(const Request &request)
@@ -50,7 +42,7 @@ AttachmentUpdateForm::AttachmentUpdateForm(RouteModel &routes, const string &rou
     field("name").alias("Name")
         .addValidator<NonEmptyValidator>() ;
 
-    field("type").alias("Type") ;//, std::make_shared<DictionaryOptionsModel>(routes_.getAttachmentsDict()))
+    field("type").alias("Type").addValidator<SelectionValidator>(routes_.getAttachmentsDict().keys()) ;
 }
 
 void AttachmentUpdateForm::onSuccess(const Request &request) {
@@ -81,26 +73,13 @@ void AttachmentUpdateForm::onGet(const Request &request)
 
 class AttachmentTableView: public SQLTableView {
 public:
-    AttachmentTableView(Connection &con, const std::string &route_id, const Dictionary &amap):
-        SQLTableView(con, "attachments_list_view"), attachments_map_(amap) {
-
+    AttachmentTableView(Connection &con, const std::string &route_id):
+        SQLTableView(con, "attachments_list_view") {
 
         string sql("CREATE TEMPORARY VIEW attachments_list_view AS SELECT id, name, type FROM attachments WHERE route = ") ;
-        sql += route_id;
 
-        con_.execute(sql) ;
+        con_.execute(sql + route_id) ;
     }
-
-    Variant transform(const string &key, const string &value) override {
-        if ( key == "type" ) {
-            auto it = attachments_map_.find(value) ;
-            if ( it != attachments_map_.end() ) return it->second ;
-            else return string() ;
-        }
-        return value ;
-    }
-private:
-    Dictionary attachments_map_ ;
 };
 
 void AttachmentController::create(const std::string &route_id)
@@ -162,7 +141,7 @@ bool AttachmentController::dispatch()
 
 void AttachmentController::list(const std::string &route_id)
 {
-    AttachmentTableView view(con_, route_id, routes_.getAttachmentsDict()) ;
+    AttachmentTableView view(con_, route_id) ;
     view.handle(request_, response_) ;
 }
 

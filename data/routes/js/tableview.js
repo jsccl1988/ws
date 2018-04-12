@@ -62,7 +62,7 @@
 					var col_name = columns[col] ;
 					var cell ;
 					if ( col_name === '#buttons' )
-						cell = '<td align="center" style="width: 100px;"><a id="edit-button" class="btn btn-default"><em class="fa fa-pencil"></em></a><a id="delete-button" class="btn btn-danger"><em class="fa fa-trash"></em></a></td>' ;
+						cell = '<td align="center" style="width: 100px;"><a class="edit-button btn btn-default"><em class="fa fa-pencil"></em></a><a class="delete-button btn btn-danger"><em class="fa fa-trash"></em></a></td>' ;
 					else {
                         var text = data.rows[i].data[col_name];
                         if ( typeof options.filters != 'undefined' && typeof options.filters[col_name] !== 'undefined' ) 
@@ -78,6 +78,10 @@
 
         function make_pager_data(page, max_page) {
             var pages = {};
+            
+            pages['total_pages'] = max_page ;
+            pages['page'] = page ;
+            
             if ( max_page == 1 ) return pages ;
 
             var delta = 4 ;
@@ -117,8 +121,7 @@
 
             pages['last'] = {"page": max_page, 'disabled': (page == max_page)} ;
 
-            pages['total_pages'] = max_page ;
-            pages['page'] = page ;
+           
 
             return pages ;
         }
@@ -198,13 +201,13 @@
 						
 					// handle new record action
 						
-					$(table).find('#new-record').click(onNewRecord) ;
-		  				
-					// handle detete record
-					$(table).find('#delete-button').click(onDeleteRecord) ;
-		  				
+					$(item).find('#new-record').click(onNewRecord) ;
+
+					// handle detete record		  				
+		  			$(table).find('.delete-button').click(onDeleteRecord) ;
+
 					// handle edit record
-					$(table).find('#edit-button').click(onEditRecord) ;
+					$(table).find('.edit-button').click(onEditRecord) ;
 	
 					},
 				error: function(jqXHR, textStatus, errorThrown)	{

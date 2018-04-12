@@ -24,12 +24,63 @@
 	   	</div>
 	   		
 	   	<div class="tab-pane" id="waypoints">
-	   		<div id="waypoints-list-view"></div> 
-	   	</div>	
+	   	<div id="wpts-list-view">
+
+{% include 'table-view' with { title: "Waypoints", columns: [{ key: 'name', label: 'Name'}, {key: 'desc', label: 'Description'}] } only %}
+
+{% embed 'modal' with { id: "create-form", title: "Create New Waypoint" } only %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.input('name', type='text', label='Name', required = true) }}
+{{ forms.input('desc', type='text', label='Description') }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endembed %}
+      
+{% embed 'modal' with { id: "edit-form", title: "Update Waypoint" } %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.input('name', type='text', label='Name', required = true) }}
+{{ forms.input('desc', type='text', label='Description') }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endembed %}
+</div>
+</div>
 				
-		<div class="tab-pane" id="attachments">
-			<div id="attachments-list-view"></div>
-		</div>
+<div class="tab-pane" id="attachments">
+   	<div id="attachments-list-view">
+
+{% include 'table-view' with { title: "Attachments", columns: [{ key: 'name', label: 'Name'}, {key: 'type', label: 'Type'}] } only %}
+
+{% embed 'modal' with { id: "create-form", title: "Create New Attachment", atypes: atypes } only %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.select('type', atypes, label='Type', required = true) }}
+{{ forms.upload('attachment-file', label='Attachment File', required = true) }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endembed %}
+      
+{% embed 'modal' with { id: "edit-form", title: "Update Attachment" } %}
+{% block body %}
+{% import 'bs3-forms' as forms %}
+{{ forms.start() }}
+{{ forms.input('name', type='text', label='Name', required = true) }}
+{{ forms.select('type', atypes, label='Type', required = true) }}
+{{ forms.button('Submit') }}
+{{ forms.end() }}
+{% endblock %}
+{% endembed %}
+
+</div>
+</div>
 		
 		   		
 		<div class="tab-pane" id="preview">
@@ -46,19 +97,20 @@
         <script type="text/javascript">
   			$(document).ready(function() {
   			
-  			$('#attachments-list-view').tableview({ 
-				listUrl:"attachments/list/{{route.id}}",  
-				addUrl: "attachments/add/{{route.id}}",
-				updateUrl: "attachments/update/{{route.id}}",
-				deleteUrl: "attachments/delete/{{route.id}}"
-  			}) ; 			
+ 		  	var atypes = {{atypes|to_json}} ;
   			
-  			$('#waypoints-list-view').tableview({ 
-				listUrl:"wpts/list/{{route.id}}",  
-				addUrl: "wpts/add/{{route.id}}",
-				updateUrl: "wpts/update/{{route.id}}",
-				deleteUrl: "wpts/delete/{{route.id}}"
+  			$('#wpts-list-view').tableview({ 
+				url:"wpts/{{route.id}}/",  
   			}) ;
+  			
+  			$('#attachments-list-view').tableview({ 
+				url:"attachments/{{route.id}}/",  filters: { type: 
+  						function(row) { 
+  							return atypes[row.data.type]; 
+  						}
+  					 }
+  			}) ;
+
   			
 	        {% include 'tinymce' %}
 	        

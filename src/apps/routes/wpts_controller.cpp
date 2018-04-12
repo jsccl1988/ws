@@ -88,17 +88,17 @@ bool WaypointController::dispatch()
 
     bool logged_in = user_.check() ;
 
-    if ( request_.matches("GET", "/wpts/list/{id:\\d+}", attributes) ) {
+    if ( request_.matches("GET", "/wpts/{id:\\d+}/list", attributes) ) {
         if ( logged_in ) list(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    if ( request_.matches("GET|POST", "/wpts/update/{id:\\d+}", attributes) ) {
+    if ( request_.matches("GET|POST", "/wpts/{id:\\d+}/update", attributes) ) {
         if ( logged_in ) update(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;
     }
-    else if ( request_.matches("POST", "/wpts/delete/{id:\\d+}", attributes) ) {
+    else if ( request_.matches("POST", "/wpts/{id:\\d+}/delete", attributes) ) {
         if ( logged_in ) remove(attributes.get("id")) ;
         else throw HttpResponseException(Response::unauthorized) ;
         return true ;

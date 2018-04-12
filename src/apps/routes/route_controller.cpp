@@ -98,6 +98,7 @@ void RouteController::edit()
     Variant::Object ctx{
         { "page", page_.data("edit_routes", "Edit routes") },
         { "mountains", Variant::fromDictionary(routes_.getMountainsDict()) }
+
     } ;
 
     response_.write(engine_.render("routes-edit", ctx)) ;
@@ -134,8 +135,7 @@ void RouteController::edit(const string &id)
     Variant::Object ctx{
         { "page", page_.data("edit_route", "Edit route") },
         { "route", data },
-        { "wpts", wpts },
-        { "attachments", attachments }
+        { "atypes", Variant::fromDictionary(routes_.getAttachmentsDict()) }
     } ;
 
     response_.write(engine_.render("route-edit", ctx)) ;

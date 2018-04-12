@@ -83,8 +83,8 @@ Variant::Object FormHandler::errors() const
 string FormHandler::getValue(const string &field_name)
 {
     const auto &it = field_map_.find(field_name) ;
-    assert ( it != field_map_.end() ) ;
-    return it->second->value_ ;
+    if ( it != field_map_.end() ) return it->second->value_ ;
+    else return string() ;
 }
 
 

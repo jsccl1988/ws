@@ -57,6 +57,7 @@ UserCreateForm::UserCreateForm(User &auth): user_(auth) {
         .addValidator([&] (const string &val, const FormField &f) {
             if ( user_.userNameExists(val) )
                 throw FormFieldValidationError("username already exists") ;
+
         }) ;
 
     FormField &password_field =  field("password") ;
@@ -75,9 +76,7 @@ UserCreateForm::UserCreateForm(User &auth): user_(auth) {
                 throw FormFieldValidationError("Passwords don't match") ;
         });
 
-
-  //  field("role", std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
-   // .required().label("Role") ;
+    field("role").addValidator<SelectionValidator>(user_.auth().getRoles().keys()).alias("Role") ;
 }
 
 UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(id) {
@@ -98,7 +97,7 @@ UserModifyForm::UserModifyForm(User &auth, const string &id): user_(auth), id_(i
                 throw FormFieldValidationError("Passwords don't match") ;
         }) ;
 
-    field("role").alias("Role") ;//, std::make_shared<DictionaryOptionsModel>(user_.auth().getRoles()))
+     field("role").addValidator<SelectionValidator>(user_.auth().getRoles().keys()).alias("Role") ;
 }
 
 
@@ -119,20 +118,15 @@ static void memoryMapDict(Connection &con, const Dictionary &dict, const string 
 
 class UsersTableView: public SQLTableView {
 public:
-    UsersTableView(Connection &con, const Dictionary &roles): SQLTableView(con, "users_list_view"), roles_(roles)  {
-
-        memoryMapDict(con, roles, "user_roles_dict", "role_id", "role_label");
-
-        con_.execute("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, ur.role_label AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id JOIN temp.user_roles_dict as ur ON ur.role_id = r.role_id") ;
+    UsersTableView(Connection &con): SQLTableView(con, "users_list_view")  {
+        con_.execute("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, r.role_id AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id") ;
     }
 
-private:
-    Dictionary roles_ ;
 };
 
 void UsersController::fetch()
 {
-    UsersTableView view(con_, user_.auth().getRoles()) ;
+    UsersTableView view(con_) ;
 
     view.handle(request_, response_) ;
 }
@@ -141,7 +135,8 @@ void UsersController::fetch()
 void UsersController::edit()
 {
     Variant::Object ctx{
-        { "page", page_.data("edit_users", "Edit Users") }
+        { "page", page_.data("edit_users", "Edit Users") },
+        { "roles", Variant::fromDictionary(user_.auth().getRoles()) }
     };
 
     response_.write(engine_.render("users-edit", ctx)) ;

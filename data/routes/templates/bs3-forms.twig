@@ -25,7 +25,7 @@
 
 {% endmacro %}
 
-{% macro input(name, type, id, label, placeholder, value ) %}
+{% macro input(name, type, id, label, required, disabled, placeholder, value ) %}
 		
 <div class="form-group">
   {% if label %}
@@ -38,13 +38,13 @@
 
 {% endmacro %}
 
-{% macro select(name, options, id, label, placeholder, value ) %}
+{% macro select(name, options, id, label, required, disabled, placeholder, value ) %}
 		
 <div class="form-group">
   {% if label %}
   	<label class="control-label" {%- if id %} for="{{id}}"{% endif %}>{{ label }}</label>
   {% endif %}
-  	<select {% if id %}id="{{id}}" {% endif %} name={{name}} class="form-control" {% if required %}required{% endif %} {% if disabled %}disabled{% endif %} {% if placeholder %}placeholder={{placeholder}}{% endif %}{% for a in extra_attrs %}{{a.key}}="{{a.val}}" {% endfor %} {% if value %}value="{{value}}"{% endif %}>
+  	<select {% if id %}id="{{id}}" {% endif %} name="{{name}}" class="form-control" {% if required %}required{% endif %} {% if disabled %}disabled{% endif %} {% if placeholder %}placeholder="{{placeholder}}"{% endif %}{% if value %}value="{{value}}"{% endif %}>
 {% for key, option in options %}
 <option value="{{key}}" {% if key == value %}selected="selected"{% endif %}>{{option}}</option>
 {% endfor %}

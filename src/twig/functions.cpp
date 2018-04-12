@@ -99,6 +99,12 @@ static Variant _upper(const Variant &args) {
     return boost::to_upper_copy(unpacked[0].toString()) ;
 }
 
+static Variant _to_json(const Variant &args) {
+    Variant::Array unpacked ;
+    unpack_args(args, { "str" }, unpacked) ;
+    return Variant(unpacked[0].toJSON(), true) ;
+}
+
 static Variant _default(const Variant &args) {
     Variant::Array unpacked ;
     unpack_args(args, { "str", "default" }, unpacked) ;
@@ -288,6 +294,7 @@ FunctionFactory::FunctionFactory() {
     registerFunction("safe", _raw);
     registerFunction("batch", _batch);
     registerFunction("merge", _merge);
+    registerFunction("to_json", _to_json);
 }
 
 bool FunctionFactory::hasFunction(const string &name)

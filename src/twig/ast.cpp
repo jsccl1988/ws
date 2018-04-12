@@ -435,30 +435,44 @@ void MacroBlockNode::mapArguments(const Variant &args, Variant::Object &ctx)
 
     const Variant &pos_args = args["args"] ;
 
-    for ( uint pos = 0 ; pos < n_args && pos < pos_args.length() ; pos ++ )  {
-        const string &arg_name = args_[pos] ;
+    Variant::Array extra_pos_args ;
 
-        Variant v = pos_args.at(pos) ;
-        ctx[arg_name] = std::move(v) ;
+    for ( uint pos = 0 ; pos < pos_args.length() ; pos ++ )  {
+
+        if ( pos < n_args ) {
+            const string &arg_name = args_[pos] ;
+
+            Variant v = pos_args.at(pos) ;
+            ctx[arg_name] = std::move(v) ;
+        }
+        else extra_pos_args.emplace_back(pos_args.at(pos)) ;
     }
 
     const Variant &kw_args = args["kw"] ;
+    Variant::Object extra_kw_args ;
 
     for ( auto it = kw_args.begin() ; it != kw_args.end() ; ++it ) {
         string key = it.key() ;
         const Variant &val = it.value() ;
 
+        bool found = false ;
         for( uint k=0 ; k<n_args ; k++ ) {
             const string &arg_name = args_[k] ;
 
-            if ( key == arg_name )
+            if ( key == arg_name ) {
                 ctx[arg_name] = val ;
+                found = true ;
+                break ;
+            }
         }
+
+        if ( !found )
+            extra_kw_args[key] = val ;
     }
 
-    // store arguments in context
-    ctx["_args_"] = pos_args ;
-    ctx["_kw_"] = kw_args ;
+    // store unmmaped arguments in context
+    ctx["_args_"] = extra_pos_args ;
+    ctx["_kw_"] = extra_kw_args ;
 }
 
 Variant MacroBlockNode::call(TemplateEvalContext &ctx, const Variant &args) {

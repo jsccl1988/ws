@@ -2,6 +2,7 @@
 #define __FORM_FILED_VALIDATORS_HPP__
 
 #include <wspp/util/dictionary.hpp>
+#include <wspp/server/request.hpp>
 #include <boost/regex.hpp>
 
 #include <stdexcept>
@@ -117,6 +118,27 @@ protected:
     std::string msg_ ;
 private:
     const static std::string validation_msg_ ;
+};
+
+class UploadedFileValidator: public FormFieldValidator {
+public:
+    UploadedFileValidator(const std::map<std::string, wspp::server::Request::UploadedFile> &files,
+                          size_t max_file_size, const std::vector<std::string> &allowed_types = {},
+                          const std::string &max_file_msg = std::string(),
+                          const std::string &allowed_mime_msg = std::string()):
+        files_(files), max_file_size_(max_file_size), mime_types_(allowed_types), max_size_msg_(max_file_msg),
+    allowed_mime_msg_(allowed_mime_msg){}
+
+    void validate(const std::string &val, const FormField &field) const override ;
+protected:
+
+    const std::map<std::string, wspp::server::Request::UploadedFile> &files_ ;
+    std::string max_size_msg_, allowed_mime_msg_ ;
+    size_t max_file_size_ = 20 * 1024 * 1024;
+    std::vector<std::string> mime_types_ ;
+private:
+    const static std::string max_size_validation_msg_ ;
+    const static std::string wrong_mime_validation_msg_ ;
 };
 
 }

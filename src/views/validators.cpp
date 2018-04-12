@@ -1,8 +1,9 @@
 #include <wspp/views/forms.hpp>
 
+#include <boost/format.hpp>
+
 namespace wspp {
 namespace web {
-
 
 std::string FormFieldValidator::interpolateMessage(const std::string &msg_template, const std::string &value, const FormField &field, const util::Dictionary &params) {
 
@@ -99,6 +100,42 @@ void SelectionValidator::validate(const std::string &val, const FormField &field
 {
     if ( std::find(keys_.begin(), keys_.end(), val) == keys_.end() )
         throw FormFieldValidationError( FormFieldValidator::interpolateMessage(msg_, val, field) ) ;
+}
+
+const std::string UploadedFileValidator::max_size_validation_msg_ = "The file is too large ({size}). Allowed maximum size is {limit}.";
+const std::string UploadedFileValidator::wrong_mime_validation_msg_ = "The file mime type ({mime}) is invalid.";
+
+static string bytesToString(size_t ibytes)
+{
+    string suffix[] = { "B", "KB", "MB", "GB", "TB", "PB", "EB" };
+
+    int order = 0;
+    double bytes = ibytes ;
+    while ( bytes >= 1024 && order < sizeof(suffix)/sizeof(string) - 1) {
+        order++;
+        bytes = bytes/1024;
+    }
+    return str(boost::format("%.1lf %s") % bytes % suffix[order]);
+}
+void UploadedFileValidator::validate(const std::string &val, const FormField &field) const
+{
+    auto it = files_.find(val) ;
+    if ( it == files_.end() )
+        throw FormFieldValidationError("No file received") ;
+
+    const Request::UploadedFile &file = it->second ;
+    if ( file.size_ > max_file_size_ )
+        throw FormFieldValidationError( FormFieldValidator::interpolateMessage(max_size_msg_.empty() ? max_size_validation_msg_ : max_size_msg_, val, field,
+            {{"size", bytesToString(file.size_)}, {"limit", bytesToString(max_file_size_) }}) ) ;
+
+    if ( mime_types_.empty() ) return ;
+
+    for ( const auto &mime: mime_types_ ) {
+        if ( mime == file.mime_ ) return ;
+    }
+
+    throw FormFieldValidationError( FormFieldValidator::interpolateMessage(allowed_mime_msg_.empty() ? wrong_mime_validation_msg_ : allowed_mime_msg_, val, field,
+        {{"mime", file.mime_}}) ) ;
 }
 
 

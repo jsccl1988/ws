@@ -254,7 +254,7 @@ void User::create(const string &username, const string &password, const string &
 {
     string secure_pass = encodeBase64(passwordHash(password)) ;
     Statement(con_, "INSERT INTO users ( name, password ) VALUES ( ?, ? )", username, secure_pass).exec() ;
-    Statement(con_, "INSERT INTO user_roles ( user_id, role_id ) VALUES ( SELECT llast_insert_rowid(), ? )", role).exec() ;
+    Statement(con_, "INSERT INTO user_roles ( user_id, role_id ) VALUES ( (SELECT last_insert_rowid()), ? )", role).exec() ;
 }
 
 void User::update(const string &id, const string &password, const string &role)

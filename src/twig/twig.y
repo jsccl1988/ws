@@ -87,7 +87,7 @@ static yy::Parser::symbol_type yylex(TwigParser &driver, yy::Parser::location_ty
 %token T_FILTER         "filter"
 %token T_END_FILTER     "endfilter"
 %token T_EXTENDS        "extends"
-%token T_END_EXTENDS        "endextends"
+%token T_END_EXTENDS    "endextends"
 %token T_EMBED          "embed"
 %token T_END_EMBED      "endembed"
 %token T_MACRO          "macro"
