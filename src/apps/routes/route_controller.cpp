@@ -69,13 +69,7 @@ void RouteUpdateForm::onGet(const Request &request) {
 class RouteTableView: public SQLTableView {
 public:
     RouteTableView(Connection &con): SQLTableView(con, "routes_list_view")  {
-
-        setTitle("Routes") ;
-
         con_.execute("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
-
-        addColumn("Title",  "<a href=\"route/edit/{{id}}\">{{title|e}}</a>") ;
-        addColumn("Mountain", "{{mountain}}") ;
     }
 };
 
@@ -339,7 +333,7 @@ void RouteController::browse(const string &mountain)
 void RouteController::list() {
     RouteTableView view(con_) ;
 
-    view.render(request_, response_, engine_) ;
+    view.handle(request_, response_) ;
 }
 
 

@@ -68,19 +68,14 @@ class PageTableView: public SQLTableView {
 public:
     PageTableView(Connection &con): SQLTableView(con, "pages_list_view" )  {
 
-        setTitle("Pages") ;
-
         con_.execute("CREATE TEMPORARY VIEW pages_list_view AS SELECT id, title, permalink as slug FROM pages") ;
-
-        addColumn("Title", "{{title}}") ;
-        addColumn("Slug", "{{slug}}") ;
     }
 };
 
 void PageController::fetch()
 {
     PageTableView view(con_) ;
-    view.render(request_, response_, engine_) ;
+    view.handle(request_, response_) ;
 }
 // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, permalink TEXT);
 

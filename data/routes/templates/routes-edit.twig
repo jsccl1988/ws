@@ -15,7 +15,7 @@
 
 <div id="routes-list-view">
 
-{% include 'table-view' with { title: "Routes", columns: { title: 'Title', mountain: 'Mountain' } } only %}
+{% include 'table-view' with { title: "Routes", columns: [{ key: 'title', label: 'Title'}, {key: 'mountain', label: 'Mountain'}] } only %}
 
 {% embed 'modal' with { id: "create-form", title: "Create New Route" } only %}
 {% block body %}
@@ -49,7 +49,7 @@
         $(document).ready(function() {
 
                $('#routes-list-view').tableview({
-  					url:"routes/"
+  					url:"routes/", filters: { title: function(row) { return '<a href="route/edit/' + row.id + '">' + row.data.title  + '</a>'; } }
   				}) ;
 			});
 		</script>

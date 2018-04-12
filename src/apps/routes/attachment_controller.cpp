@@ -84,15 +84,11 @@ public:
     AttachmentTableView(Connection &con, const std::string &route_id, const Dictionary &amap):
         SQLTableView(con, "attachments_list_view"), attachments_map_(amap) {
 
-        setTitle("Attachments") ;
 
         string sql("CREATE TEMPORARY VIEW attachments_list_view AS SELECT id, name, type FROM attachments WHERE route = ") ;
         sql += route_id;
 
         con_.execute(sql) ;
-
-        addColumn("Name", "{{name}}") ;
-        addColumn("Type", "{{type}}") ;
     }
 
     Variant transform(const string &key, const string &value) override {
@@ -167,6 +163,6 @@ bool AttachmentController::dispatch()
 void AttachmentController::list(const std::string &route_id)
 {
     AttachmentTableView view(con_, route_id, routes_.getAttachmentsDict()) ;
-    view.render(request_, response_, engine_) ;
+    view.handle(request_, response_) ;
 }
 

@@ -15,14 +15,7 @@ using wspp::server::Response ;
 
 
 namespace wspp {
-
-namespace twig {
-class TemplateRenderer ;
-}
-
 namespace web {
-
-
 
 using namespace util ;
 using namespace db ;
@@ -33,14 +26,6 @@ class TableView {
 public:
 
     TableView() {}
-
-    // set the table title
-    void setTitle(const std::string &title) { title_ = title ; }
-
-    // Add a column to the table with specified header name and column widget
-    void addColumn(const std::string &header, const std::string &widget) {
-        columns_.emplace_back(header, widget) ;
-    }
 
     // return total records
     virtual uint count() = 0 ;
@@ -55,20 +40,7 @@ public:
     virtual Variant transform(const std::string &key, const std::string &value) { return value ; }
 
     // render the table
-    void render(const Request &request, Response &response, twig::TemplateRenderer &engine) ;
-
-protected:
-
-    struct Column {
-    public:
-
-        Column(const std::string &header, const std::string &widget): header_(header), widget_(widget) {}
-
-        std::string header_, widget_ ;
-    };
-
-    std::vector<Column> columns_ ;
-    std::string title_ ;
+    void handle(const Request &request, Response &response) ;
 
 };
 

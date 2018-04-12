@@ -9,64 +9,11 @@ using namespace wspp::twig ;
 namespace wspp {
 namespace web {
 
-static Variant make_pager_data(uint page, uint max_page)
-{
-    Variant::Object pages ;
-    if ( max_page == 1 ) return pages ;
-
-    // Show pager
-
-    int delta = 4 ;
-
-    int min_surplus = (page <= delta) ? (delta - page + 1) : 0;
-    int max_surplus = (page >= (max_page - delta)) ?
-                       (page - (max_page - delta)) : 0;
-
-    int start =  std::max<int>(page - delta - max_surplus, 1) ;
-    int stop = std::min(page + delta + min_surplus, max_page) ;
-
-    // if ( start > 1 ) $nav .= '<li>...</li>' ;
-
-
-    pages.insert({"first", Variant::Object{{"page", 1}} });
-
-    if ( page > 1 )
-        pages.insert({"previous", Variant::Object{{"page", page-1}} });
-    else
-        pages.insert({"previous", Variant::Object{{"disabled", true}} });
-
-
-    Variant::Array page_entries ;
-    for( uint p = start ; p <= stop ; p++ )
-    {
-        if ( p == page ) page_entries.emplace_back(Variant::Object{ {"active", true }, {"page", p }, {"text", p }}); // no need to create a link to current page
-        else {
-            page_entries.emplace_back(Variant::Object{{"page", p}, {"text", p }}); // no need to create a link to current page
-        }
-    }
-
-    pages.insert({"pages", page_entries}) ;
-
-    if ( page < max_page )
-        pages.insert({"next", Variant::Object{{"page", page+1}} });
-    else
-        pages.insert({"next", Variant::Object{{"disabled", true}} });
-
-    pages.insert({"last", Variant::Object{{"page", max_page}} });
-
-    return pages ;
-}
-
 Variant::Object TableView::fetch(uint page, uint results_per_page) {
 
     // get number of records
 
     uint total_count = count() ;
-
-    Variant::Array headers ;
-    for( const Column &c: columns_ ) {
-        headers.push_back(Variant::Object{{"name", c.header_}, {"widget", c.widget_}})    ;
-    }
 
     uint num_pages = ceil(total_count/(double)results_per_page) ;
 
@@ -76,18 +23,15 @@ Variant::Object TableView::fetch(uint page, uint results_per_page) {
 
     Variant entries = rows(offset, results_per_page) ;
 
-    Variant pages = make_pager_data(page, num_pages) ;
-
-    return Variant::Object({{"title", title_}, {"page", page}, {"pager", pages}, {"headers", headers}, {"rows", entries}, {"total_rows", total_count}, {"total_pages", num_pages }} ) ;
+    return Variant::Object({ {"page", page}, {"rows", entries}, {"total_rows", total_count}, {"total_pages", num_pages }} ) ;
 }
 
-void TableView::render(const server::Request &request, server::Response &response, TemplateRenderer &engine) {
+void TableView::handle(const server::Request &request, server::Response &response) {
     uint offset = request.GET_.value<int>("page", 1) ;
     uint results_per_page = request.GET_.value<int>("total", 10) ;
 
     const Variant::Object &data = fetch(offset, results_per_page) ;
 
- //   response.write(engine.render("table-view", data )) ;
     response.writeJSONVariant(data) ;
 }
 

@@ -52,15 +52,10 @@ public:
     WaypointTableView(Connection &con, const std::string &route_id):
         SQLTableView(con, "wpt_list_view") {
 
-        setTitle("Waypoints") ;
         string sql("CREATE TEMPORARY VIEW wpt_list_view AS SELECT id, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat, ele FROM wpts WHERE route = ") ;
         sql += route_id;
 
         con_.execute(sql) ;
-
-        addColumn("Name", "{{name}}") ;
-        addColumn("Description", "{{desc}}") ;
-        addColumn("Location", "{% include 'show-wpt-on-map' %}" ) ;
     }
 
 };
@@ -113,6 +108,6 @@ bool WaypointController::dispatch()
 void WaypointController::list(const std::string &route_id)
 {
     WaypointTableView view(con_, route_id) ;
-    view.render(request_, response_, engine_) ;
+    view.handle(request_, response_) ;
 }
 

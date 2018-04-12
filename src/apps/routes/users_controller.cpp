@@ -121,14 +121,9 @@ class UsersTableView: public SQLTableView {
 public:
     UsersTableView(Connection &con, const Dictionary &roles): SQLTableView(con, "users_list_view"), roles_(roles)  {
 
-        setTitle("Users") ;
-
         memoryMapDict(con, roles, "user_roles_dict", "role_id", "role_label");
 
         con_.execute("CREATE TEMPORARY VIEW users_list_view AS SELECT u.id AS id, u.name AS username, ur.role_label AS role FROM users AS u JOIN user_roles AS r ON r.user_id = u.id JOIN temp.user_roles_dict as ur ON ur.role_id = r.role_id") ;
-
-        addColumn("Username", "{{username}}") ;
-        addColumn("Role", "{{role}}") ;
     }
 
 private:
@@ -139,7 +134,7 @@ void UsersController::fetch()
 {
     UsersTableView view(con_, user_.auth().getRoles()) ;
 
-    view.render(request_, response_, engine_) ;
+    view.handle(request_, response_) ;
 }
 
 
