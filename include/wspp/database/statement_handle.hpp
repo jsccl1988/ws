@@ -11,18 +11,15 @@
 #include <map>
 #include <memory>
 
-namespace wspp { namespace db {
-
-class ConnectionHandle ;
-
-class StatementHandle
-{
+namespace wspp {
+namespace db {
+class ConnectionHandle;
+class StatementHandle{
 public:
-
     virtual ~StatementHandle() {}
 
     virtual void clear() = 0;
-    virtual void finalize() = 0 ;
+    virtual void finalize() = 0;
 
     virtual StatementHandle &bind(int idx, const NullType &) = 0;
     virtual StatementHandle &bind(int idx, unsigned char v) = 0;
@@ -39,20 +36,16 @@ public:
     virtual StatementHandle &bind(int idx, float v) = 0;
     virtual StatementHandle &bind(int idx, const std::string &v) = 0;
     virtual StatementHandle &bind(int idx, const Blob &blob) = 0;
-
-    virtual StatementHandle &bind(int idx, const char *str) = 0 ;
+    virtual StatementHandle &bind(int idx, const char *str) = 0;
 
     // note that not all drivers support this
-    virtual int placeholderNameToIndex(const std::string &name) = 0 ;
+    virtual int placeholderNameToIndex(const std::string &name) = 0;
 
-    virtual void exec() = 0 ;
-    virtual QueryResult execQuery() = 0 ;
+    virtual void exec() = 0;
+    virtual QueryResult execQuery() = 0;
 };
 
-typedef std::shared_ptr<StatementHandle> StatementHandlePtr ;
-
+typedef std::shared_ptr<StatementHandle> StatementHandlePtr;
 } // namespace util
 } // namespace wspp
-
-
 #endif

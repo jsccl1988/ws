@@ -9,8 +9,7 @@ Server::Server(const std::string& address, const std::string& port,
     : io_service_pool_(io_service_pool_size),
       signals_(io_service_pool_.get_io_service()),
       acceptor_(io_service_pool_.get_io_service()),
-      socket_(io_service_pool_.get_io_service())
-{
+      socket_(io_service_pool_.get_io_service()){
     // Register to handle the signals that indicate when the server should exit.
     // It is safe to register for the same signal multiple times in a program,
     // provided all registration for the specified signal is made through Asio.
@@ -35,22 +34,20 @@ Server::Server(const std::string& address, const std::string& port,
 }
 
 void Server::addFilter(Filter *filter) {
-    filters_.add(filter) ;
+    filters_.add(filter);
 }
 
 void Server::setHandler(RequestHandler *handler) {
-    handler_.reset(handler) ;
-    filters_.setEndPoint(handler) ;
+    handler_.reset(handler);
+    filters_.setEndPoint(handler);
 }
 
-void Server::run()
-{
+void Server::run(){
     start_accept();
     io_service_pool_.run();
 }
 
-void Server::start_accept()
-{
+void Server::start_accept(){
     //new_connection_.reset(new connection(io_service_pool_.get_io_service(), handler_factory_));
     acceptor_.async_accept(socket_, [this] ( const boost::system::error_code& e ){
 
@@ -70,32 +67,29 @@ void Server::start_accept()
 
         //if (!e) new_connection_->start();
         start_accept();
-    }) ;
+    });
 }
 
-void Server::handle_stop()
-{
+void Server::handle_stop(){
     acceptor_.close();
     connection_manager_.stop_all();
     io_service_pool_.stop();
 }
 
 
-void Server::do_await_stop()
-{
+void Server::do_await_stop(){
   signals_.async_wait(
       [this](boost::system::error_code /*ec*/, int /*signo*/)
       {
         // The server is stopped by cancelling all outstanding asynchronous
         // operations. Once all operations have finished the io_service::run()
         // call will exit.
-            handle_stop() ;
+            handle_stop();
       });
 }
 
-void Server::stop()
-{
-    handle_stop() ;
+void Server::stop(){
+    handle_stop();
 }
 
 

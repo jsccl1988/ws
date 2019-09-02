@@ -8,20 +8,14 @@
 #include <functional>
 #include <boost/regex.hpp>
 
-namespace wspp { namespace server {
-
+namespace wspp {
+namespace server {
 class Router {
 public:
     Router() {}
-
-    void addHandler() ;
-
-
+    void addHandler();
 private:
-
 };
-
 } // namespace server
 } // namespace wspp
-
 #endif

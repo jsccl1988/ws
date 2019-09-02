@@ -8,150 +8,147 @@
 
 #include "gpx_parser.hpp"
 
-using namespace std ;
-using namespace wspp::util ;
-using namespace wspp::web ;
-using namespace wspp::server ;
+using namespace std;
+using namespace wspp::util;
+using namespace wspp::web;
+using namespace wspp::server;
 
 RouteCreateForm::RouteCreateForm(const Request &req, RouteModel &routes): request_(req), routes_(routes) {
 
     field("title").alias("Title")
-        .addValidator<NonEmptyValidator>() ;
+        .addValidator<NonEmptyValidator>();
 
-    field("mountain").alias("Mountain").addValidator<SelectionValidator>(routes_.getMountainsDict().keys()) ;
+    field("mountain").alias("Mountain").addValidator<SelectionValidator>(routes_.getMountainsDict().keys());
 
     field("gpx-file").alias("GPX file")
         .addValidator([&] (const string &val, const FormField &f) {
 
-            auto it = request_.FILE_.find("gpx-file") ;
+            auto it = request_.FILE_.find("gpx-file");
             if ( it == request_.FILE_.end() )
-                throw FormFieldValidationError("No file received") ;
+                throw FormFieldValidationError("No file received");
 
-            const Request::UploadedFile &up = it->second ;
+            const Request::UploadedFile &up = it->second;
 
-            GpxParser parser(up.data_, geom_) ;
+            GpxParser parser(up.data_, geom_);
             if ( !parser.parse() )
-                throw FormFieldValidationError("Not valid GPX file") ;
-    }) ;
+                throw FormFieldValidationError("Not valid GPX file");
+    });
 }
 
 void RouteCreateForm::onSuccess(const Request &request) {
-    routes_.importRoute(getValue("title"), getValue("mountain"), geom_) ;
+    routes_.importRoute(getValue("title"), getValue("mountain"), geom_);
 }
 
 RouteUpdateForm::RouteUpdateForm(Connection &con, RouteModel &routes): con_(con), routes_(routes) {
 
     field("title").alias("Title")
-        .addValidator<NonEmptyValidator>() ;
+        .addValidator<NonEmptyValidator>();
 
-    field("mountain").alias("Mountain").addValidator<SelectionValidator>(routes_.getMountainsDict().keys()) ;
+    field("mountain").alias("Mountain").addValidator<SelectionValidator>(routes_.getMountainsDict().keys());
 }
 
 void RouteUpdateForm::onSuccess(const Request &request) {
-    string id = request.POST_.get("id") ;
-    routes_.updateInfo(id, getValue("title"), getValue("mountain")) ;
+    string id = request.POST_.get("id");
+    routes_.updateInfo(id, getValue("title"), getValue("mountain"));
 }
 
 void RouteUpdateForm::onGet(const Request &request) {
-    const Dictionary &params = request.GET_ ;
-    string id = params.get("id") ;
+    const Dictionary &params = request.GET_;
+    string id = params.get("id");
 
     if ( id.empty() )
-        throw HttpResponseException(Response::not_found) ;
+        throw HttpResponseException(Response::not_found);
 
-    string title, mountain ;
+    string title, mountain;
     if ( !routes_.getInfo(id, title, mountain) )
-        throw HttpResponseException(Response::not_found) ;
+        throw HttpResponseException(Response::not_found);
 
-    init({{"title", title}, {"mountain", mountain}}) ;
+    init({{"title", title}, {"mountain", mountain}});
 }
 
 class RouteTableView: public SQLTableView {
 public:
     RouteTableView(Connection &con): SQLTableView(con, "routes_list_view")  {
-        con_.execute("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain") ;
+        con_.execute("CREATE TEMPORARY VIEW routes_list_view AS SELECT r.id as id, r.title as title, m.name as mountain FROM routes as r JOIN mountains as m ON m.id = r.mountain");
     }
 };
 
 void RouteController::fetch() {
 
-    RouteTableView view(con_) ;
-    uint offset = request_.GET_.value<int>("page", 1) ;
-    uint results_per_page = request_.GET_.value<int>("total", 10) ;
+    RouteTableView view(con_);
+    uint offset = request_.GET_.value<int>("page", 1);
+    uint results_per_page = request_.GET_.value<int>("total", 10);
 
-    const Variant::Object &data = view.fetch(offset, results_per_page) ;
+    const Variant::Object &data = view.fetch(offset, results_per_page);
 
-   // response_.write(engine_.render("pages-table-view", data )) ;
+   // response_.write(engine_.render("pages-table-view", data ));
 
-   response_.writeJSONVariant(data) ;
+   response_.writeJSONVariant(data);
 }
 
 void RouteController::query() {
-    double x = request_.POST_.value<double>("x", 0) ;
-    double y = request_.POST_.value<double>("y", 0) ;
-    response_.writeJSONVariant(routes_.query(x, y)) ;
+    double x = request_.POST_.value<double>("x", 0);
+    double y = request_.POST_.value<double>("y", 0);
+    response_.writeJSONVariant(routes_.query(x, y));
 }
 // CREATE TABLE pages (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT, content TEXT, permalink TEXT);
 
-void RouteController::edit()
-{
+void RouteController::edit(){
     Variant::Object ctx{
         { "page", page_.data("edit_routes", "Edit routes") },
         { "mountains", Variant::fromDictionary(routes_.getMountainsDict()) }
 
-    } ;
+    };
 
-    response_.write(engine_.render("routes-edit", ctx)) ;
+    response_.write(engine_.render("routes-edit", ctx));
 }
 
-void RouteController::publish()
-{
-    const Dictionary &params = request_.POST_ ;
-    string content = params.get("content") ;
-    string id = params.get("id") ;
+void RouteController::publish(){
+    const Dictionary &params = request_.POST_;
+    string content = params.get("content");
+    string id = params.get("id");
 
-    Statement stmt(con_, "UPDATE routes SET description = ? WHERE id = ?", content, id) ;
-    stmt.exec() ;
+    Statement stmt(con_, "UPDATE routes SET description = ? WHERE id = ?", content, id);
+    stmt.exec();
 
-    response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Route description succesfully updated"}}) ;
+    response_.writeJSONVariant(Variant::Object{{"id", id}, {"msg", "Route description succesfully updated"}});
 }
 
 
 void RouteController::create() {
-    RouteCreateForm form(request_, routes_) ;
-    form.handle(request_, response_, engine_) ;
+    RouteCreateForm form(request_, routes_);
+    form.handle(request_, response_, engine_);
 }
 
-void RouteController::edit(const string &id)
-{
-    Variant data = routes_.fetch(id) ;
+void RouteController::edit(const string &id){
+    Variant data = routes_.fetch(id);
 
     if ( data.isNull() )
-        throw HttpResponseException(Response::not_found) ;
+        throw HttpResponseException(Response::not_found);
 
-    Variant wpts = routes_.fetchWaypoints(id) ;
-    Variant attachments = routes_.fetchAttachments(id) ;
+    Variant wpts = routes_.fetchWaypoints(id);
+    Variant attachments = routes_.fetchAttachments(id);
 
     Variant::Object ctx{
         { "page", page_.data("edit_route", "Edit route") },
         { "route", data },
         { "atypes", Variant::fromDictionary(routes_.getAttachmentsDict()) }
-    } ;
+    };
 
-    response_.write(engine_.render("route-edit", ctx)) ;
+    response_.write(engine_.render("route-edit", ctx));
 }
 
 void RouteController::update() {
-    RouteUpdateForm form(con_, routes_) ;
+    RouteUpdateForm form(con_, routes_);
 
-    form.handle(request_, response_, engine_) ;
+    form.handle(request_, response_, engine_);
 }
 
 void RouteController::track(const string &id) {
-    RouteGeometry geom ;
+    RouteGeometry geom;
     routes_.fetchGeometry(id, geom);
-    Variant data = RouteModel::exportGeoJSON(geom) ;
-    response_.writeJSONVariant(data) ;
+    Variant data = RouteModel::exportGeoJSON(geom);
+    response_.writeJSONVariant(data);
 }
 
 static string url_encode(const string &value) {
@@ -175,165 +172,162 @@ static string url_encode(const string &value) {
 }
 
 void RouteController::download(const string &format, const string &route_id) {
-    RouteGeometry geom ;
-    routes_.fetchGeometry(route_id, geom) ;
+    RouteGeometry geom;
+    routes_.fetchGeometry(route_id, geom);
 
-    string mime, data ;
+    string mime, data;
     if ( format == "gpx" ) {
-        mime = "application/gpx+xml" ;
-        data = RouteModel::exportGpx(geom) ;
+        mime = "application/gpx+xml";
+        data = RouteModel::exportGpx(geom);
     } else {
-        mime = "application/vnd.google-earth.kml+xml" ;
-        data = RouteModel::exportKml(geom) ;
+        mime = "application/vnd.google-earth.kml+xml";
+        data = RouteModel::exportKml(geom);
     }
 
-    string title = routes_.fetchTitle(route_id) ;
+    string title = routes_.fetchTitle(route_id);
 
     // Output headers.
 
-    string file_name = title + '.' + format ;
+    string file_name = title + '.' + format;
 
     response_.headers_.replace("Cache-Control", "private");
     if ( request_.SERVER_.get("HTTP_USER_AGENT").find("MSIE") != string::npos ) {
-        response_.headers_.replace("Content-Disposition", "attachment; filename=" + url_encode ( file_name )) ;
+        response_.headers_.replace("Content-Disposition", "attachment; filename=" + url_encode ( file_name ));
     }  else {
-        response_.headers_.replace("Content-Disposition", "attachment; filename*=UTF-8''" + url_encode ( file_name )) ;
+        response_.headers_.replace("Content-Disposition", "attachment; filename*=UTF-8''" + url_encode ( file_name ));
     }
 
     response_.encodeFileData(data, string(), mime, 0);
 }
 
-void RouteController::remove()
-{
-   const Dictionary &params = request_.POST_ ;
-   string id = params.get("id") ;
+void RouteController::remove(){
+   const Dictionary &params = request_.POST_;
+   string id = params.get("id");
 
     if ( id.empty() )
-        throw HttpResponseException(Response::not_found) ;
+        throw HttpResponseException(Response::not_found);
     else {
         if ( routes_.remove(id) )
-            response_.writeJSON("{}") ;
+            response_.writeJSON("{}");
         else
-            throw HttpResponseException(Response::not_found) ;
+            throw HttpResponseException(Response::not_found);
     }
 }
 
-bool RouteController::dispatch()
-{
-    Dictionary attributes ;
+bool RouteController::dispatch(){
+    Dictionary attributes;
 
-    bool logged_in = user_.check() ;
+    bool logged_in = user_.check();
 
     if ( request_.matches("GET", "/")  ) {
-        browse(std::string()) ;
-        return true ;
+        browse(std::string());
+        return true;
     }
     if ( request_.matches("GET", "/mountain/{mountain:[\\w]+}?", attributes)  ) {
-        browse(attributes.get("mountain")) ;
-        return true ;
+        browse(attributes.get("mountain"));
+        return true;
     }
     if ( request_.matches("GET", "/routes/edit/") ) {
-        if ( logged_in ) edit() ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) edit();
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     if ( request_.matches("GET", "/routes/list/") ) {
-        if ( logged_in ) list() ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) list();
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     if ( request_.matches("GET|POST", "/routes/add/") ) {
-        if ( logged_in ) create() ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) create();
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     if ( request_.matches("GET|POST", "/routes/update/") ) {
-        if ( logged_in ) update() ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) update();
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     else if ( request_.matches("GET", "/route/edit/{id}/", attributes) ) {
-        if ( logged_in ) edit(attributes.get("id")) ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) edit(attributes.get("id"));
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     else if ( request_.matches("POST", "/route/publish/") ) {
-        if ( logged_in ) publish() ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) publish();
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     else if ( request_.matches("POST", "/routes/delete/") ) {
-        if ( logged_in ) remove() ;
-        else throw HttpResponseException(Response::unauthorized) ;
-        return true ;
+        if ( logged_in ) remove();
+        else throw HttpResponseException(Response::unauthorized);
+        return true;
     }
     else if ( request_.matches("POST", "/query/route") ) {
-        query() ;
-        return true ;
+        query();
+        return true;
     }
     else if ( request_.matches("GET", "/download/track/{format:gpx|kml}/{id}", attributes) ) {
-        download(attributes.get("format"), attributes.get("id")) ;
-        return true ;
+        download(attributes.get("format"), attributes.get("id"));
+        return true;
     }
     else if ( request_.matches("GET", "/track/{id}/", attributes) ) {
-        track(attributes.get("id")) ;
-        return true ;
+        track(attributes.get("id"));
+        return true;
     }
     else if ( request_.matches("GET", "/view/{id}/", attributes) ) {
-        view(attributes.get("id")) ;
-        return true ;
+        view(attributes.get("id"));
+        return true;
     }
     else
-        return false ;
+        return false;
 }
 
 void RouteController::view(const std::string &route_id) {
 
-    Variant route = routes_.fetch(route_id) ;
+    Variant route = routes_.fetch(route_id);
 
     if ( route.isNull() )
-        throw HttpResponseException(Response::not_found) ;
+        throw HttpResponseException(Response::not_found);
     else {
-        Variant attachments = routes_.fetchAttachments(route_id) ;
+        Variant attachments = routes_.fetchAttachments(route_id);
         Variant::Object ctx{
              { "page", page_.data("view", route.at("title").toString()) },
              { "route", route },
              { "attachments", attachments },
              { "id", route_id }
-        } ;
+        };
 
-        response_.write(engine_.render("route-view", ctx)) ;
+        response_.write(engine_.render("route-view", ctx));
     }
 }
 
-void RouteController::browse(const string &mountain)
-{
+void RouteController::browse(const string &mountain){
     if ( !mountain.empty() ) {
 
-        Variant routes = routes_.fetchMountain(mountain) ;
+        Variant routes = routes_.fetchMountain(mountain);
 
-        string mname = routes_.getMountainName(mountain) ;
+        string mname = routes_.getMountainName(mountain);
         Variant::Object ctx{
                      { "page", page_.data("routes", mname) },
                      { "name", mname },
                      { "routes", routes },
-                 }   ;
-        response_.write(engine_.render("routes-mountain", ctx)) ;
+                 }  ;
+        response_.write(engine_.render("routes-mountain", ctx));
     } else {
-        Variant routes = routes_.fetchAllByMountain() ;
+        Variant routes = routes_.fetchAllByMountain();
 
         Variant::Object ctx{
                      { "page", page_.data("routes", "Όλες οι διαδρομές") },
                      { "mountains", routes },
-                 }  ;
-        response_.write(engine_.render("routes-all", ctx)) ;
+                 } ;
+        response_.write(engine_.render("routes-all", ctx));
     }
 }
 
 void RouteController::list() {
-    RouteTableView view(con_) ;
+    RouteTableView view(con_);
 
-    view.handle(request_, response_) ;
+    view.handle(request_, response_);
 }
 
 

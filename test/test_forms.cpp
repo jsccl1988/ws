@@ -5,18 +5,14 @@
 
 #include <memory>
 
-using namespace std ;
-using namespace wspp::twig ;
-using namespace wspp::util ;
-using namespace wspp::web ;
-
+using namespace std;
+using namespace wspp::twig;
+using namespace wspp::util;
+using namespace wspp::web;
 
 int main(int argc, char *argv[]) {
-
-    string root = "/home/malasiot/source/ws/data/test/" ;
-    std::shared_ptr<TemplateLoader> loader(new FileSystemTemplateLoader({{root}, {root + "/bootstrap3/"}})) ;
-    TemplateRenderer rdr(loader) ;
-    rdr.setDebug() ;
-
-
+    string root = "/home/malasiot/source/ws/data/test/";
+    std::shared_ptr<TemplateLoader> loader(new FileSystemTemplateLoader({{root}, {root + "/bootstrap3/"}}));
+    TemplateRenderer rdr(loader);
+    rdr.setDebug();
 }

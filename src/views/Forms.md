@@ -8,20 +8,20 @@ context parameters such as database connection, user authentication etc.
 ```C++
 class MyForm: public wspp::web::Form {
 public:
-    MyForm(Connection &con, MyModel &model) ;
+    MyForm(Connection &con, MyModel &model);
 
     void onSuccess(const Request &request) override;
     void onGet(const Request &request) override;
 private:
 
-    Connection &con_ ;
-    MyModel &model_ ;
+    Connection &con_;
+    MyModel &model_;
 };
 ```
 In the constructor one should then define the form fields by calling the `addField()` function or more conveniently `field<T>()` function with the appropriate field type `T`. 
 ```C++
   field<InputField>("title", "text").label("Title").required()
-        .addValidator<NonEmptyValidator>() ;
+        .addValidator<NonEmptyValidator>();
 ```
 All field types inherit from "FormField" class which acts as a container of form field parameters. These parameters are then used for rendering, validation etc. One may define custom form fields accordingly by overriding "fillData" function of the FormField class to populate a variant Object with the appropriate key/value pairs. Fields are indexed by their name which should be unique. 
 
@@ -32,7 +32,7 @@ Each field can have zero or more validators. A validator is a functor that inher
 ```
 This takes as input the passed request value, checks for its correctness, and in case of error throw a "FormFieldValidationError" exception with appropriate message string. For making custom error messages each validator constructor takes as input a message template. Simple string subsititution is used to replace "{variable}" instances in the message using the function:
 ```C++
-string FormFieldValidator::interpolateMessage(const string &msg_template, const string &value, const FormField &field, const Dictionary &params= Dictionary()) ;
+string FormFieldValidator::interpolateMessage(const string &msg_template, const string &value, const FormField &field, const Dictionary &params= Dictionary());
 ```
 The special variables "{field}" and "{value}" are substituted with the field label and value respectively. Other variables are looked up in the `params` dictionary.   
 
@@ -44,8 +44,8 @@ Custom validators may be also defined using a lambda.
         .addValidator<NonEmptyValidator>()
         .addValidator([&] (const string &val, const FormField &f) {
             if ( user_.userNameExists(val) )
-                throw FormFieldValidationError("username already exists") ;
-        }) ;
+                throw FormFieldValidationError("username already exists");
+        });
 ```
 where the `user_` has been captured as a member of the containing form.
 

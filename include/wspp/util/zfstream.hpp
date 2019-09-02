@@ -14,7 +14,8 @@
 #include <ostream>
 #include <fstream>
 
-namespace wspp { namespace util {
+namespace wspp {
+namespace util {
 /*****************************************************************************/
 
 /**

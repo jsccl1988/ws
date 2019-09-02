@@ -19,22 +19,20 @@
 
 //#pragma comment(lib, "zdll.lib")
 /*****************************************************************************/
-using namespace std ;
+using namespace std;
 
-namespace wspp { namespace util {
-
+namespace wspp {
+namespace util {
 // Default constructor
 gzfilebuf::gzfilebuf()
 : file(NULL), io_mode(std::ios_base::openmode(0)), own_fd(false),
-  buffer(NULL), buffer_size(BIGBUFSIZE), own_buffer(true)
-{
+  buffer(NULL), buffer_size(BIGBUFSIZE), own_buffer(true){
   // No buffers to start with
   this->disable_buffer();
 }
 
 // Destructor
-gzfilebuf::~gzfilebuf()
-{
+gzfilebuf::~gzfilebuf(){
   // Sync output buffer and close only if responsible for file
   // (i.e. attached streams should be left open at this stage)
   this->sync();
@@ -47,16 +45,14 @@ gzfilebuf::~gzfilebuf()
 // Set compression level and strategy
 int
 gzfilebuf::setcompression(int comp_level,
-                          int comp_strategy)
-{
+                          int comp_strategy){
   return gzsetparams((gzFile)file, comp_level, comp_strategy);
 }
 
 // Open gzipped file
 gzfilebuf*
 gzfilebuf::open(const char *name,
-                std::ios_base::openmode mode)
-{
+                std::ios_base::openmode mode){
   // Fail if file already open
   if (this->is_open())
     return NULL;
@@ -83,8 +79,7 @@ gzfilebuf::open(const char *name,
 // Attach to gzipped file
 gzfilebuf*
 gzfilebuf::attach(int fd,
-                  std::ios_base::openmode mode)
-{
+                  std::ios_base::openmode mode){
   // Fail if file already open
   if (this->is_open())
     return NULL;
@@ -110,8 +105,7 @@ gzfilebuf::attach(int fd,
 
 // Close gzipped file
 gzfilebuf*
-gzfilebuf::close()
-{
+gzfilebuf::close(){
   // Fail immediately if no file is open
   if (!this->is_open())
     return NULL;
@@ -135,8 +129,7 @@ gzfilebuf::close()
 // Convert int open mode to mode string
 bool
 gzfilebuf::open_mode(std::ios_base::openmode mode,
-                     char* c_mode) const
-{
+                     char* c_mode) const{
   bool testb = mode & std::ios_base::binary;
   bool testi = mode & std::ios_base::in;
   bool testo = mode & std::ios_base::out;
@@ -172,8 +165,7 @@ gzfilebuf::open_mode(std::ios_base::openmode mode,
 
 // Determine number of characters in internal get buffer
 std::streamsize
-gzfilebuf::showmanyc()
-{
+gzfilebuf::showmanyc(){
   // Calls to underflow will fail if file not opened for reading
   if (!this->is_open() || !(io_mode & std::ios_base::in))
     return -1;
@@ -186,8 +178,7 @@ gzfilebuf::showmanyc()
 
 // Fill get area from gzipped file
 gzfilebuf::int_type
-gzfilebuf::underflow()
-{
+gzfilebuf::underflow(){
   // If something is left in the get area by chance, return it
   // (this shouldn't normally happen, as underflow is only supposed
   // to be called when gptr >= egptr, but it serves as error check)
@@ -217,8 +208,7 @@ gzfilebuf::underflow()
 
 // Write put area to gzipped file
 gzfilebuf::int_type
-gzfilebuf::overflow(int_type c)
-{
+gzfilebuf::overflow(int_type c){
   // Determine whether put area is in use
   if (this->pbase())
   {
@@ -270,8 +260,7 @@ gzfilebuf::overflow(int_type c)
 // Assign new buffer
 std::streambuf*
 gzfilebuf::setbuf(char_type* p,
-                  std::streamsize n)
-{
+                  std::streamsize n){
   // First make sure stuff is sync'ed, for safety
   if (this->sync() == -1)
     return NULL;
@@ -302,8 +291,7 @@ gzfilebuf::setbuf(char_type* p,
 
 // Write put area to gzipped file (i.e. ensures that put area is empty)
 int
-gzfilebuf::sync()
-{
+gzfilebuf::sync(){
   return traits_type::eq_int_type(this->overflow(), traits_type::eof()) ? -1 : 0;
 }
 
@@ -311,8 +299,7 @@ gzfilebuf::sync()
 
 // Allocate internal buffer
 void
-gzfilebuf::enable_buffer()
-{
+gzfilebuf::enable_buffer(){
   // If internal buffer required, allocate one
   if (own_buffer && !buffer)
   {
@@ -350,8 +337,7 @@ gzfilebuf::enable_buffer()
 
 // Destroy internal buffer
 void
-gzfilebuf::disable_buffer()
-{
+gzfilebuf::disable_buffer(){
   // If internal buffer exists, deallocate it
   if (own_buffer && buffer)
   {
@@ -377,23 +363,20 @@ gzfilebuf::disable_buffer()
 /*****************************************************************************/
 
 // Default constructor initializes stream buffer
-gzifstream::gzifstream()
-{
+gzifstream::gzifstream(){
   this->init(&sb);
 }
 
 // Initialize stream buffer and open file
 gzifstream::gzifstream(const char* name,
-                       std::ios_base::openmode mode)
-{
+                       std::ios_base::openmode mode){
   this->init(&sb);
   this->open(name, mode);
 }
 
 // Initialize stream buffer and attach to file
 gzifstream::gzifstream(int fd,
-                       std::ios_base::openmode mode)
-{
+                       std::ios_base::openmode mode){
   this->init(&sb);
   this->attach(fd, mode);
 }
@@ -401,8 +384,7 @@ gzifstream::gzifstream(int fd,
 // Open file and go into fail() state if unsuccessful
 void
 gzifstream::open(const char* name,
-                 std::ios_base::openmode mode)
-{
+                 std::ios_base::openmode mode){
   if (!sb.open(name, mode | std::ios_base::in))
     this->setstate(std::ios_base::failbit);
   else
@@ -412,8 +394,7 @@ gzifstream::open(const char* name,
 // Attach to file and go into fail() state if unsuccessful
 void
 gzifstream::attach(int fd,
-                   std::ios_base::openmode mode)
-{
+                   std::ios_base::openmode mode){
   if (!sb.attach(fd, mode | std::ios_base::in))
     this->setstate(std::ios_base::failbit);
   else
@@ -422,8 +403,7 @@ gzifstream::attach(int fd,
 
 // Close file
 void
-gzifstream::close()
-{
+gzifstream::close(){
   if (!sb.close())
     this->setstate(std::ios_base::failbit);
 }
@@ -431,21 +411,18 @@ gzifstream::close()
 /*****************************************************************************/
 
 // Default constructor initializes stream buffer
-gzofstream::gzofstream()
-{ this->init(&sb); }
+gzofstream::gzofstream(){ this->init(&sb); }
 
 // Initialize stream buffer and open file
 gzofstream::gzofstream(const char* name,
-                       std::ios_base::openmode mode)
-{
+                       std::ios_base::openmode mode){
   this->init(&sb);
   this->open(name, mode);
 }
 
 // Initialize stream buffer and attach to file
 gzofstream::gzofstream(int fd,
-                       std::ios_base::openmode mode)
-{
+                       std::ios_base::openmode mode){
   this->init(&sb);
   this->attach(fd, mode);
 }
@@ -453,8 +430,7 @@ gzofstream::gzofstream(int fd,
 // Open file and go into fail() state if unsuccessful
 void
 gzofstream::open(const char* name,
-                 std::ios_base::openmode mode)
-{
+                 std::ios_base::openmode mode){
   if (!sb.open(name, mode | std::ios_base::out))
     this->setstate(std::ios_base::failbit);
   else
@@ -464,8 +440,7 @@ gzofstream::open(const char* name,
 // Attach to file and go into fail() state if unsuccessful
 void
 gzofstream::attach(int fd,
-                   std::ios_base::openmode mode)
-{
+                   std::ios_base::openmode mode){
   if (!sb.attach(fd, mode | std::ios_base::out))
     this->setstate(std::ios_base::failbit);
   else
@@ -474,11 +449,9 @@ gzofstream::attach(int fd,
 
 // Close file
 void
-gzofstream::close()
-{
+gzofstream::close(){
   if (!sb.close())
     this->setstate(std::ios_base::failbit);
 }
-
 } // namespace util
 } // namespace wspp

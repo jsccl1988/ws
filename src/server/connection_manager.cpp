@@ -11,35 +11,29 @@
 #include <wspp/server/detail/connection_manager.hpp>
 #include <wspp/server/detail/connection.hpp>
 
-namespace wspp { namespace server {
-
-ConnectionManager::ConnectionManager()
-{
+namespace wspp {
+namespace server {
+ConnectionManager::ConnectionManager(){
 }
 
-void ConnectionManager::start(ConnectionPtr c)
-{
-    boost::unique_lock<boost::mutex> lock(mutex_) ;
-
+void ConnectionManager::start(ConnectionPtr c){
+    boost::unique_lock<boost::mutex> lock(mutex_);
     connections_.insert(c);
     c->start();
 }
 
-void ConnectionManager::stop(ConnectionPtr c)
-{
-    boost::unique_lock<boost::mutex> lock(mutex_) ;
+void ConnectionManager::stop(ConnectionPtr c){
+    boost::unique_lock<boost::mutex> lock(mutex_);
     if ( connections_.count(c) )
           connections_.erase(c);
     c->stop();
 }
 
-void ConnectionManager::stop_all()
-{
-    boost::unique_lock<boost::mutex> lock(mutex_) ;
+void ConnectionManager::stop_all(){
+    boost::unique_lock<boost::mutex> lock(mutex_);
     for (auto c: connections_)
         c->stop();
     connections_.clear();
 }
-
 } // namespace server
 } // namespace wspp

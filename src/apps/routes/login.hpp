@@ -9,33 +9,32 @@
 
 #include "auth.hpp"
 
-using wspp::server::Response ;
-using wspp::server::Request ;
-using wspp::server::Session ;
-using wspp::twig::TemplateRenderer ;
+using wspp::server::Response;
+using wspp::server::Request;
+using wspp::server::Session;
+using wspp::twig::TemplateRenderer;
 
-using std::string ;
+using std::string;
 
 class LoginController {
 public:
     LoginController(User &user, const Request &req, Response &resp, TemplateRenderer &engine):
     request_(req), response_(resp), user_(user), engine_(engine) {}
 
-    bool dispatch() ;
-    void login() ;
-    void logout() ;
+    bool dispatch();
+    void login();
+    void logout();
 
 protected:
     // sanitize and verify username/password
 
-    bool sanitizeUserName(string &username) ;
-    bool sanitizePassword(string &password) ;
+    bool sanitizeUserName(string &username);
+    bool sanitizePassword(string &password);
 
 private:
-    User &user_ ;
-    const Request &request_ ;
-    Response &response_ ;
-    TemplateRenderer &engine_ ;
+    User &user_;
+    const Request &request_;
+    Response &response_;
+    TemplateRenderer &engine_;
 };
-
 #endif

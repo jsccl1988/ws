@@ -16,19 +16,14 @@
 #include <sstream>
 #include <zlib.h>
 
-namespace wspp { namespace util {
-
-
-/// Exception class thrown by failed zlib operations.
-class Exception
-    : public std::exception
-{
+namespace wspp {
+namespace util {
+// Exception class thrown by failed zlib operations.
+class Exception : public std::exception{
 public:
     Exception(z_stream * zstrm_p, int ret)
-        : _msg("zlib: ")
-    {
-        switch (ret)
-        {
+        : _msg("zlib: ") {
+        switch (ret) {
         case Z_STREAM_ERROR:
             _msg += "Z_STREAM_ERROR: ";
             break;
@@ -54,15 +49,13 @@ public:
     }
     Exception(const std::string msg) : _msg(msg) {}
     const char * what() const noexcept { return _msg.c_str(); }
+
 private:
     std::string _msg;
 }; // class Exception
 
-namespace detail
-{
-
-class z_stream_wrapper: public z_stream
-{
+namespace detail{
+class z_stream_wrapper: public z_stream{
 public:
     z_stream_wrapper(bool _is_input = true, int _level = Z_DEFAULT_COMPRESSION)
         : is_input(_is_input)  {
@@ -74,14 +67,14 @@ public:
             this->avail_in = 0;
             this->next_in = Z_NULL;
             ret = inflateInit2(this, 15+32);
-        }
-        else {
+        } else {
             ret = deflateInit2(this, _level, Z_DEFLATED, 15+16, 8, Z_DEFAULT_STRATEGY);
         }
-        if (ret != Z_OK) throw Exception(this, ret);
+
+        if (ret != Z_OK)
+            throw Exception(this, ret);
     }
-    ~z_stream_wrapper()
-    {
+    ~z_stream_wrapper() {
         if (is_input)
             inflateEnd(this);
         else
@@ -90,11 +83,9 @@ public:
 private:
     bool is_input;
 }; // class z_stream_wrapper
-
 } // namespace detail
 
-class izstreambuf: public std::streambuf
-{
+class izstreambuf: public std::streambuf{
 public:
     izstreambuf(std::streambuf * _sbuf_p,
                std::size_t _buff_size = default_buff_size, bool _auto_detect = true)
@@ -103,8 +94,7 @@ public:
           buff_size(_buff_size),
           auto_detect(_auto_detect),
           auto_detect_run(false),
-          is_text(false)
-    {
+          is_text(false) {
         assert(sbuf_p);
         in_buff = new char [buff_size];
         in_buff_start = in_buff;
@@ -118,33 +108,28 @@ public:
     izstreambuf & operator = (const izstreambuf &) = delete;
     izstreambuf & operator = (izstreambuf &&) = default;
 
-    virtual ~izstreambuf()
-    {
+    virtual ~izstreambuf() {
         delete [] in_buff;
         delete [] out_buff;
         if (zstrm_p) delete zstrm_p;
     }
 
-    virtual std::streambuf::int_type underflow()
-    {
-        if (this->gptr() == this->egptr())
-        {
+    virtual std::streambuf::int_type underflow() {
+        if (this->gptr() == this->egptr()) {
             // pointers for free region in output buffer
             char * out_buff_free_start = out_buff;
-            do
-            {
+            do {
                 // read more input if none available
-                if (in_buff_start == in_buff_end)
-                {
+                if (in_buff_start == in_buff_end) {
                     // empty input buffer: refill from the start
                     in_buff_start = in_buff;
                     std::streamsize sz = sbuf_p->sgetn(in_buff, buff_size);
                     in_buff_end = in_buff + sz;
                     if (in_buff_end == in_buff_start) break; // end of input
                 }
+
                 // auto detect if the stream contains text or deflate data
-                if (auto_detect && ! auto_detect_run)
-                {
+                if (auto_detect && ! auto_detect_run) {
                     auto_detect_run = true;
                     unsigned char b0 = *reinterpret_cast< unsigned char * >(in_buff_start);
                     unsigned char b1 = *reinterpret_cast< unsigned char * >(in_buff_start + 1);
@@ -157,34 +142,35 @@ public:
                                                         || b1 == 0x9C
                                                         || b1 == 0xDA))));
                 }
-                if (is_text)
-                {
+
+                if (is_text) {
                     // simply swap in_buff and out_buff, and adjust pointers
                     assert(in_buff_start == in_buff);
                     std::swap(in_buff, out_buff);
                     out_buff_free_start = in_buff_end;
                     in_buff_start = in_buff;
                     in_buff_end = in_buff;
-                }
-                else
-                {
+                } else {
                     // run inflate() on input
-                    if (! zstrm_p) zstrm_p = new detail::z_stream_wrapper(true);
+                    if (! zstrm_p)
+                        zstrm_p = new detail::z_stream_wrapper(true);
+
                     zstrm_p->next_in = reinterpret_cast< decltype(zstrm_p->next_in) >(in_buff_start);
                     zstrm_p->avail_in = in_buff_end - in_buff_start;
                     zstrm_p->next_out = reinterpret_cast< decltype(zstrm_p->next_out) >(out_buff_free_start);
                     zstrm_p->avail_out = (out_buff + buff_size) - out_buff_free_start;
+
                     int ret = inflate(zstrm_p, Z_NO_FLUSH);
                     // process return code
-                    if (ret != Z_OK && ret != Z_STREAM_END) throw Exception(zstrm_p, ret);
+                    if (ret != Z_OK && ret != Z_STREAM_END)
+                        throw Exception(zstrm_p, ret);
                     // update in&out pointers following inflate()
                     in_buff_start = reinterpret_cast< decltype(in_buff_start) >(zstrm_p->next_in);
                     in_buff_end = in_buff_start + zstrm_p->avail_in;
                     out_buff_free_start = reinterpret_cast< decltype(out_buff_free_start) >(zstrm_p->next_out);
                     assert(out_buff_free_start + zstrm_p->avail_out == out_buff + buff_size);
                     // if stream ended, deallocate inflator
-                    if (ret == Z_STREAM_END)
-                    {
+                    if (ret == Z_STREAM_END) {
                         delete zstrm_p;
                         zstrm_p = nullptr;
                     }
@@ -195,10 +181,12 @@ public:
             // - out_buff_free_start != out_buff: output available
             this->setg(out_buff, out_buff, out_buff_free_start);
         }
+
         return this->gptr() == this->egptr()
             ? traits_type::eof()
             : traits_type::to_int_type(*this->gptr());
     }
+
 private:
     std::streambuf * sbuf_p;
     char * in_buff;
@@ -215,15 +203,13 @@ private:
 }; // class izstreambuf
 
 class ozstreambuf
-    : public std::streambuf
-{
+    : public std::streambuf{
 public:
     ozstreambuf(std::streambuf * _sbuf_p,
                std::size_t _buff_size = default_buff_size, int _level = Z_DEFAULT_COMPRESSION)
         : sbuf_p(_sbuf_p),
           zstrm_p(new detail::z_stream_wrapper(false, _level)),
-          buff_size(_buff_size)
-    {
+          buff_size(_buff_size) {
         assert(sbuf_p);
         in_buff = new char [buff_size];
         out_buff = new char [buff_size];
@@ -235,17 +221,16 @@ public:
     ozstreambuf & operator = (const ozstreambuf &) = delete;
     ozstreambuf & operator = (ozstreambuf &&) = default;
 
-    int deflate_loop(int flush)
-    {
-        while (true)
-        {
+    int deflate_loop(int flush) {
+        while (true) {
             zstrm_p->next_out = reinterpret_cast< decltype(zstrm_p->next_out) >(out_buff);
             zstrm_p->avail_out = buff_size;
             int ret = deflate(zstrm_p, flush);
-            if (ret != Z_OK && ret != Z_STREAM_END && ret != Z_BUF_ERROR) throw Exception(zstrm_p, ret);
+            if (ret != Z_OK && ret != Z_STREAM_END && ret != Z_BUF_ERROR)
+                throw Exception(zstrm_p, ret);
+
             std::streamsize sz = sbuf_p->sputn(out_buff, reinterpret_cast< decltype(out_buff) >(zstrm_p->next_out) - out_buff);
-            if (sz != reinterpret_cast< decltype(out_buff) >(zstrm_p->next_out) - out_buff)
-            {
+            if (sz != reinterpret_cast< decltype(out_buff) >(zstrm_p->next_out) - out_buff) {
                 // there was an error in the sink stream
                 return -1;
             }
@@ -254,11 +239,11 @@ public:
                 break;
             }
         }
+
         return 0;
     }
 
-    virtual ~ozstreambuf()
-    {
+    virtual ~ozstreambuf() {
         // flush the zlib stream
         //
         // NOTE: Errors here (sync() return value not 0) are ignored, because we
@@ -272,15 +257,12 @@ public:
         delete [] out_buff;
         delete zstrm_p;
     }
-    virtual std::streambuf::int_type overflow(std::streambuf::int_type c = traits_type::eof())
-    {
+    virtual std::streambuf::int_type overflow(std::streambuf::int_type c = traits_type::eof()) {
         zstrm_p->next_in = reinterpret_cast< decltype(zstrm_p->next_in) >(pbase());
         zstrm_p->avail_in = pptr() - pbase();
-        while (zstrm_p->avail_in > 0)
-        {
+        while (zstrm_p->avail_in > 0) {
             int r = deflate_loop(Z_NO_FLUSH);
-            if (r != 0)
-            {
+            if (r != 0) {
                 setp(nullptr, nullptr);
                 return traits_type::eof();
             }
@@ -288,18 +270,20 @@ public:
         setp(in_buff, in_buff + buff_size);
         return traits_type::eq_int_type(c, traits_type::eof()) ? traits_type::eof() : sputc(c);
     }
-    virtual int sync()
-    {
+    virtual int sync() {
         // first, call overflow to clear in_buff
         overflow();
-        if (! pptr()) return -1;
+        if (! pptr())
+            return -1;
         // then, call deflate asking to finish the zlib stream
         zstrm_p->next_in = nullptr;
         zstrm_p->avail_in = 0;
-        if (deflate_loop(Z_FINISH) != 0) return -1;
+        if (deflate_loop(Z_FINISH) != 0)
+            return -1;
         deflateReset(zstrm_p);
         return 0;
     }
+
 private:
     std::streambuf * sbuf_p;
     char * in_buff;
@@ -310,85 +294,67 @@ private:
     static const std::size_t default_buff_size = (std::size_t)1 << 20;
 }; // class ostreambuf
 
-class izstream
-    : public std::istream
-{
+class izstream : public std::istream{
 public:
     izstream(std::istream & is)
-        : std::istream(new izstreambuf(is.rdbuf()))
-    {
+        : std::istream(new izstreambuf(is.rdbuf())) {
         exceptions(std::ios_base::badbit);
     }
     explicit izstream(std::streambuf * sbuf_p)
-        : std::istream(new izstreambuf(sbuf_p))
-    {
+        : std::istream(new izstreambuf(sbuf_p)) {
         exceptions(std::ios_base::badbit);
     }
-    virtual ~izstream()
-    {
+    virtual ~izstream() {
         delete rdbuf();
     }
 }; // class istream
 
-class ozstream
-    : public std::ostream
-{
+class ozstream : public std::ostream{
 public:
     ozstream(std::ostream & os)
-        : std::ostream(new ozstreambuf(os.rdbuf()))
-    {
+        : std::ostream(new ozstreambuf(os.rdbuf())) {
         exceptions(std::ios_base::badbit);
     }
     explicit ozstream(std::streambuf * sbuf_p)
-        : std::ostream(new ozstreambuf(sbuf_p))
-    {
+        : std::ostream(new ozstreambuf(sbuf_p)) {
         exceptions(std::ios_base::badbit);
     }
-    virtual ~ozstream()
-    {
+    virtual ~ozstream() {
         delete rdbuf();
     }
 }; // class ostream
 
 
-class izfstream:
-          public std::istream
-{
+class izfstream : public std::istream{
 public:
     explicit izfstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::in)
         : strm_(filename, mode),
-          std::istream(new izstreambuf(strm_.rdbuf()))
-    {
+          std::istream(new izstreambuf(strm_.rdbuf())) {
         exceptions(std::ios_base::badbit);
     }
-    virtual ~izfstream()
-    {
+    virtual ~izfstream() {
         if (rdbuf()) delete rdbuf();
     }
-private:
-    std::ifstream strm_ ;
 
+private:
+    std::ifstream strm_;
 }; // class ifstream
 
-class ozfstream:
-      public std::ostream
-{
+class ozfstream : public std::ostream {
 public:
     explicit ozfstream(const std::string& filename, std::ios_base::openmode mode = std::ios_base::out)
         : strm_(filename, mode | std::ios_base::binary),
-          std::ostream(new ozstreambuf(strm_.rdbuf()))
-    {
+          std::ostream(new ozstreambuf(strm_.rdbuf())) {
         exceptions(std::ios_base::badbit);
     }
-    virtual ~ozfstream()
-    {
-        if (rdbuf()) delete rdbuf();
+    virtual ~ozfstream() {
+        if (rdbuf())
+            delete rdbuf();
     }
+
 private:
-    std::ofstream strm_ ;
+    std::ofstream strm_;
 }; // class ofstream
-
 } // namespace util
-} // namespace cvx
-
+} // namespace wspp
 #endif

@@ -12,33 +12,33 @@
 #include "login.hpp"
 #include "page_view.hpp"
 
-using wspp::db::Connection ;
-using wspp::server::Response ;
-using wspp::server::Request ;
-using wspp::server::Session ;
-using std::string ;
-using wspp::twig::TemplateRenderer ;
+using wspp::db::Connection;
+using wspp::server::Response;
+using wspp::server::Request;
+using wspp::server::Session;
+using std::string;
+using wspp::twig::TemplateRenderer;
 
 class PageCreateForm: public wspp::web::FormHandler {
 public:
-    PageCreateForm(Connection &con) ;
+    PageCreateForm(Connection &con);
 
-    void onSuccess(const Request &request) override ;
+    void onSuccess(const Request &request) override;
 
 private:
-    Connection &con_ ;
+    Connection &con_;
 };
 
 class PageUpdateForm: public wspp::web::FormHandler {
 public:
-    PageUpdateForm(Connection &con, const std::string &id) ;
+    PageUpdateForm(Connection &con, const std::string &id);
 
-    void onSuccess(const Request &request) override ;
-    void onGet(const Request &request) override ;
+    void onSuccess(const Request &request) override;
+    void onGet(const Request &request) override;
 
 private:
-    Connection &con_ ;
-    std::string id_ ;
+    Connection &con_;
+    std::string id_;
 };
 
 class PageController {
@@ -48,28 +48,24 @@ public:
                    PageView &page): con_(con),
     request_(req), response_(resp), user_(user), engine_(engine), page_(page) {}
 
-    bool dispatch() ;
+    bool dispatch();
 
-    void show(const string &page_id) ;
+    void show(const string &page_id);
 
-    void create() ;
-    void publish() ;
-    void edit() ;
-    void edit(const string &page_id) ;
-    void remove() ;
+    void create();
+    void publish();
+    void edit();
+    void edit(const string &page_id);
+    void remove();
     void fetch();
     void update();
-protected:
-
 
 private:
-    Connection &con_ ;
-    const Request &request_ ;
-    Response &response_ ;
-    User &user_ ;
-    TemplateRenderer &engine_ ;
-    PageView &page_ ;
-
+    Connection &con_;
+    const Request &request_;
+    Response &response_;
+    User &user_;
+    TemplateRenderer &engine_;
+    PageView &page_;
 };
-
 #endif

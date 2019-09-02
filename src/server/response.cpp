@@ -25,14 +25,13 @@
 #include <string>
 #include <time.h>
 
-using namespace std ;
-namespace fs = boost::filesystem ;
-using namespace wspp::util ;
+using namespace std;
+namespace fs = boost::filesystem;
+using namespace wspp::util;
 
-namespace wspp { namespace server {
-
+namespace wspp {
+namespace server {
 namespace status_strings {
-
 const std::string ok =
         "HTTP/1.0 200 OK\r\n";
 const std::string created =
@@ -66,10 +65,8 @@ const std::string bad_gateway =
 const std::string service_unavailable =
         "HTTP/1.0 503 Service Unavailable\r\n";
 
-boost::asio::const_buffer to_buffer(Response::Status status)
-{
-    switch (status)
-    {
+boost::asio::const_buffer to_buffer(Response::Status status){
+    switch (status) {
     case Response::ok:
         return boost::asio::buffer(ok);
     case Response::created:
@@ -106,43 +103,36 @@ boost::asio::const_buffer to_buffer(Response::Status status)
         return boost::asio::buffer(internal_server_error);
     }
 }
-
 } // namespace status_strings
 
 namespace misc_strings {
-
 const char name_value_separator[] = { ':', ' ' };
 const char crlf[] = { '\r', '\n' };
-
 } // namespace misc_strings
 
-
-/// Convert the reply into a vector of buffers. The buffers do not own the
-/// underlying memory blocks, therefore the reply object must remain valid and
-/// not be changed until the write operation has completed.
-
-
-std::vector<boost::asio::const_buffer> response_to_buffers(Response &rep, bool is_head)
-{
+// Convert the reply into a vector of buffers. The buffers do not own the
+// underlying memory blocks, therefore the reply object must remain valid and
+// not be changed until the write operation has completed.
+std::vector<boost::asio::const_buffer> response_to_buffers(Response &rep, bool is_head){
     std::vector<boost::asio::const_buffer> buffers;
     buffers.push_back(status_strings::to_buffer(rep.status_));
 
-    for( const auto &h: rep.headers_ )
-    {
+    for( const auto &h: rep.headers_ ) {
         buffers.push_back(boost::asio::buffer(h.first));
         buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
         buffers.push_back(boost::asio::buffer(h.second));
         buffers.push_back(boost::asio::buffer(misc_strings::crlf));
     }
+
     if ( !is_head ) {
         buffers.push_back(boost::asio::buffer(misc_strings::crlf));
         buffers.push_back(boost::asio::buffer(rep.content_));
     }
+
     return buffers;
 }
 
 namespace stock_replies {
-
 const char ok[] = "";
 const char created[] =
         "<html>"
@@ -220,8 +210,7 @@ const char service_unavailable[] =
         "<body><h1>503 Service Unavailable</h1></body>"
         "</html>";
 
-std::string to_string(Response::Status status)
-{
+std::string to_string(Response::Status status){
     switch (status)
     {
     case Response::ok:
@@ -260,157 +249,137 @@ std::string to_string(Response::Status status)
         return internal_server_error;
     }
 }
-
 } // namespace stock_replies
 
-void Response::stockReply(Response::Status status)
-{
+void Response::stockReply(Response::Status status){
     status_ = status;
     content_.assign(stock_replies::to_string(status));
     setContentType("text/html");
-    setContentLength() ;
+    setContentLength();
 }
 
 static void gmt_time_string(char *buf, size_t buf_len, time_t *t) {
     strftime(buf, buf_len, "%a, %d %b %Y %H:%M:%S GMT", gmtime(t));
 }
 
-void Response::encodeFileData(const std::string &bytes, const std::string &encoding, const std::string &mime, time_t mod_time)
-{
-    status_ = ok ;
+void Response::encodeFileData(const std::string &bytes, const std::string &encoding, const std::string &mime, time_t mod_time){
+    status_ = ok;
 
-    if ( bytes.empty() ) return ;
+    if ( bytes.empty() ) return;
 
-    if ( encoding.empty() ) // try gzip encoding
-    {
+    // try gzip encoding
+    if ( encoding.empty() ) {
         if ( bytes.size() > 2 && bytes[0] == 0x1f && bytes[1] == 0x8b )
-            headers_.add("Content-Encoding", "gzip") ;
+            headers_.add("Content-Encoding", "gzip");
     }
     else
-        headers_.add("Content-Encoding", encoding) ;
+        headers_.add("Content-Encoding", encoding);
 
     if ( !mime.empty() )
-        headers_.add("Content-Type", mime) ;
+        headers_.add("Content-Type", mime);
 
-    headers_.add("Access-Control-Allow-Origin", "*") ;
+    headers_.add("Access-Control-Allow-Origin", "*");
 
-    char ctime_buf[64], mtime_buf[64] ;
-    time_t curtime = time(nullptr) ;
+    char ctime_buf[64], mtime_buf[64];
+    time_t curtime = time(nullptr);
 
     gmt_time_string(ctime_buf, sizeof(ctime_buf), &curtime);
     gmt_time_string(mtime_buf, sizeof(mtime_buf), &mod_time);
 
-    headers_.add("Date", ctime_buf) ;
-    headers_.add("Last-Modified", mtime_buf) ;
+    headers_.add("Date", ctime_buf);
+    headers_.add("Last-Modified", mtime_buf);
 
+    headers_.add("Etag", boost::lexical_cast<std::string>(mod_time));
+    headers_.add("Content-Length", boost::lexical_cast<std::string>(bytes.size()));
 
-    headers_.add("Etag", boost::lexical_cast<std::string>(mod_time)) ;
-    headers_.add("Content-Length", boost::lexical_cast<std::string>(bytes.size())) ;
-
-    content_.assign(bytes) ;
+    content_.assign(bytes);
 }
 
 std::map<string, string> well_known_mime_types {
 #include "well_known_mime_types.hpp"
-} ;
+};
 
 #ifndef _WIN32
 #define stricmp strcasecmp
 #define strnicmp strncasecmp
 #endif
 
-static string get_file_mime(const string &mime,  const boost::filesystem::path &p)
-{
-    if ( !mime.empty() ) return mime ;
+static string get_file_mime(const string &mime,  const boost::filesystem::path &p){
+    if ( !mime.empty() ) return mime;
 
-    string extension = p.extension().string() ;
+    string extension = p.extension().string();
 
     if ( extension == ".gz" )
-        extension = p.stem().extension().string() ;
+        extension = p.stem().extension().string();
 
-    if ( !extension.empty() )
-    {
-        auto it = well_known_mime_types.find(extension) ;
-        if ( it != well_known_mime_types.end() ) return it->second ;
+    if ( !extension.empty() ) {
+        auto it = well_known_mime_types.find(extension);
+        if ( it != well_known_mime_types.end() ) return it->second;
     }
 
-    return "application/octet-stream" ;
+    return "application/octet-stream";
 }
 
-
-
-void Response::encodeFile(const std::string &file_path, const std::string &encoding, const std::string &mime )
-{
+void Response::encodeFile(const std::string &file_path, const std::string &encoding, const std::string &mime ){
     if ( !fs::exists(file_path) ) {
-        throw HttpResponseException(Response::not_found) ;
-        return ;
+        throw HttpResponseException(Response::not_found);
+        return;
     }
 
     time_t mod_time = boost::filesystem::last_write_time(file_path);
-
-    string bytes = readFileToString(file_path) ;
-
-    string omime = mime.empty() ? get_file_mime(mime, file_path) : mime ;
-
-    encodeFileData(bytes, encoding, omime, mod_time) ;
-
+    string bytes = readFileToString(file_path);
+    string omime = mime.empty() ? get_file_mime(mime, file_path) : mime;
+    encodeFileData(bytes, encoding, omime, mod_time);
 }
 
-void Response::writeJSON(const string &obj)
-{
-    write(obj, "application/json") ;
+void Response::writeJSON(const string &obj){
+    write(obj, "application/json");
 }
 
-void Response::writeJSONVariant(const Variant &var)
-{
-    writeJSON(var.toJSON()) ;
+void Response::writeJSONVariant(const Variant &var){
+    writeJSON(var.toJSON());
 }
 
-void Response::write(const string &content, const string &mime)
-{
-    content_.assign(content) ;
-    setContentType(mime) ;
-    setContentLength() ;
-    setStatus(ok) ;
+void Response::write(const string &content, const string &mime){
+    content_.assign(content);
+    setContentType(mime);
+    setContentLength();
+    setStatus(ok);
 }
 
 void Response::setContentType(const string &mime) {
-    headers_.replace("Content-Type", mime) ;
+    headers_.replace("Content-Type", mime);
 }
 
 void Response::setContentLength() {
-    headers_.replace("Content-Length", to_string(content_.size())) ;
+    headers_.replace("Content-Length", to_string(content_.size()));
 }
 
-void Response::append(const string &content)
-{
-    content_.append(content) ;
+void Response::append(const string &content){
+    content_.append(content);
 }
 
-void Response::setCookie(const string &name, const string &value, time_t expires, const string &path, const string &domain, bool secure, bool http_only)
-{
-    string cookie = name + '=' + value ;
+void Response::setCookie(const string &name, const string &value, time_t expires, const string &path, const string &domain, bool secure, bool http_only){
+    string cookie = name + '=' + value;
     if ( expires > 0 ) {
-        char etime_buf[64] ;
+        char etime_buf[64];
         gmt_time_string(etime_buf, sizeof(etime_buf), &expires);
-        cookie += "; Expires=" ; cookie += etime_buf ;
+        cookie += "; Expires="; cookie += etime_buf;
     }
 
     if ( !path.empty() )
-        cookie += "; Path=" + path ;
+        cookie += "; Path=" + path;
 
     if ( !domain.empty() )
-        cookie += "; Domain=" + domain ;
+        cookie += "; Domain=" + domain;
 
     if ( secure )
-        cookie += "; Secure" ;
+        cookie += "; Secure";
 
     if ( http_only )
-        cookie += "; HttpOnly" ;
+        cookie += "; HttpOnly";
 
-    headers_.add("Set-Cookie", cookie) ;
-
+    headers_.add("Set-Cookie", cookie);
 }
-
 } // namespace server
 } // namespace wspp

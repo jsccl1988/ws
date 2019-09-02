@@ -11,20 +11,20 @@
 
 #include <wspp/controllers/login.hpp>
 
-using wspp::util::sqlite::Connection ;
-using wspp::server::Response ;
-using wspp::server::Request ;
-using wspp::server::Session ;
-using std::string ;
-using wspp::web::TemplateRenderer ;
-using wspp::web::User ;
+using wspp::util::sqlite::Connection;
+using wspp::server::Response;
+using wspp::server::Request;
+using wspp::server::Session;
+using std::string;
+using wspp::web::TemplateRenderer;
+using wspp::web::User;
 
 class MenuForm: public wspp::web::Form {
 public:
-    MenuForm(Connection &con) ;
+    MenuForm(Connection &con);
 
 private:
-    Connection &con_ ;
+    Connection &con_;
 };
 
 class MenuController {
@@ -32,24 +32,21 @@ public:
     MenuController(const Request &req, Response &resp,
                    Connection &con, User &user, TemplateRenderer &engine): con_(con),
     request_(req), response_(resp), user_(user), engine_(engine), menu_form_(con) {
-
     }
 
-    void add() ;
-    void edit() ;
-    void remove() ;
-    void fetch() ;
-    void create() ;
-    void update() ;
+    void add();
+    void edit();
+    void remove();
+    void fetch();
+    void create();
+    void update();
 
 private:
-    Connection &con_ ;
-    const Request &request_ ;
-    Response &response_ ;
-    User &user_ ;
-    TemplateRenderer &engine_ ;
-    MenuForm menu_form_ ;
-
+    Connection &con_;
+    const Request &request_;
+    Response &response_;
+    User &user_;
+    TemplateRenderer &engine_;
+    MenuForm menu_form_;
 };
-
 #endif

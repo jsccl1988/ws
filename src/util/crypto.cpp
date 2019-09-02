@@ -10,38 +10,35 @@
 
 #include <arpa/inet.h>
 
-using namespace std ;
+using namespace std;
 
-namespace wspp { namespace util {
-
+namespace wspp {
+namespace util {
 string randomBytes(size_t len) {
-    using namespace CryptoPP ;
-    static AutoSeededRandomPool pool ;
-    string bytes ;
+    using namespace CryptoPP;
+    static AutoSeededRandomPool pool;
+    string bytes;
 
-    bytes.resize(len, 0) ;
-
+    bytes.resize(len, 0);
     pool.GenerateBlock(reinterpret_cast<byte *>(&bytes[0]), len);
 
-    return bytes ;
+    return bytes;
 }
 
 string binToHex(const string &src) {
-    using namespace CryptoPP ;
+    using namespace CryptoPP;
 
-    string res ;
+    string res;
     HexEncoder hex(new StringSink(res));
 
     hex.Put(reinterpret_cast<const byte *>(&src[0]), src.size());
     hex.MessageEnd();
-    return res ;
+    return res;
 }
 
-string encodeBase64(const string &src)
-{
-    using namespace CryptoPP ;
-
-    string encoded ;
+string encodeBase64(const string &src){
+    using namespace CryptoPP;
+    string encoded;
 
     StringSource ss(reinterpret_cast<const byte *>(&src[0]), src.size(), true,
         new Base64Encoder(
@@ -51,14 +48,12 @@ string encodeBase64(const string &src)
 
     encoded.pop_back();
 
-    return encoded ;
+    return encoded;
 }
 
-string decodeBase64(const string &src)
-{
-    using namespace CryptoPP ;
-
-    string decoded ;
+string decodeBase64(const string &src){
+    using namespace CryptoPP;
+    string decoded;
 
     StringSource ss(reinterpret_cast<const byte *>(&src[0]), src.size(), true,
         new Base64Decoder(
@@ -66,25 +61,20 @@ string decodeBase64(const string &src)
         )
     );
 
-    return decoded ;
+    return decoded;
 }
 
-
-const size_t salt_length = 16 ;
-
+const size_t salt_length = 16;
 string passwordHash(const string &password, size_t iterations) {
-
     using namespace CryptoPP;
 
-    string buffer = randomBytes(salt_length) ;
+    string buffer = randomBytes(salt_length);
 
     // buffer contains salt + key + iterations
-    buffer.resize(SHA256::DIGESTSIZE + salt_length + 4) ;
+    buffer.resize(SHA256::DIGESTSIZE + salt_length + 4);
 
     // generate key from hash and password
-
     PKCS5_PBKDF2_HMAC<SHA256> pbkdf;
-
     pbkdf.DeriveKey(
         (byte *)buffer.data() + salt_length, SHA256::DIGESTSIZE,
         0x00,
@@ -93,29 +83,24 @@ string passwordHash(const string &password, size_t iterations) {
         iterations
     );
 
-    uint32_t *p = (uint32_t *)(buffer.data() + SHA256::DIGESTSIZE + salt_length) ;
+    uint32_t *p = (uint32_t *)(buffer.data() + SHA256::DIGESTSIZE + salt_length);
+    *p = htonl(iterations);
 
-    *p = htonl(iterations) ;
-
-    return buffer ;
+    return buffer;
 }
 
 bool passwordVerify(const string &password, const string &hash) {
-
     using namespace CryptoPP;
 
-    assert( hash.size() == SHA256::DIGESTSIZE + salt_length + 4 ) ;
+    assert( hash.size() == SHA256::DIGESTSIZE + salt_length + 4 );
 
-    uint32_t *p = (uint32_t *)(hash.data() + SHA256::DIGESTSIZE + salt_length) ;
-
-    size_t iterations = ntohl(*p) ;
+    uint32_t *p = (uint32_t *)(hash.data() + SHA256::DIGESTSIZE + salt_length);
+    size_t iterations = ntohl(*p);
 
     // generate key from hash and password
-
-    char key[SHA256::DIGESTSIZE] ;
+    char key[SHA256::DIGESTSIZE];
 
     PKCS5_PBKDF2_HMAC<SHA256> pbkdf;
-
     pbkdf.DeriveKey(
         (byte *)key, SHA256::DIGESTSIZE,
         0x00,
@@ -125,39 +110,30 @@ bool passwordVerify(const string &password, const string &hash) {
     );
 
     // compare key with one stored in hash (avoiding timing issues)
+    uint ncount = 0;
+    for( uint i=0; i<SHA256::DIGESTSIZE; i++ )
+        if ( hash.at(salt_length + i) != key[i] ) ncount ++;
 
-    uint ncount = 0 ;
-    for( uint i=0 ; i<SHA256::DIGESTSIZE ; i++ )
-        if ( hash.at(salt_length + i) != key[i] ) ncount ++ ;
-
-    return ncount == 0 ;
+    return ncount == 0;
 }
 
-string hashSHA256(const string &src)
-{
+string hashSHA256(const string &src){
     std::string digest;
     CryptoPP::SHA256 hash;
-
     CryptoPP::StringSource ss(reinterpret_cast<const byte *>(&src[0]), src.size(), true,
        new CryptoPP::HashFilter(hash, new CryptoPP::StringSink(digest)));
 
     return digest;
 }
 
-bool hashCompare(const string &s1, const string &s2)
-{
+bool hashCompare(const string &s1, const string &s2){
     // compare key with one stored in hash (avoiding timing issues)
+    size_t len = std::min(s1.length(), s2.length());
+    uint ncount = 0;
+    for( uint i=0; i<len; i++ )
+        if ( s1[i] != s2[i] ) ncount ++;
 
-    size_t len = std::min(s1.length(), s2.length()) ;
-    uint ncount = 0 ;
-    for( uint i=0 ; i<len ; i++ )
-        if ( s1[i] != s2[i] ) ncount ++ ;
-
-    return ncount == 0 ;
+    return ncount == 0;
 }
-
-
-
 } // namespace util
-
 } // namespace wspp

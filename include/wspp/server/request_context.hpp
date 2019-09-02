@@ -4,16 +4,12 @@
 #include <wspp/server/session_manager.hpp>
 
 namespace wspp {
-
 class RequestContext {
 public:
-    RequestContext(SessionManager &sm) ;
+    RequestContext(SessionManager &sm);
 
 private:
-
-    SessionManager &session_manager_ ;
-} ;
-
+    SessionManager &session_manager_;
+};
 }
-
 #endif

@@ -3,20 +3,17 @@
 
 #include <wspp/server/filter.hpp>
 
-namespace wspp { namespace server {
-
-class FilterChain ;
-class Request ;
-class Response ;
-
+namespace wspp {
+namespace server {
+class FilterChain;
+class Request;
+class Response;
 class GZipFilter: public Filter {
 public:
     GZipFilter() {}
 
     void handle(Request &req, Response &resp, FilterChain &chain) override;
 };
-
 }
 }
-
 #endif

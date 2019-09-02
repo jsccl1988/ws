@@ -158,7 +158,7 @@ static const char tokens[256] = {
         0,       0,      '*',     '+',      0,      '-',     '.',      0,
 /*  48  0    49  1    50  2    51  3    52  4    53  5    54  6    55  7  */
        '0',     '1',     '2',     '3',     '4',     '5',     '6',     '7',
-/*  56  8    57  9    58  :    59  ;    60  <    61  =    62  >    63  ?  */
+/*  56  8    57  9    58  :    59 ;    60  <    61  =    62  >    63  ?  */
        '8',     '9',      0,       0,       0,       0,       0,       0,
 /*  64  @    65  A    66  B    67  C    68  D    69  E    70  F    71  G  */
         0,      'a',     'b',     'c',     'd',     'e',     'f',     'g',
@@ -212,7 +212,7 @@ static const uint8_t normal_url_char[32] = {
         1    |   2    |   4    |   8    |   16   |   32   |   64   |  128,
 /*  48  0    49  1    50  2    51  3    52  4    53  5    54  6    55  7  */
         1    |   2    |   4    |   8    |   16   |   32   |   64   |  128,
-/*  56  8    57  9    58  :    59  ;    60  <    61  =    62  >    63  ?  */
+/*  56  8    57  9    58  :    59 ;    60  <    61  =    62  >    63  ?  */
         1    |   2    |   4    |   8    |   16   |   32   |   64   |   0,
 /*  64  @    65  A    66  B    67  C    68  D    69  E    70  F    71  G  */
         1    |   2    |   4    |   8    |   16   |   32   |   64   |  128,
@@ -427,8 +427,7 @@ int http_message_needs_eof(const http_parser *parser);
  * URL and non-URL states by looking for these.
  */
 static enum state
-parse_url_char(enum state s, const char ch)
-{
+parse_url_char(enum state s, const char ch){
   if (ch == ' ' || ch == '\r' || ch == '\n') {
     return s_dead;
   }
@@ -577,8 +576,7 @@ parse_url_char(enum state s, const char ch)
 size_t http_parser_execute (http_parser *parser,
                             const http_parser_settings *settings,
                             const char *data,
-                            size_t len)
-{
+                            size_t len){
   char c, ch;
   int8_t unhex_val;
   const char *p = data;
@@ -959,7 +957,7 @@ size_t http_parser_execute (http_parser *parser,
         if (ch == ' ' && matcher[parser->index] == '\0') {
           parser->state = s_req_spaces_before_url;
         } else if (ch == matcher[parser->index]) {
-          ; /* nada */
+         ; /* nada */
         } else if (parser->method == HTTP_CONNECT) {
           if (parser->index == 1 && ch == 'H') {
             parser->method = HTTP_CHECKOUT;
@@ -1923,8 +1921,7 @@ error:
 
 /* Does the parser need to see an EOF to find the end of the message? */
 int
-http_message_needs_eof (const http_parser *parser)
-{
+http_message_needs_eof (const http_parser *parser){
   if (parser->type == HTTP_REQUEST) {
     return 0;
   }
@@ -1946,8 +1943,7 @@ http_message_needs_eof (const http_parser *parser)
 
 
 int
-http_should_keep_alive (const http_parser *parser)
-{
+http_should_keep_alive (const http_parser *parser){
   if (parser->http_major > 0 && parser->http_minor > 0) {
     /* HTTP/1.1 */
     if (parser->flags & F_CONNECTION_CLOSE) {
@@ -1965,15 +1961,13 @@ http_should_keep_alive (const http_parser *parser)
 
 
 const char *
-http_method_str (enum http_method m)
-{
+http_method_str (enum http_method m){
   return ELEM_AT(method_strings, m, "<unknown>");
 }
 
 
 void
-http_parser_init (http_parser *parser, enum http_parser_type t)
-{
+http_parser_init (http_parser *parser, enum http_parser_type t){
   void *data = parser->data; /* preserve application data */
   memset(parser, 0, sizeof(*parser));
   parser->data = data;
@@ -2103,7 +2097,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
       case s_http_userinfo:
         if (s != s_http_userinfo) {
-          u->field_data[UF_USERINFO].off = p - buf ;
+          u->field_data[UF_USERINFO].off = p - buf;
           u->field_data[UF_USERINFO].len = 0;
           u->field_set |= (1 << UF_USERINFO);
         }
@@ -2134,8 +2128,7 @@ http_parse_host(const char * buf, struct http_parser_url *u, int found_at) {
 
 int
 http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
-                      struct http_parser_url *u)
-{
+                      struct http_parser_url *u){
   enum state s;
   const char *p;
   enum http_parser_url_fields uf, old_uf;
@@ -2204,7 +2197,7 @@ http_parser_parse_url(const char *buf, size_t buflen, int is_connect,
   }
 
   /* host must be present if there is a schema */
-  /* parsing http:///toto will fail */
+  /* parsing http://toto will fail */
   if ((u->field_set & ((1 << UF_SCHEMA) | (1 << UF_HOST))) != 0) {
     if (http_parse_host(buf, u, found_at) != 0) {
       return 1;

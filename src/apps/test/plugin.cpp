@@ -8,8 +8,8 @@
 #include <boost/regex.hpp>
 
 
-using namespace std ;
-using namespace wspp ;
+using namespace std;
+using namespace wspp;
 
 class MyHandler: public RequestHandler {
 
@@ -20,26 +20,24 @@ public:
 
         // test if the request path is what expected
 
-        Dictionary attributes ;
-        if ( !req.matches("GET", "/hello/{user:a}", attributes ) ) return false ;
+        Dictionary attributes;
+        if ( !req.matches("GET", "/hello/{user:a}", attributes ) ) return false;
 
-        Session session ;
-        sm.open(req, session) ;
+        Session session;
+        sm.open(req, session);
 
-        resp.content_ = "hello " + user ;
+        resp.content_ = "hello " + user;
 
-        resp.headers_.add("Content-Length", to_string(resp.content_.size())) ;
-        resp.headers_.add("Content-Type", "text/html" ) ;
+        resp.headers_.add("Content-Length", to_string(resp.content_.size()));
+        resp.headers_.add("Content-Type", "text/html" );
 
-        session.data_["user_name"] = user ;
+        session.data_["user_name"] = user;
 
+        resp.status_ = Response::ok;
 
+        sm.close(resp, session);
 
-        resp.status_ = Response::ok ;
-
-        sm.close(resp, session) ;
-
-        return true ;
+        return true;
     }
 };
 

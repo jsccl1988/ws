@@ -23,9 +23,9 @@
         <?php foreach( $nav_menu as $menu_id => $menu_item ) { ?>
                 <li>
                 <a href="<?php echo $menu_item["link"] ?>"
-                <?php if ( $current_page == $menu_id ) echo ' class="active"' ; ?>
+                <?php if ( $current_page == $menu_id ) echo ' class="active"'; ?>
                 >
-                <?php echo $menu_item["name"] ; ?>
+                <?php echo $menu_item["name"]; ?>
                         </a>
                 </li>
                 <?php } ?>

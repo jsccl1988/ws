@@ -4,32 +4,25 @@
 #include <memory>
 #include <wspp/util/dictionary.hpp>
 
-namespace wspp { namespace db {
+namespace wspp {
+namespace db {
 
-class ConnectionHandle ;
-
+class ConnectionHandle;
 // The PostgreSQL driver
-//
 // The connections string is of the form pgsql:<; delimited option list>
-//
 // for available options see:
 // https://www.postgresql.org/docs/9.4/static/libpq-connect.html
-
 class PGSQLDriver {
-
 public:
-
-    PGSQLDriver() = default ;
+    PGSQLDriver() = default;
 
     static const PGSQLDriver &instance() {
-        static PGSQLDriver instance ;
-        return instance ;
+        static PGSQLDriver instance;
+        return instance;
     }
 
-    std::shared_ptr<ConnectionHandle> open(const util::Dictionary &params) const ;
+    std::shared_ptr<ConnectionHandle> open(const util::Dictionary &params) const;
 };
-
 }
 }
-
 #endif

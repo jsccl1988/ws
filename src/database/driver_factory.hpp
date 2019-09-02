@@ -6,31 +6,23 @@
 #include <wspp/database/connection.hpp>
 #include <wspp/util/dictionary.hpp>
 
-namespace wspp { namespace db {
-
+namespace wspp {
+namespace db {
 class DriverFactory {
-
 public:
-
-    DriverFactory() = default ;
+    DriverFactory() = default;
 
     // open connection to database with given params
     // dsn is a connection string or uri link to local file (similar to PHP PDO)
-
-    std::shared_ptr<ConnectionHandle> createConnection(const std::string &dsn) const ;
+    std::shared_ptr<ConnectionHandle> createConnection(const std::string &dsn) const;
 
     static const DriverFactory &instance() {
-        static DriverFactory factory ;
-        return factory ;
+        static DriverFactory factory;
+        return factory;
     }
 
-    static bool parseParamString(const std::string &str, util::Dictionary &params) ;
-
+    static bool parseParamString(const std::string &str, util::Dictionary &params);
 };
-
-
 } // namespace db
 } // namespace wspp
-
-
 #endif

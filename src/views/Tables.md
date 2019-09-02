@@ -10,27 +10,27 @@ public:
     AttachmentTableView(Connection &con, const std::string &page_id, const Dictionary &amap):
         SQLTableView(con, "attachments_list_view"), attachments_map_(amap) {
 
-        setTitle("Attachments") ;
+        setTitle("Attachments");
 
-        string sql("CREATE TEMPORARY VIEW attachments_list_view AS SELECT id, name, url, type FROM attachments WHERE page_id = ") ;
+        string sql("CREATE TEMPORARY VIEW attachments_list_view AS SELECT id, name, url, type FROM attachments WHERE page_id = ");
         sql += route_id;
 
-        con_.execute(sql) ;
+        con_.execute(sql);
 
-        addColumn("Name", "<a href=\"{{url}}\">{{name}}</a>") ;
-        addColumn("Type", "{{type}}") ;
+        addColumn("Name", "<a href=\"{{url}}\">{{name}}</a>");
+        addColumn("Type", "{{type}}");
     }
 
     Variant transform(const string &key, const string &value) override {
         if ( key == "type" ) {
-            auto it = attachments_map_.find(value) ;
-            if ( it != attachments_map_.end() ) return it->second ;
-            else return string() ;
+            auto it = attachments_map_.find(value);
+            if ( it != attachments_map_.end() ) return it->second;
+            else return string();
         }
-        return value ;
+        return value;
     }
 private:
-    Dictionary attachments_map_ ;
+    Dictionary attachments_map_;
 };
 ```
 Note that we created a view to request only the attachments of a specific page. An SQL view is also usefull when we need joins with other tables. Internally the query will be further limited by appending `LIMIT` to achieve paging.

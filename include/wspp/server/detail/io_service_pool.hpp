@@ -20,39 +20,36 @@ namespace wspp {
 namespace server {
 namespace detail {
 
-/// A pool of io_service objects.
+// A pool of io_service objects.
 class io_service_pool
-        : private boost::noncopyable
-{
+        : private boost::noncopyable{
 public:
-    /// Construct the io_service pool.
+    // Construct the io_service pool.
     explicit io_service_pool(std::size_t pool_size);
 
-    /// Run all io_service objects in the pool.
+    // Run all io_service objects in the pool.
     void run();
 
-    /// Stop all io_service objects in the pool.
+    // Stop all io_service objects in the pool.
     void stop();
 
-    /// Get an io_service to use.
+    // Get an io_service to use.
     boost::asio::io_service& get_io_service();
 
 private:
     typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
     typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
 
-    /// The pool of io_services.
+    // The pool of io_services.
     std::vector<io_service_ptr> io_services_;
 
-    /// The work that keeps the io_services running.
+    // The work that keeps the io_services running.
     std::vector<work_ptr> work_;
 
-    /// The next io_service to use for a connection.
+    // The next io_service to use for a connection.
     std::size_t next_io_service_;
 };
-
 } // namespace detail
 } // namespace server
 } // namespace wspp
-
 #endif // HTTP_SERVER2_IO_SERVICE_POOL_HPP

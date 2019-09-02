@@ -12,13 +12,13 @@
 #include "auth.hpp"
 #include "page_view.hpp"
 
-using wspp::db::Connection ;
-using wspp::util::Dictionary ;
-using wspp::server::Response ;
-using wspp::server::Request ;
-using wspp::server::Session ;
-using std::string ;
-using wspp::twig::TemplateRenderer ;
+using wspp::db::Connection;
+using wspp::util::Dictionary;
+using wspp::server::Response;
+using wspp::server::Request;
+using wspp::server::Session;
+using std::string;
+using wspp::twig::TemplateRenderer;
 
 class UsersController {
 public:
@@ -28,29 +28,24 @@ public:
                    PageView &page):
     request_(req), response_(resp), user_(user), engine_(engine), page_(page), con_(con) {}
 
-    bool dispatch() ;
+    bool dispatch();
 
-    void create() ;
+    void create();
 
-    void edit() ;
-    void edit(const string &user_id) ;
-    void remove() ;
+    void edit();
+    void edit(const string &user_id);
+    void remove();
     void fetch();
     void update();
-protected:
-
 
 private:
-
-    const Request &request_ ;
-    Response &response_ ;
-    User &user_ ;
-    TemplateRenderer &engine_ ;
-    PageView &page_ ;
-    Connection &con_ ;
-
+    const Request &request_;
+    Response &response_;
+    User &user_;
+    TemplateRenderer &engine_;
+    PageView &page_;
+    Connection &con_;
 };
-
 #endif
 
 

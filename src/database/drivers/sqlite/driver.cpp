@@ -1,33 +1,30 @@
 #include "driver.hpp"
 #include "connection.hpp"
 
-using namespace std ;
+using namespace std;
 namespace wspp {
 namespace db {
-
 ConnectionHandlePtr SQLiteDriver::open(const util::Dictionary &params) const {
-    sqlite3 *handle ;
+    sqlite3 *handle;
 
-    int flags = 0 ;
+    int flags = 0;
+    string database = params.get("db");
 
-    string database = params.get("db") ;
+    if ( database.empty() ) return nullptr;
 
-    if ( database.empty() ) return nullptr ;
-
-    string mode = params.get("mode", "rw") ;
+    string mode = params.get("mode", "rw");
 
     if ( mode == "rw")
-        flags |= SQLITE_OPEN_READWRITE ;
+        flags |= SQLITE_OPEN_READWRITE;
     else if ( mode == "r" )
-        flags |= SQLITE_OPEN_READONLY ;
+        flags |= SQLITE_OPEN_READONLY;
     else if ( mode == "rc")
-    flags |= SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE ;
-
+    flags |= SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE;
 
     if ( sqlite3_open_v2(database.c_str(), &handle, flags, NULL)  != SQLITE_OK )
-        return nullptr ;
+        return nullptr;
     else
-        return ConnectionHandlePtr(new SQLiteConnectionHandle(handle)) ;
+        return ConnectionHandlePtr(new SQLiteConnectionHandle(handle));
 }
 }
 }

@@ -5,33 +5,28 @@
 
 #include <wspp/database/connection_handle.hpp>
 
-namespace wspp { namespace db {
-
+namespace wspp {
+namespace db {
 class SQLiteConnectionHandle: public ConnectionHandle {
 public:
     SQLiteConnectionHandle(sqlite3 *handle): handle_(handle) {}
-    ~SQLiteConnectionHandle() { close() ; }
+    ~SQLiteConnectionHandle() { close(); }
 
-    void close() override ;
+    void close() override;
 
-    StatementHandlePtr createStatement(const std::string &sql) ;
+    StatementHandlePtr createStatement(const std::string &sql);
 
-    void begin() override ;
-    void commit() override ;
-    void rollback() override ;
+    void begin() override;
+    void commit() override;
+    void rollback() override;
 
-    uint64_t last_insert_rowid() const override ;
+    uint64_t last_insert_rowid() const override;
 
 private:
-
     void exec(const std::string &sql...);
 
-    sqlite3 *handle_ ;
+    sqlite3 *handle_;
 };
-
-
-
 } // namespace db
 } // namespace wspp
-
 #endif

@@ -5,33 +5,28 @@
 
 #include <wspp/database/connection_handle.hpp>
 
-namespace wspp { namespace db {
-
+namespace wspp {
+namespace db {
 class PGSQLConnectionHandle: public ConnectionHandle {
 public:
     PGSQLConnectionHandle(PGconn *handle): handle_(handle) {}
-    ~PGSQLConnectionHandle() { close() ; }
+    ~PGSQLConnectionHandle() { close(); }
 
-    void close() override ;
+    void close() override;
 
-    StatementHandlePtr createStatement(const std::string &sql) ;
+    StatementHandlePtr createStatement(const std::string &sql);
 
-    void begin() override ;
-    void commit() override ;
-    void rollback() override ;
+    void begin() override;
+    void commit() override;
+    void rollback() override;
 
-    uint64_t last_insert_rowid() const override ;
+    uint64_t last_insert_rowid() const override;
 
 private:
-
     void exec(const char *sql);
 
-    PGconn *handle_ ;
+    PGconn *handle_;
 };
-
-
-
 } // namespace db
 } // namespace wspp
-
 #endif

@@ -8,14 +8,10 @@
 namespace wspp {
 class RequestHandlerFactory {
 public:
-    RequestHandlerFactory() = default ;
+    RequestHandlerFactory() = default;
 
     // implement this to return a handler matching the request
-
     virtual std::shared_ptr<RequestHandler> create(const Request &req) = 0;
 };
-
-
 }
-
 #endif

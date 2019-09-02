@@ -3,27 +3,27 @@
 Syntax:
 
 ```
-Server server("<address>", "<port>") ;
+Server server("<address>", "<port>");
 
-Application *service = new Application() ;
+Application *service = new Application();
 
-server.setHandler(service) ;
+server.setHandler(service);
 
-DefaultLogger logger("/tmp/logger", true) ;
-server.addFilter(new RequestLoggerFilter(logger)) ;
+DefaultLogger logger("/tmp/logger", true);
+server.addFilter(new RequestLoggerFilter(logger));
 
-server.run() ;
+server.run();
 ```
 The service `Application` should be an instance of RequestHandler:
 ```
 class Application: public RequestHandler {
 public:
 
-    Application() ; // do all one-time initialization here
+    Application(); // do all one-time initialization here
 
     // called for every server request. Fill the response object or throw a HttpResponseException
     
-    void handle(const Request &req, Response &resp) override ;
+    void handle(const Request &req, Response &resp) override;
 };
 ```
 

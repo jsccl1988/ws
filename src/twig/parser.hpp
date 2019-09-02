@@ -19,59 +19,48 @@
 #include <boost/thread/mutex.hpp>
 
 namespace yy {
-class Parser ;
+class Parser;
 }
 
 class TwigParser {
-
 public:
+    TwigParser(std::istream &strm) ;
 
-    TwigParser(std::istream &strm)  ;
+    using DocumentNodePtr = wspp::twig::detail::DocumentNodePtr;
+    using ContentNodePtr  = wspp::twig::detail::ContentNodePtr;
+    using ContainerNodePtr  = wspp::twig::detail::ContainerNodePtr;
 
-    using DocumentNodePtr = wspp::twig::detail::DocumentNodePtr ;
-    using ContentNodePtr  = wspp::twig::detail::ContentNodePtr ;
-    using ContainerNodePtr  = wspp::twig::detail::ContainerNodePtr ;
-
-    void parse(DocumentNodePtr root, const std::string &name) ;
-
-    void error(const yy::Parser::location_type &loc,  const std::string& m) ;
-
+    void parse(DocumentNodePtr root, const std::string &name);
+    void error(const yy::Parser::location_type &loc,  const std::string& m);
     void addNode(ContentNodePtr node);
 
     void pushBlock(ContainerNodePtr node) {
-        stack_.push_back(node) ;
+        stack_.push_back(node);
     }
-
     void popBlock(const char *tag_name);
 
-
     void addMacroBlock(const std::string &name, ContentNodePtr node) {
-        root_->macro_blocks_.insert({name, node}) ;
+        root_->macro_blocks_.insert({name, node});
     }
 
-    void trimWhiteBefore() ;
-    void trimWhiteAfter() ;
+    void trimWhiteBefore();
+    void trimWhiteAfter();
 
-    ContainerNodePtr stackTop() const { return stack_.back() ; }
+    ContainerNodePtr stackTop() const { return stack_.back(); }
 
-    TwigScanner &scanner() { return scanner_ ; }
-
+    TwigScanner &scanner() { return scanner_; }
 
 private:
-    friend class yy::Parser ;
+    friend class yy::Parser;
 
     TwigScanner scanner_;
     yy::Parser parser_;
 
-    std::string error_string_, script_ ;
-    yy::Parser::location_type loc_ ;
+    std::string error_string_, script_;
+    yy::Parser::location_type loc_;
 
-    DocumentNodePtr root_ ;
-    std::deque<ContainerNodePtr> stack_ ;
-    ContentNodePtr current_ ;
-
-
-
-} ;
-
+    DocumentNodePtr root_;
+    std::deque<ContainerNodePtr> stack_;
+    ContentNodePtr current_;
+};
 #endif

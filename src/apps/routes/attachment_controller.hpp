@@ -12,36 +12,36 @@
 #include "route_model.hpp"
 #include "page_view.hpp"
 
-using wspp::db::Connection ;
-using wspp::server::Response ;
-using wspp::server::Request ;
-using wspp::server::Session ;
-using std::string ;
-using wspp::twig::TemplateRenderer ;
+using wspp::db::Connection;
+using wspp::server::Response;
+using wspp::server::Request;
+using wspp::server::Session;
+using std::string;
+using wspp::twig::TemplateRenderer;
 
 class AttachmentCreateForm: public wspp::web::FormHandler {
 public:
-    AttachmentCreateForm(const Request &req, RouteModel &routes, const std::string &route_id, const string &upload_folder) ;
+    AttachmentCreateForm(const Request &req, RouteModel &routes, const std::string &route_id, const string &upload_folder);
 
-    void onSuccess(const Request &request) override ;
+    void onSuccess(const Request &request) override;
 
 private:
-    const Request &request_ ;
-    RouteModel &routes_ ;
-    const string upload_folder_ ;
-    const string route_id_ ;
+    const Request &request_;
+    RouteModel &routes_;
+    const string upload_folder_;
+    const string route_id_;
 };
 
 class AttachmentUpdateForm: public wspp::web::FormHandler {
 public:
-    AttachmentUpdateForm(RouteModel &routes, const string &route_id) ;
+    AttachmentUpdateForm(RouteModel &routes, const string &route_id);
 
-    void onSuccess(const Request &request) override ;
-    void onGet(const Request &request) override ;
+    void onSuccess(const Request &request) override;
+    void onGet(const Request &request) override;
+
 private:
-
-    RouteModel &routes_ ;
-    string route_id_ ;
+    RouteModel &routes_;
+    string route_id_;
 };
 
 class AttachmentController {
@@ -50,22 +50,20 @@ public:
                    Connection &con, User &user, TemplateRenderer &engine, const std::string &upload_folder): routes_(con), con_(con),
     request_(req), response_(resp), user_(user), engine_(engine), upload_folder_(upload_folder) {}
 
-    bool dispatch() ;
+    bool dispatch();
 
-    void list(const std::string &route_id) ;
-    void create(const std::string &route_id) ;
-    void remove(const std::string &route_id) ;
+    void list(const std::string &route_id);
+    void create(const std::string &route_id);
+    void remove(const std::string &route_id);
     void update(const std::string &route_id);
 
 private:
-    Connection &con_ ;
-    const Request &request_ ;
-    Response &response_ ;
-    User &user_ ;
-    TemplateRenderer &engine_ ;
-    RouteModel routes_ ;
-    std::string upload_folder_ ;
-
+    Connection &con_;
+    const Request &request_;
+    Response &response_;
+    User &user_;
+    TemplateRenderer &engine_;
+    RouteModel routes_;
+    std::string upload_folder_;
 };
-
 #endif

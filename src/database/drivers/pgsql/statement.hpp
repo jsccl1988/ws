@@ -14,14 +14,14 @@ public:
     PGSQLStatementHandle(const std::string &sql, PGconn *handle): sql_(sql), handle_(handle) {}
 
     ~PGSQLStatementHandle() {
-        finalize() ;
+        finalize();
     }
 
-    void clear() override ;
+    void clear() override;
 
-    void finalize() override ;
+    void finalize() override;
 
-    StatementHandle &bind(int idx, const NullType &) override ;
+    StatementHandle &bind(int idx, const NullType &) override;
     StatementHandle &bind(int idx, unsigned char v) override;
     StatementHandle &bind(int idx, char v) override;
     StatementHandle &bind(int idx, unsigned short v) override;
@@ -37,25 +37,25 @@ public:
     StatementHandle &bind(int idx, const std::string &v) override;
     StatementHandle &bind(int idx, const Blob &blob) override;
 
-    StatementHandle &bind(int idx, const char *str) override ;
+    StatementHandle &bind(int idx, const char *str) override;
 
     int placeholderNameToIndex(const std::string &name) override;
 
-    void exec() override ;
-    QueryResult execQuery() override ;
+    void exec() override;
+    QueryResult execQuery() override;
 
-    PGconn *handle() const { return handle_ ; }
+    PGconn *handle() const { return handle_; }
 private:
 
-    PGconn *handle_ ;
+    PGconn *handle_;
 
     void check() const;
-    void prepare() ;
-    PGresult *doExec() ;
-    bool checkResult(PGresult *) const ;
+    void prepare();
+    PGresult *doExec();
+    bool checkResult(PGresult *) const;
 
-    PreparedStatementParameters params_ ;
-    std::string sql_, name_ ;
+    PreparedStatementParameters params_;
+    std::string sql_, name_;
 };
 
 

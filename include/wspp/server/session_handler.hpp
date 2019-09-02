@@ -7,38 +7,33 @@
 #include <wspp/server/response.hpp>
 #include <wspp/server/session.hpp>
 
-namespace wspp { namespace server {
-
-class Session ;
-
+namespace wspp {
+namespace server {
+class Session;
 class SessionHandler {
 public:
     SessionHandler(): session_cookie_path_("/") {}
 
     // initialize any resources
-    virtual bool open() = 0 ;
+    virtual bool open() = 0;
 
     // close and release resources
-    virtual bool close() = 0 ;
+    virtual bool close() = 0;
 
     // write session data
-    virtual bool write(const Session &session) = 0 ;
+    virtual bool write(const Session &session) = 0;
     // read season data
-    virtual bool read(Session &session) = 0 ;
+    virtual bool read(Session &session) = 0;
     // generate a unique SID
-    virtual std::string uniqueSID() { return generateSID() ; }
+    virtual std::string uniqueSID() { return generateSID(); }
 
-    std::string cookiePath() const { return session_cookie_path_ ; }
-    std::string cookieDomain() const { return session_cookie_domain_ ; }
+    std::string cookiePath() const { return session_cookie_path_; }
+    std::string cookieDomain() const { return session_cookie_domain_; }
 
 protected:
-
-    static std::string generateSID() ;
-    std::string session_cookie_path_, session_cookie_domain_ ;
+    static std::string generateSID();
+    std::string session_cookie_path_, session_cookie_domain_;
 };
-
 } // namespace server
 } // namespace wspp
-
-
 #endif

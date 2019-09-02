@@ -2,7 +2,5 @@
 
 namespace wspp {
 namespace db {
-
-
 }
 }

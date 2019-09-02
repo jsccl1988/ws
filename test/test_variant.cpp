@@ -2,28 +2,22 @@
 
 #include <iostream>
 
-using namespace std ;
+using namespace std;
 
 struct Field {
 public:
-    string name_ ;
-    string type_ ;
-
+    string name_;
+    string type_;
 };
 
 struct Table {
 public:
+    string name_;
 
-
-    string name_ ;
-
-    Field id_ ;
-    Field desc_ ;
-    Field title_ ;
-
+    Field id_;
+    Field desc_;
+    Field title_;
 };
 
 int main() {
-
-
 }

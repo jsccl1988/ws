@@ -6,7 +6,6 @@
 
 class TemplateException: public std::runtime_error {
 public:
-
     TemplateException(const std::string &msg): std::runtime_error(msg) {}
 };
 
@@ -25,5 +24,4 @@ class TemplateRuntimeException: public TemplateException {
 public:
     TemplateRuntimeException(const std::string &msg): TemplateException(msg) {}
 };
-
 #endif

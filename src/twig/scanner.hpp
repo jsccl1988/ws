@@ -17,17 +17,13 @@
 
 
 class TwigScanner : public yyFlexLexer{
-
 public:
     TwigScanner(std::istream &strm): yyFlexLexer(&strm)  {}
 
     virtual yy::Parser::symbol_type lex(yy::Parser::location_type* yylloc);
 
-    std::string raw_ ;
+    std::string raw_;
 
-    bool trim_next_raw_block_ = false, trim_previous_raw_block_ = false ;
+    bool trim_next_raw_block_ = false, trim_previous_raw_block_ = false;
 };
-
-
-
 #endif

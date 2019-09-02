@@ -5,20 +5,14 @@
 #include <string>
 #include <stdexcept>
 
-namespace wspp { namespace db {
-
-class ConnectionHandle ;
-
-class Exception: public std::runtime_error
-{
+namespace wspp {
+namespace db {
+class ConnectionHandle;
+class Exception: public std::runtime_error {
 public:
-    Exception(const std::string &msg) ;
-    Exception(ConnectionHandle &h) ;
+    Exception(const std::string &msg);
+    Exception(ConnectionHandle &h);
 };
-
 } // namespace sqlite
 } // namespace util
-
-
-
 #endif

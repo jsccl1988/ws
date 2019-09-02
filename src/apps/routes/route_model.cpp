@@ -11,373 +11,343 @@
 #include <ctime>
 #include <fstream>
 
-
-using namespace std ;
-using namespace wspp::util ;
-using namespace wspp::db ;
+using namespace std;
+using namespace wspp::util;
+using namespace wspp::db;
 
 RouteModel::RouteModel(Connection &con): con_(con) {
-    fetchMountains() ;
-    attachment_titles_ = {{"sketch", "Σκαρίφημα"}, {"description", "Περιγραφή"}} ;
+    fetchMountains();
+    attachment_titles_ = {{"sketch", "Σκαρίφημα"}, {"description", "Περιγραφή"}};
 }
 
-Variant RouteModel::fetchMountain(const string &mountain) const
-{
-    Variant::Array results ;
+Variant RouteModel::fetchMountain(const string &mountain) const{
+    Variant::Array results;
 
-    Query stmt(con_, "SELECT id, title FROM routes WHERE mountain = ?") ;
-    QueryResult res = stmt(mountain) ;
+    Query stmt(con_, "SELECT id, title FROM routes WHERE mountain = ?");
+    QueryResult res = stmt(mountain);
 
-    string title ;
-    int id ;
+    string title;
+    int id;
     while ( res.next() ) {
-        res.into(id, title) ;
-        results.emplace_back(Variant::Object{ {"id", id},  {"title", title} }) ;
+        res.into(id, title);
+        results.emplace_back(Variant::Object{ {"id", id},  {"title", title} });
     }
-    return results ;
+
+    return results;
 }
 
 string RouteModel::getMountainName(const string &mountain_id) const {
-    auto it = mountains_.find(mountain_id) ;
-    assert(it != mountains_.end()) ;
-    return it->second.name_ ;
+    auto it = mountains_.find(mountain_id);
+    assert(it != mountains_.end());
+    return it->second.name_;
 }
 
 string RouteModel::getAttachmentTitle(const string &att_id) const {
-    auto it = attachment_titles_.find(att_id) ;
-    assert(it != attachment_titles_.end()) ;
-    return it->second ;
+    auto it = attachment_titles_.find(att_id);
+    assert(it != attachment_titles_.end());
+    return it->second;
 }
 
 Dictionary RouteModel::getMountainsDict() const {
-    Dictionary res ;
+    Dictionary res;
     for( const auto &p: mountains_ ) {
-        res.add(p.first, p.second.name_) ;
+        res.add(p.first, p.second.name_);
     }
-    return res ;
+
+    return res;
 }
 
 bool RouteModel::updateInfo(const string &id, const string &title, const string &mountain_id) {
     Statement stmt(con_, "UPDATE routes SET title = ?, mountain = ? WHERE id = ?");
-    stmt(title, mountain_id, id) ;
-    return true ;
+    stmt(title, mountain_id, id);
+    return true;
 }
 
-bool RouteModel::updateAttachment(const string &id, const string &name, const string &type_id)
-{
+bool RouteModel::updateAttachment(const string &id, const string &name, const string &type_id){
     Statement stmt(con_, "UPDATE attachments SET name = ?, type = ? WHERE id = ?");
-    stmt(name, type_id, id) ;
-    return true ;
+    stmt(name, type_id, id);
+    return true;
 }
 
-bool RouteModel::updateWaypoint(const string &id, const string &name, const string &desc)
-{
+bool RouteModel::updateWaypoint(const string &id, const string &name, const string &desc){
     Statement stmt(con_, "UPDATE wpts SET name = ?, desc = ? WHERE id = ?");
-    stmt(name, desc, id) ;
-    return true ;
+    stmt(name, desc, id);
+    return true;
 }
 
 bool RouteModel::getInfo(const string &id, string &title, string &mountain_id) {
     Query stmt(con_, "SELECT title, mountain FROM routes WHERE id = ?");
-    QueryResult res = stmt(id) ;
+    QueryResult res = stmt(id);
     if ( res.next() ) {
-        res.into(title, mountain_id) ;
-        return true ;
+        res.into(title, mountain_id);
+        return true;
+    } else {
+        return false;
     }
-    else return false ;
 }
 
-bool RouteModel::getAttachment(const string &id, string &name, string &type_id)
-{
+bool RouteModel::getAttachment(const string &id, string &name, string &type_id){
     Query stmt(con_, "SELECT name, type FROM attachments WHERE id = ?");
-    QueryResult res = stmt(id) ;
+    QueryResult res = stmt(id);
     if ( res.next() ) {
-        res.into(name, type_id) ;
-        return true ;
+        res.into(name, type_id);
+        return true;
+    } else {
+        return false;
     }
-    else return false ;
 }
 
-bool RouteModel::getWaypoint(const string &id, string &name, string &desc)
-{
+bool RouteModel::getWaypoint(const string &id, string &name, string &desc){
     Query stmt(con_, "SELECT name, desc FROM wpts WHERE id = ?");
-    QueryResult res = stmt(id) ;
+    QueryResult res = stmt(id);
     if ( res.next() ) {
-        res.into(name, desc) ;
-        return true ;
+        res.into(name, desc);
+        return true;
+    } else {
+        return false;
     }
-    else return false ;
 }
-
 
 static string wkt_from_geom(const Track &track) {
-    ostringstream geomstr ;
+    ostringstream geomstr;
 
-    geomstr << "MULTILINESTRING(" ;
-
-    for ( uint k=0 ; k < track.segments_.size() ; k++ ) {
-
-        if ( k > 0 ) geomstr << ',' ;
-        const TrackSegment &seg = track.segments_[k] ;
-        geomstr << '(' ;
-        for( uint i=0 ; i<seg.pts_.size() ; i++ ) {
-            const TrackPoint &pt = seg.pts_[i] ;
-            if ( i > 0 ) geomstr << ',' ;
-            geomstr << pt.lon_ << ' ' << pt.lat_ ;
+    geomstr << "MULTILINESTRING(";
+    for ( uint k=0; k < track.segments_.size(); k++ ) {
+        if ( k > 0 ) geomstr << ',';
+        const TrackSegment &seg = track.segments_[k];
+        geomstr << '(';
+        for( uint i=0; i<seg.pts_.size(); i++ ) {
+            const TrackPoint &pt = seg.pts_[i];
+            if ( i > 0 ) geomstr << ',';
+            geomstr << pt.lon_ << ' ' << pt.lat_;
         }
-        geomstr << ')' ;
+        geomstr << ')';
     }
 
-    geomstr << ')' ;
+    geomstr << ')';
 
-    return geomstr.str() ;
+    return geomstr.str();
 }
 
 static string wkt_from_geom(const Waypoint &pt) {
-    ostringstream geomstr ;
-    geomstr << "POINT(" << pt.lon_ << ' ' << pt.lat_ << ")" ;
-    return geomstr.str() ;
+    ostringstream geomstr;
+    geomstr << "POINT(" << pt.lon_ << ' ' << pt.lat_ << ")";
+    return geomstr.str();
 }
 
-bool RouteModel::importRoute(const string &title, const string &mountain_id, const RouteGeometry &geom)
-{
-    uint64_t route_id ;
-
+bool RouteModel::importRoute(const string &title, const string &mountain_id, const RouteGeometry &geom){
+    uint64_t route_id;
     {
-        Statement stmt(con_, "INSERT INTO routes ( title, mountain ) VALUES (?, ?)", title, mountain_id) ;
-        stmt.exec() ;
-        route_id = con_.last_insert_rowid() ;
+        Statement stmt(con_, "INSERT INTO routes ( title, mountain ) VALUES (?, ?)", title, mountain_id);
+        stmt.exec();
+        route_id = con_.last_insert_rowid();
     }
 
-    Transaction trans(con_) ;
-
-    Statement stmt_tracks(con_, "INSERT INTO tracks ( geom, route ) VALUES (ST_GeomFromText(?,4326), ?)") ;
+    Transaction trans(con_);
+    Statement stmt_tracks(con_, "INSERT INTO tracks ( geom, route ) VALUES (ST_GeomFromText(?,4326), ?)");
 
     for( const Track &track: geom.tracks_ ) {
-
-        string geom = wkt_from_geom(track) ;
-
-        stmt_tracks(geom, route_id) ;
-        stmt_tracks.clear() ;
+        string geom = wkt_from_geom(track);
+        stmt_tracks(geom, route_id);
+        stmt_tracks.clear();
     }
 
-    Statement stmt_wpts(con_, "INSERT INTO wpts ( geom, route, name, desc, ele ) VALUES (ST_GeomFromText(?,4326), ?, ?, ?, ?)") ;
-
+    Statement stmt_wpts(con_, "INSERT INTO wpts ( geom, route, name, desc, ele ) VALUES (ST_GeomFromText(?,4326), ?, ?, ?, ?)");
     for( const Waypoint &wpt: geom.wpts_ ) {
+        string geom = wkt_from_geom(wpt);
 
-        string geom = wkt_from_geom(wpt) ;
-
-        stmt_wpts(geom, route_id, wpt.name_, wpt.desc_, wpt.ele_) ;
-        stmt_wpts.clear() ;
+        stmt_wpts(geom, route_id, wpt.name_, wpt.desc_, wpt.ele_);
+        stmt_wpts.clear();
     }
 
-    trans.commit() ;
+    trans.commit();
 }
 
 bool RouteModel::createAttachment(const string &route_id, const string &name, const string &type_id, const string &data, const string &upload_folder) {
-    string extension, target ;
-    size_t pos = name.rfind('.') ;
-    if ( pos != string::npos ) extension = name.substr(pos) ;
-    target = binToHex(randomBytes()) + extension ;
+    string extension, target;
+    size_t pos = name.rfind('.');
+    if ( pos != string::npos ) extension = name.substr(pos);
+    target = binToHex(randomBytes()) + extension;
 
-    ofstream ostrm(upload_folder + '/' + target) ;
-    ostrm.write(&data[0], data.size()) ;
+    ofstream ostrm(upload_folder + '/' + target);
+    ostrm.write(&data[0], data.size());
 
     Statement stmt(con_, "INSERT INTO attachments (route, 'type', name, url) VALUES (?, ?, ?, ?)", route_id, type_id, name, target);
+    stmt.exec();
 
-    stmt.exec() ;
-
-    return true ;
+    return true;
 }
 
 Variant RouteModel::exportGeoJSON(const RouteGeometry &g) {
-
-    Variant::Array track_features, wpt_features ;
-
+    Variant::Array track_features, wpt_features;
     for( const Track &tr: g.tracks_ ) {
-
-        Variant::Array track_coords ;
-
+        Variant::Array track_coords;
         for( const TrackSegment &seg: tr.segments_ ) {
-
-            Variant::Array ls ;
-
+            Variant::Array ls;
             for( const TrackPoint &pt: seg.pts_ ) {
-                ls.emplace_back(Variant::Array{pt.lon_, pt.lat_}) ;
+                ls.emplace_back(Variant::Array{pt.lon_, pt.lat_});
             }
 
-            track_coords.emplace_back(ls) ;
+            track_coords.emplace_back(ls);
         }
 
         track_features.emplace_back(Variant::Object{{"type", "Feature"},
                                                     {"geometry", Variant::Object{{"type", "MultiLineString"}, {"coordinates", track_coords}}
-                                                    }}) ;
+                                                    }});
     }
 
     for( const Waypoint &wpt: g.wpts_ ) {
-
-        Variant::Array wpt_coords{ wpt.lon_, wpt.lat_ } ;
-
+        Variant::Array wpt_coords{ wpt.lon_, wpt.lat_ };
         wpt_features.emplace_back(Variant::Object{{"type", "Feature"},
                                                   {"name", wpt.name_ },
                                                   {"desc", wpt.desc_ },
                                                   {"geometry", Variant::Object{{"type", "Point"}, {"coordinates", wpt_coords}}}
-                                  }) ;
+                                  });
     }
 
-
     Variant::Object tracks{{"type", "FeatureCollection"},
-                           {"features", track_features}} ;
+                           {"features", track_features}};
 
     Variant::Object wpts{{"type", "FeatureCollection"},
-                         {"features", wpt_features}} ;
+                         {"features", wpt_features}};
 
-    Variant::Array box{g.box_.min_lon_, g.box_.min_lat_, g.box_.max_lon_, g.box_.max_lat_} ;
+    Variant::Array box{g.box_.min_lon_, g.box_.min_lat_, g.box_.max_lon_, g.box_.max_lat_};
 
-    return Variant::Object{{"box", box}, {"tracks", tracks }, {"wpts", wpts} } ;
+    return Variant::Object{{"box", box}, {"tracks", tracks }, {"wpts", wpts} };
 }
 
-
 static GeomBox box_from_extent(const Blob &blob) {
+    double min_lat, min_lon, max_lat, max_lon;
 
-    double min_lat, min_lon, max_lat, max_lon ;
-
-    min_lat = min_lon = std::numeric_limits<double>::max() ;
-    max_lat = max_lon = -std::numeric_limits<double>::max() ;
+    min_lat = min_lon = std::numeric_limits<double>::max();
+    max_lat = max_lon = -std::numeric_limits<double>::max();
 
     gaiaGeomCollPtr geom = gaiaFromSpatiaLiteBlobWkb ((const unsigned char *)blob.data(), blob.size());
 
-    gaiaPolygonPtr poly = geom->FirstPolygon ;
-    gaiaRingPtr ring = poly->Exterior ;
+    gaiaPolygonPtr poly = geom->FirstPolygon;
+    gaiaRingPtr ring = poly->Exterior;
 
-    double *c = ring->Coords ;
+    double *c = ring->Coords;
+    for( uint i=0; i<ring->Points; i++ ) {
+        double lon = *c++, lat = *c++;
 
-    for( uint i=0 ; i<ring->Points ; i++ ) {
-        double lon = *c++, lat = *c++ ;
-
-        min_lat = std::min<float>(min_lat, lat) ;
-        min_lon = std::min<float>(min_lon, lon) ;
-        max_lat = std::max<float>(max_lat, lat) ;
-        max_lon = std::max<float>(max_lon, lon) ;
+        min_lat = std::min<float>(min_lat, lat);
+        min_lon = std::min<float>(min_lon, lon);
+        max_lat = std::max<float>(max_lat, lat);
+        max_lon = std::max<float>(max_lon, lon);
     }
 
-    return {min_lon, min_lat, max_lon, max_lat} ;
+    return {min_lon, min_lat, max_lon, max_lat};
 }
 
-
 static void parse_linestring(gaiaLinestringPtr line, TrackSegment &seg) {
-    size_t n_points = line->Points ;
-    double *pts = line->Coords ;
+    size_t n_points = line->Points;
+    double *pts = line->Coords;
 
-    for( size_t i=0 ; i<n_points ; i++ ) {
-        TrackPoint pt ;
+    for( size_t i=0; i<n_points; i++ ) {
+        TrackPoint pt;
         pt.lon_ = *pts++;
-        pt.lat_ = *pts++ ;
-        seg.pts_.emplace_back(pt) ;
+        pt.lat_ = *pts++;
+        seg.pts_.emplace_back(pt);
     }
 }
 
 static void parse_multi_linestring(gaiaGeomCollPtr geom, Track &track) {
+    gaiaLinestringPtr line = geom->FirstLinestring;
 
-    gaiaLinestringPtr line = geom->FirstLinestring ;
-
-    uint count = 1 ;
+    uint count = 1;
     while ( line ) {
-        TrackSegment segment ;
-        segment.name_ = "segment-" + to_string(count++) ;
-        parse_linestring(line, segment) ;
-        track.segments_.emplace_back(segment) ;
-        line = line->Next ;
+        TrackSegment segment;
+        segment.name_ = "segment-" + to_string(count++);
+        parse_linestring(line, segment);
+        track.segments_.emplace_back(segment);
+        line = line->Next;
     }
 
 }
 
 static void parse_point(gaiaGeomCollPtr geom, Waypoint &wpt) {
-
-    gaiaPointPtr pt = geom->FirstPoint ;
+    gaiaPointPtr pt = geom->FirstPoint;
     if ( pt ) {
-        wpt.lon_ = pt->X ;
-        wpt.lat_ = pt->Y ;
+        wpt.lon_ = pt->X;
+        wpt.lat_ = pt->Y;
     }
 }
 
-void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g)
-{
-    string name = g.name_ = fetchTitle(route_id) ;
+void RouteModel::fetchGeometry(const string &route_id, RouteGeometry &g){
+    string name = g.name_ = fetchTitle(route_id);
     {
-        Query stmt(con_, "SELECT id, geom FROM tracks WHERE route=?") ;
-        QueryResult res = stmt(route_id) ;
+        Query stmt(con_, "SELECT id, geom FROM tracks WHERE route=?");
+        QueryResult res = stmt(route_id);
 
         while ( res.next() ) {
-            Track tr ;
+            Track tr;
 
-            Blob blob = res.get<Blob>("geom") ;
+            Blob blob = res.get<Blob>("geom");
             gaiaGeomCollPtr geom = gaiaFromSpatiaLiteBlobWkb ((const unsigned char *)blob.data(), blob.size());
-            parse_multi_linestring(geom, tr) ;
+            parse_multi_linestring(geom, tr);
             gaiaFreeGeomColl(geom);
 
-            g.tracks_.emplace_back(tr) ;
+            g.tracks_.emplace_back(tr);
         }
 
-        if ( g.tracks_.size() == 1 ) g.tracks_[0].name_ = name ;
+        if ( g.tracks_.size() == 1 ) g.tracks_[0].name_ = name;
         else  {
-            uint k = 1 ;
+            uint k = 1;
             for( Track &tr: g.tracks_ )
-                tr.name_ = name + "_" + to_string(k++) ;
+                tr.name_ = name + "_" + to_string(k++);
         }
     }
 
     {
-        Query stmt(con_, "SELECT id, name, ele, desc, geom FROM wpts WHERE route=?") ;
-        QueryResult res = stmt(route_id) ;
+        Query stmt(con_, "SELECT id, name, ele, desc, geom FROM wpts WHERE route=?");
+        QueryResult res = stmt(route_id);
 
         while ( res.next() ) {
-            Waypoint pt ;
+            Waypoint pt;
 
-            Blob blob = res.get<Blob>("geom") ;
+            Blob blob = res.get<Blob>("geom");
             gaiaGeomCollPtr geom = gaiaFromSpatiaLiteBlobWkb ((const unsigned char *)blob.data(), blob.size());
-            parse_point(geom, pt) ;
-            pt.ele_ = res.get<double>("ele") ;
-            pt.name_ = res.get<string>("name") ;
-            pt.desc_ = res.get<string>("desc") ;
+            parse_point(geom, pt);
+            pt.ele_ = res.get<double>("ele");
+            pt.name_ = res.get<string>("name");
+            pt.desc_ = res.get<string>("desc");
             gaiaFreeGeomColl(geom);
 
-            g.wpts_.emplace_back(pt) ;
+            g.wpts_.emplace_back(pt);
 
         }
     }
 
     {
-
-        Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?") ;
-        QueryResult res = stmt(route_id) ;
+        Query stmt(con_, "SELECT Extent(geom) as box FROM tracks where route=?");
+        QueryResult res = stmt(route_id);
 
         if ( res.next() ) {
-            Blob blob = res.get<Blob>(0) ;
+            Blob blob = res.get<Blob>(0);
 
             if ( blob.data() != nullptr ) {
-                g.box_ = box_from_extent(blob) ;
+                g.box_ = box_from_extent(blob);
             }
         }
     }
-
 }
 
 bool RouteModel::remove(const string &id) {
-    Statement(con_, "DELETE FROM routes WHERE id = ?", id).exec() ;
-    Statement(con_, "DELETE FROM tracks WHERE id = ?", id).exec() ;
-    Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
-    return true ;
+    Statement(con_, "DELETE FROM routes WHERE id = ?", id).exec();
+    Statement(con_, "DELETE FROM tracks WHERE id = ?", id).exec();
+    Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec();
+    return true;
 }
 
 bool RouteModel::removeAttachment(const string &id) {
-     Statement(con_, "DELETE FROM attachments WHERE id = ?", id).exec() ;
-     return true ;
+     Statement(con_, "DELETE FROM attachments WHERE id = ?", id).exec();
+     return true;
 }
 
 bool RouteModel::removeWaypoint(const string &id) {
-    Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec() ;
-    return true ;
+    Statement(con_, "DELETE FROM wpts WHERE id = ?", id).exec();
+    return true;
 }
 
 static string xml_date() {
@@ -385,349 +355,336 @@ static string xml_date() {
     time_t now;
     std::time(&now);
     std::strftime(time_buf, 21, "%Y-%m-%dT%H:%S:%MZ", std::gmtime(&now));
-    return time_buf ;
+    return time_buf;
 }
 
 string RouteModel::exportGpx(const RouteGeometry &g) {
-    ostringstream strm ;
+    ostringstream strm;
 
-    XmlWriter writer(strm) ;
+    XmlWriter writer(strm);
 
     writer.startDocument();
-    writer.startElement("gpx") ;
+    writer.startElement("gpx");
     writer.attr("version", "1.0")
             .attr("creator", "http://vision.iti.gr/routes/")
             .attr("xmlns", "http://www.topografix.com/GPX/1/0")
             .attr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-            .attr("xsi:schemaLocation", "http://www.topografix.com/GPX/1/0/gpx.xsd") ;
+            .attr("xsi:schemaLocation", "http://www.topografix.com/GPX/1/0/gpx.xsd");
 
-    writer.startElement("time") ;
-    writer.text(xml_date()) ;
-    writer.endElement() ;
+    writer.startElement("time");
+    writer.text(xml_date());
+    writer.endElement();
 
     writer.startElement("bounds")
             .attr("minlat", to_string(g.box_.min_lat_))
             .attr("minlon", to_string(g.box_.min_lon_))
             .attr("maxlat", to_string(g.box_.max_lat_))
             .attr("maxlon", to_string(g.box_.max_lon_))
-            .endElement() ;
+            .endElement();
 
     for ( const Waypoint &wpt: g.wpts_ ) {
         writer.startElement("wpt")
                 .attr("lat", to_string(wpt.lat_) )
-                .attr("lon", to_string(wpt.lon_) )  ;
+                .attr("lon", to_string(wpt.lon_) ) ;
 
         writer.startElement("ele")
                 .text(to_string(wpt.ele_))
-                .endElement() ;
+                .endElement();
 
         writer.startElement("name")
                 .text(boost::trim_copy(wpt.name_))
-                .endElement() ;
+                .endElement();
 
         writer.startElement("desc")
                 .text(boost::trim_copy(wpt.desc_))
-                .endElement() ;
+                .endElement();
 
-        writer.endElement() ; //wpt
+        writer.endElement(); //wpt
     }
 
     for( const Track &trk: g.tracks_ ) {
-        writer.startElement("trk") ;
+        writer.startElement("trk");
 
         if ( !trk.name_.empty() )
-            writer.startElement("name").text(boost::trim_copy(trk.name_)).endElement() ;
+            writer.startElement("name").text(boost::trim_copy(trk.name_)).endElement();
 
         for( const TrackSegment &seg: trk.segments_ ) {
-            writer.startElement("trkseg") ;
+            writer.startElement("trkseg");
 
             for( const TrackPoint &pt: seg.pts_ ) {
                 writer.startElement("trkpt")
                         .attr("lat", to_string(pt.lat_) )
                         .attr("lon", to_string(pt.lon_) )
-                        .endElement()  ;
+                        .endElement() ;
             }
 
-            writer.endElement() ; // trkseg
+            writer.endElement(); // trkseg
         }
 
-        writer.endElement() ; // trk
+        writer.endElement(); // trk
     }
 
-    writer.endElement() ; // gpx
+    writer.endElement(); // gpx
     writer.endDocument();
 
-    return strm.str() ;
+    return strm.str();
 }
 
 string RouteModel::exportKml(const RouteGeometry &g) {
-
-    ostringstream strm ;
-    XmlWriter writer(strm) ;
+    ostringstream strm;
+    XmlWriter writer(strm);
 
     writer.startDocument();
-    writer.startElement("kml") ;
+    writer.startElement("kml");
 
     writer.attr("xmlns", "http://www.opengis.net/kml/2.2")
             .attr("xmlns:gx", "http://www.google.com/kml/ext/2.2")
             .attr("xmlns:kml", "http://www.opengis.net/kml/2.2")
-            .attr("xmlns:atom", "http://www.w3.org/2005/Atom") ;
+            .attr("xmlns:atom", "http://www.w3.org/2005/Atom");
 
-    writer.startElement("Document") ;
+    writer.startElement("Document");
 
-    writer.startElement("name") ;
+    writer.startElement("name");
     writer.text(g.name_);
-    writer.endElement() ;
+    writer.endElement();
 
     // style for waypoints
-
-    writer.startElement("Style").attr("id", "waypoint") ;
-    writer.startElement("IconStyle") ;
-    writer.startElement("Icon") ;
-    writer.startElement("href") ;
-    writer.text("http://maps.google.com/mapfiles/kml/paddle/red-stars.png") ;
-    writer.endElement() ;
-    writer.endElement() ;
-    writer.endElement() ;
-    writer.endElement() ;
+    writer.startElement("Style").attr("id", "waypoint");
+    writer.startElement("IconStyle");
+    writer.startElement("Icon");
+    writer.startElement("href");
+    writer.text("http://maps.google.com/mapfiles/kml/paddle/red-stars.png");
+    writer.endElement();
+    writer.endElement();
+    writer.endElement();
+    writer.endElement();
 
     // styles for tracks
-
-    writer.startElement("Style").attr("id", "track") ;
-    writer.startElement("LineStyle") ;
-    writer.startElement("color") ;
-    writer.text("ffff0000") ;
-    writer.endElement() ;
-    writer.startElement("width") ;
-    writer.text("2") ;
-    writer.endElement() ;
-    writer.endElement() ;
-    writer.endElement() ;
+    writer.startElement("Style").attr("id", "track");
+    writer.startElement("LineStyle");
+    writer.startElement("color");
+    writer.text("ffff0000");
+    writer.endElement();
+    writer.startElement("width");
+    writer.text("2");
+    writer.endElement();
+    writer.endElement();
+    writer.endElement();
 
     // waypoints
+    writer.startElement("Folder");
 
-    writer.startElement("Folder") ;
+    writer.startElement("name");
+    writer.text("Waypoints");
+    writer.endElement();
 
-    writer.startElement("name") ;
-    writer.text("Waypoints") ;
-    writer.endElement() ;
+    writer.startElement("Region");
+    writer.startElement("LatLonAltBox");
+    writer.startElement("east");
+    writer.text(to_string(g.box_.max_lon_));
+    writer.endElement();
+    writer.startElement("west");
+    writer.text(to_string(g.box_.min_lon_));
+    writer.endElement();
+    writer.startElement("north");
+    writer.text(to_string(g.box_.max_lat_));
+    writer.endElement();
+    writer.startElement("south");
+    writer.text(to_string(g.box_.min_lat_));
+    writer.endElement();
+    writer.endElement();
 
-    writer.startElement("Region") ;
-    writer.startElement("LatLonAltBox") ;
-    writer.startElement("east") ;
-    writer.text(to_string(g.box_.max_lon_)) ;
-    writer.endElement() ;
-    writer.startElement("west") ;
-    writer.text(to_string(g.box_.min_lon_)) ;
-    writer.endElement() ;
-    writer.startElement("north") ;
-    writer.text(to_string(g.box_.max_lat_)) ;
-    writer.endElement() ;
-    writer.startElement("south") ;
-    writer.text(to_string(g.box_.min_lat_)) ;
-    writer.endElement() ;
-    writer.endElement() ;
-
-    writer.startElement("Lod") ;
-    writer.startElement("minLodPixels") ;
-    writer.text("256") ;
-    writer.endElement() ;
-    writer.endElement() ;
-    writer.endElement() ;
-
+    writer.startElement("Lod");
+    writer.startElement("minLodPixels");
+    writer.text("256");
+    writer.endElement();
+    writer.endElement();
+    writer.endElement();
 
     for ( const Waypoint &pt: g.wpts_ ) {
-        ostringstream coordinates ;
-        coordinates << pt.lon_ << ',' << pt.lat_ ;
-        if ( pt.ele_ > 0 ) coordinates << ',' << pt.ele_ ;
+        ostringstream coordinates;
+        coordinates << pt.lon_ << ',' << pt.lat_;
+        if ( pt.ele_ > 0 ) coordinates << ',' << pt.ele_;
 
-        writer.startElement("Placemark") ;
-        writer.startElement("name") ;
-        writer.text(boost::trim_copy(pt.name_)) ;
-        writer.endElement() ;
+        writer.startElement("Placemark");
+        writer.startElement("name");
+        writer.text(boost::trim_copy(pt.name_));
+        writer.endElement();
 
         if ( !pt.desc_.empty() ) {
-            writer.startElement("description") ;
-            writer.text(boost::trim_copy(pt.desc_)) ;
-            writer.endElement() ;
+            writer.startElement("description");
+            writer.text(boost::trim_copy(pt.desc_));
+            writer.endElement();
         }
 
-        writer.startElement("styleUrl") ;
-        writer.text("#waypoint") ;
-        writer.endElement() ;
+        writer.startElement("styleUrl");
+        writer.text("#waypoint");
+        writer.endElement();
 
-        writer.startElement("Point") ;
-        writer.startElement("coordinates") ;
-        writer.text(coordinates.str()) ;
-        writer.endElement() ;
-        writer.endElement() ;
-        writer.endElement() ;
+        writer.startElement("Point");
+        writer.startElement("coordinates");
+        writer.text(coordinates.str());
+        writer.endElement();
+        writer.endElement();
+        writer.endElement();
     }
 
-    writer.endElement() ; // waypoints folder
+    writer.endElement(); // waypoints folder
 
     // Tracks
+    writer.startElement("Folder");
 
-    writer.startElement("Folder") ;
+    writer.startElement("name");
+    writer.text("Tracks");
+    writer.endElement();
 
-    writer.startElement("name") ;
-    writer.text("Tracks") ;
-    writer.endElement() ;
-
-    uint count = 1 ;
-
-
+    uint count = 1;
     for( const Track &trk: g.tracks_ ) {
+        writer.startElement("Folder");
 
-        writer.startElement("Folder") ;
-
-        writer.startElement("name") ;
-        writer.text(boost::trim_copy(trk.name_)) ;
-        writer.endElement() ;
+        writer.startElement("name");
+        writer.text(boost::trim_copy(trk.name_));
+        writer.endElement();
 
         for( const TrackSegment &seg: trk.segments_ ) {
+            writer.startElement("Placemark");
 
-            writer.startElement("Placemark") ;
+            writer.startElement("name");
+            writer.text(boost::trim_copy(seg.name_));
+            writer.endElement();
 
-            writer.startElement("name") ;
-            writer.text(boost::trim_copy(seg.name_)) ;
-            writer.endElement() ;
+            writer.startElement("styleUrl");
+            writer.text("#track");
+            writer.endElement();
 
-            writer.startElement("styleUrl") ;
-            writer.text("#track") ;
-            writer.endElement() ;
+            writer.startElement("LineString");
+            writer.startElement("coordinates");
 
-            writer.startElement("LineString") ;
-            writer.startElement("coordinates") ;
-
-            ostringstream coordinates ;
+            ostringstream coordinates;
 
             for( const TrackPoint &pt: seg.pts_ ) {
-                coordinates << pt.lon_ << ',' << pt.lat_ << ' ' ;
+                coordinates << pt.lon_ << ',' << pt.lat_ << ' ';
             }
 
-            writer.text(coordinates.str()) ;
-            writer.endElement() ;
-            writer.endElement() ;
-            writer.endElement() ;
+            writer.text(coordinates.str());
+            writer.endElement();
+            writer.endElement();
+            writer.endElement();
         }
 
-        writer.endElement() ; // trkseg
+        writer.endElement(); // trkseg
     }
 
-    writer.endElement() ; // tracks folder
+    writer.endElement(); // tracks folder
 
-    writer.endElement() ; // Document
-    writer.endElement() ; // kml
+    writer.endElement(); // Document
+    writer.endElement(); // kml
 
     writer.endDocument();
 
-    return strm.str() ;
+    return strm.str();
 }
 
 string RouteModel::fetchTitle(const string &id) const {
-    QueryResult row = Query(con_, "SELECT title FROM routes WHERE id=?", id).exec() ;
+    QueryResult row = Query(con_, "SELECT title FROM routes WHERE id=?", id).exec();
     if ( row.next() )
-        return row.get<string>("title") ;
+        return row.get<string>("title");
     else
-        return string() ;
+        return string();
 }
 
 Variant RouteModel::query(double x, double y) const {
-    Query q(con_, "SELECT r.id, r.title FROM routes AS r JOIN tracks as t ON t.route = r.id WHERE ST_Intersects(ST_Transform(SetSRID(t.geom, 4326), 3857), ST_Buffer(MakePoint(?, ?, 3857), 20)) LIMIT 1") ;
-    QueryResult row = q(x, y) ;
+    Query q(con_, "SELECT r.id, r.title FROM routes AS r JOIN tracks as t ON t.route = r.id WHERE ST_Intersects(ST_Transform(SetSRID(t.geom, 4326), 3857), ST_Buffer(MakePoint(?, ?, 3857), 20)) LIMIT 1");
+    QueryResult row = q(x, y);
     if ( row.next() )
-        return Variant::Object{{"id", row.get<uint>("id")}, {"title", row.get<string>("title")}} ;
+        return Variant::Object{{"id", row.get<uint>("id")}, {"title", row.get<string>("title")}};
     else
         return Variant();
 }
 
-Variant RouteModel::fetchAllByMountain() const
-{
-    Variant::Array results ;
+Variant RouteModel::fetchAllByMountain() const{
+    Variant::Array results;
 
-    Query stmt(con_, "SELECT id, title, mountain FROM routes ORDER BY mountain") ;
-    QueryResult res = stmt.exec() ;
+    Query stmt(con_, "SELECT id, title, mountain FROM routes ORDER BY mountain");
+    QueryResult res = stmt.exec();
 
-    string title, mountain, cmountain ;
-    int id ;
+    string title, mountain, cmountain;
+    int id;
 
-    Variant::Array entry ;
+    Variant::Array entry;
     while ( res.next() ) {
-        res.into(id, title, mountain) ;
-        if ( cmountain.empty() ) cmountain = mountain ;
+        res.into(id, title, mountain);
+        if ( cmountain.empty() ) cmountain = mountain;
         if ( mountain != cmountain ) {
-            results.emplace_back(Variant::Object{{"name", getMountainName(cmountain)}, {"routes", entry}}) ;
-            cmountain = mountain ;
-            entry.clear() ;
+            results.emplace_back(Variant::Object{{"name", getMountainName(cmountain)}, {"routes", entry}});
+            cmountain = mountain;
+            entry.clear();
         }
 
-        entry.emplace_back(Variant::Object{{"id", id},  {"title", title}}) ;
+        entry.emplace_back(Variant::Object{{"id", id},  {"title", title}});
     }
-    return results ;
 
+    return results;
 }
 
 Variant RouteModel::fetch(const string &id) const {
-    Query stmt(con_, "SELECT title, description, mountain FROM routes WHERE id = ? LIMIT 1") ;
-    QueryResult res = stmt(id) ;
+    Query stmt(con_, "SELECT title, description, mountain FROM routes WHERE id = ? LIMIT 1");
+    QueryResult res = stmt(id);
 
-    string title, description, mountain ;
+    string title, description, mountain;
     if ( res.next() ) {
-        res.into(title, description, mountain) ;
-        Variant::Object results{{"id", id}, {"title", title}, {"description", description}, {"mountain", getMountainName(mountain)}} ;
-        return results ;
+        res.into(title, description, mountain);
+        Variant::Object results{{"id", id}, {"title", title}, {"description", description}, {"mountain", getMountainName(mountain)}};
+        return results;
     }
-    return Variant() ;
+
+    return Variant();
 }
 
 Variant RouteModel::fetchWaypoints(const string &route_id) const {
+    Query stmt(con_, "SELECT id, ele, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat FROM wpts where route=?");
+    QueryResult res = stmt(route_id);
 
-    Query stmt(con_, "SELECT id, ele, name, desc, ST_X(geom) as lon, ST_Y(geom) as lat FROM wpts where route=?") ;
-    QueryResult res = stmt(route_id) ;
+    Variant::Array wpts;
 
-    Variant::Array wpts ;
-
-    int id ;
-    string name, desc ;
-    double ele, lon, lat ;
+    int id;
+    string name, desc;
+    double ele, lon, lat;
 
     while ( res.next() ) {
-        res.into(id, ele, name, desc, lon, lat) ;
-        Variant::Object results{{"id", id}, {"name", name}, {"desc", desc}, {"lat", lat}, {"lon", lon}, {"ele", ele}} ;
-        wpts.emplace_back(results) ;
+        res.into(id, ele, name, desc, lon, lat);
+        Variant::Object results{{"id", id}, {"name", name}, {"desc", desc}, {"lat", lat}, {"lon", lon}, {"ele", ele}};
+        wpts.emplace_back(results);
     }
 
-    return wpts ;
+    return wpts;
 }
 
-// CREATE table attachments ( id INTEGER PRIMARY KEY AUTOINCREMENT, route INTEGER NOT NULL, type TEXT NOT NULL, name TEXT, url TEXT, FOREIGN KEY (route) REFERENCES routes(id)) ;
+// CREATE table attachments ( id INTEGER PRIMARY KEY AUTOINCREMENT, route INTEGER NOT NULL, type TEXT NOT NULL, name TEXT, url TEXT, FOREIGN KEY (route) REFERENCES routes(id));
 // CREATE TABLE tracks ( id INTEGER PRIMARY KEY AUTOINCREMENT, route INTEGER NOT NULL, FOREIGN KEY (route) REFERENCES routes(id))
 // SELECT AddGeometryColumn('tracks', 'geom', 4326, 'MULTILINESTRING', 'XY');
 // CREATE table wpts ( id INTEGER PRIMARY KEY AUTOINCREMENT, route INTEGER NOT NULL, ele DOUBLE, name TEXT, desc TEXT, FOREIGN KEY (route) REFERENCES routes(id))
 // SELECT AddGeometryColumn('wpts', 'geom', 4326, 'POINT', 'XY');
 // SELECT CreateSpatialIndex('wpts', 'geom');
-
 Variant RouteModel::fetchAttachments(const string &route_id) const  {
-    Query stmt(con_, "SELECT id, type, name, url FROM attachments WHERE route = ?") ;
-    QueryResult res = stmt(route_id) ;
+    Query stmt(con_, "SELECT id, type, name, url FROM attachments WHERE route = ?");
+    QueryResult res = stmt(route_id);
 
-    string id, type, name, url  ;
+    string id, type, name, url ;
 
-    Variant::Array results ;
+    Variant::Array results;
     while ( res.next() ) {
-        res.into(id, type, name, url) ;
-        results.emplace_back(Variant::Object{{"id", id}, {"title", getAttachmentTitle(type)}, {"name", name}, {"url", url}}) ;
+        res.into(id, type, name, url);
+        results.emplace_back(Variant::Object{{"id", id}, {"title", getAttachmentTitle(type)}, {"name", name}, {"url", url}});
     }
 
-    return results ;
+    return results;
 }
 
-void RouteModel::fetchMountains()
-{
-    Query stmt(con_, "SELECT * FROM mountains") ;
+void RouteModel::fetchMountains(){
+    Query stmt(con_, "SELECT * FROM mountains");
 
     for( auto &m: stmt() ) {
-        mountains_.emplace(m["id"].as<string>(), Mountain(m["name"].as<string>(), m["lat"].as<double>(), m["lon"].as<double>())) ;
+        mountains_.emplace(m["id"].as<string>(), Mountain(m["name"].as<string>(), m["lat"].as<double>(), m["lon"].as<double>()));
     }
 }

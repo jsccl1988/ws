@@ -2,8 +2,8 @@
 <div id="page-content">
 <ul>
 <% 
-for( uint i=0 ; i<10 ; i++ ) {
-	ostringstream strm ;
+for( uint i=0; i<10; i++ ) {
+	ostringstream strm;
 	strm << i % 3;
 %>
 	

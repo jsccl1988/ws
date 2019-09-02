@@ -1,6 +1,6 @@
 #include <wspp/auth/password_authenticator.hpp>
 
-using namespace std ;
+using namespace std;
 
 namespace wspp {
 
@@ -10,7 +10,7 @@ namespace wspp {
   `id` INTEGER PRIMARY KEY AUTOINCREMENT,
   `ip` TEXT NOT NULL,
   `expiredate` INTEGER NOT NULL
-) ;
+);
 
 CREATE TABLE `requests` (
   `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -18,7 +18,7 @@ CREATE TABLE `requests` (
   `rkey` TEXT NOT NULL,
   `expire` INTEGER NOT NULL,
   `type` TEXT NOT NULL
-) ;
+);
 
 
 CREATE TABLE `tokens` (
@@ -43,17 +43,10 @@ CREATE TABLE `users` (
 
 void PasswordAuthenticator::login(const string &email, const string &password, bool remember) {
     // data validation
-
-    string vusername = validateEmail(email) ;
-
-    string vpassword = validatePassword(password) ;
-
-
+    string vusername = validateEmail(email);
+    string vpassword = validatePassword(password);
 }
 
-string PasswordAuthenticator::validateEmail(const string &email)
-{
-
+string PasswordAuthenticator::validateEmail(const string &email){
 }
-
 }

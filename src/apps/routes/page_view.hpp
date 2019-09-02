@@ -6,24 +6,16 @@
 
 #include "auth.hpp"
 
-using wspp::util::Variant ;
+using wspp::util::Variant;
 
 // Helper for global page layout
-
 class PageView {
  public:
-
     PageView(const User &user, Variant menu);
 
     Variant data(const std::string &page_id, const std::string &title) const;
 
-    Variant menu_ ;
-    const User &auth_ ;
-} ;
-
-
-
-
-
-
+    Variant menu_;
+    const User &auth_;
+};
 #endif

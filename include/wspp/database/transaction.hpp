@@ -5,28 +5,21 @@
 
 #include <string>
 
-namespace wspp { namespace db {
-
-class Connection ;
-
-class Transaction
-{
+namespace wspp {
+namespace db {
+class Connection;
+class Transaction{
 public:
-
-    Transaction(Connection &con_); // the constructor starts the constructor
+    Transaction(Connection &con_); 
 
     // you should explicitly call commit or rollback to close it
-
     void commit();
     void rollback();
 
 private:
-
-    ConnectionHandlePtr con_ ;
+    ConnectionHandlePtr con_;
 };
-
 } // namespace db
 } // namespace wspp
-
 
 #endif
